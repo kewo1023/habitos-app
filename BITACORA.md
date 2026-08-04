@@ -216,10 +216,54 @@ aplazadas sin fecha.
 
 **Pendiente / siguiente**
 
-- [ ] Kev publica (commit + Sync) y revisa las estadísticas en el iPhone: que
-      los 4 recuadros entren bien y que el modal no quede demasiado alto.
-- [ ] Siguiente de Fase 2: reordenar hábitos y editar nombre (lo último que
-      queda del bloque). Después, evaluar el salto a Fase 3 (Supabase).
+- [x] Publicado y revisado en el iPhone. Los 4 recuadros entran bien.
+
+## 2026-08-04 — Ajustes visuales y cierre de la Fase 2
+
+Los tres primeros salen de mirar la app real en el iPhone, no del plan.
+
+**Hecho**
+
+- **La racha ya no se parte en dos líneas.** Con 14 puntos rígidos de 11px no
+  quedaba ancho para el `🔥 3` y el texto caía abajo. `.dia` pasó de
+  `width/height` fijos a `flex: 0 1 11px` + `aspect-ratio: 1`: los 11px de Kev
+  siguen siendo la medida ideal, pero ahora pueden encoger. `.racha` lleva
+  `flex-shrink: 0` y `white-space: nowrap`. Se arregla solo con cualquier número
+  de días y cualquier ancho de pantalla.
+- **Los hábitos cumplidos se distinguen de lejos.** Antes solo cambiaba a un
+  fondo más claro, casi invisible. Ahora son cuatro señales juntas: fondo más
+  oscuro (variable nueva `--tarjeta-hecha`), barra verde a la izquierda con
+  `box-shadow: inset` (no un `border`, para no mover el contenido), borde
+  verdoso y `opacity: .72`. Se descartó reordenar la lista al marcar: haría
+  saltar las tarjetas bajo el dedo.
+- **Cada estadística explica qué mide.** Tocar un recuadro muestra su
+  descripción debajo; tocarlo otra vez la cierra. Los cuatro textos, sus
+  cálculos y sus etiquetas viven en una sola lista, `ESTADISTICAS`: agregar una
+  quinta es agregar un objeto, sin tocar el dibujado. El área de ayuda tiene
+  `min-height` para que la ventana no dé saltos al aparecer y desaparecer.
+- **Renombrar** — `renombrarHabito(id, nombre)`. Se toca el nombre en modo
+  edición (subrayado punteado como pista) y sale un `prompt`. El historial no se
+  toca porque cuelga del `id`, no del nombre: el pago de haber usado un id como
+  PRIMARY KEY desde el principio.
+- **Reordenar** — `moverHabito(id, direccion)` con flechas ↑↓ en modo edición.
+  Se descartó arrastrar y soltar: en táctil es bastante más código y más frágil.
+  Los botones de los extremos se **deshabilitan**, no se esconden, para que los
+  demás no cambien de sitio bajo el dedo.
+- `pruebas.js`: de 74 a **95 tests**. Todos pasan.
+- `sw.js`: `VERSION` subida a `'v6'`.
+
+**Con esto se cierra la Fase 2.**
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica (commit + Sync) y revisa en el iPhone: que la racha quede en
+      línea, que los cumplidos se noten y que las flechas de reordenar no queden
+      muy apretadas junto a la ✕.
+- [ ] Decidir el salto a **Fase 3 (Supabase)**. Es el cambio más grande hasta
+      ahora y el que elimina el riesgo de perder el historial. Requiere crear
+      cuenta, aprender el cliente de Supabase y reescribir `guardar()`/`cargar()`
+      contra Postgres.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
 
 ---
 

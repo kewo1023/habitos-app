@@ -19,7 +19,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -173,6 +173,53 @@ ctx.datos.habitos = [{ id:'viejo', nombre:'Sin fecha', emoji:'❓' }];
 ctx.datos.registros['2026-07-01'] = ['viejo'];
 ok('sin campo creado usa su primer día marcado',
    ctx.fechaInicio('viejo') === '2026-07-01');
+
+// --- renombrar
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.agregarHabito('Leerr','📖');
+const idR = ctx.datos.habitos[0].id;
+ctx.datos.registros['2026-07-15'] = [idR];
+
+ok('renombrar cambia el nombre',
+   ctx.renombrarHabito(idR, 'Leer') === true && ctx.datos.habitos[0].nombre === 'Leer');
+ok('el historial sobrevive al cambio de nombre', ctx.estaHecho(idR, '2026-07-15') === true);
+ok('el id no cambia', ctx.datos.habitos[0].id === idR);
+ok('renombrar quita espacios sobrantes',
+   ctx.renombrarHabito(idR, '  Leer 20 min  ') === true &&
+   ctx.datos.habitos[0].nombre === 'Leer 20 min');
+ok('no acepta nombre vacío',       ctx.renombrarHabito(idR, '') === false);
+ok('no acepta solo espacios',      ctx.renombrarHabito(idR, '    ') === false);
+ok('no acepta null (Cancelar)',    ctx.renombrarHabito(idR, null) === false);
+ok('el nombre quedó intacto tras los rechazos', ctx.datos.habitos[0].nombre === 'Leer 20 min');
+ok('el mismo nombre no cuenta como cambio', ctx.renombrarHabito(idR, 'Leer 20 min') === false);
+ok('recorta a 40 caracteres',
+   ctx.renombrarHabito(idR, 'x'.repeat(60)) === true &&
+   ctx.datos.habitos[0].nombre.length === 40);
+ok('renombrar un id inexistente no rompe', ctx.renombrarHabito('no-existe','Hola') === false);
+ok('el nombre nuevo se guardó en disco', ctx.cargar().habitos[0].nombre.length === 40);
+
+// --- reordenar
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.agregarHabito('A','1️⃣');
+ctx.agregarHabito('B','2️⃣');
+ctx.agregarHabito('C','3️⃣');
+const nombres = () => ctx.datos.habitos.map(h => h.nombre).join('');
+const idPrimero = ctx.datos.habitos[0].id;
+const idMedio   = ctx.datos.habitos[1].id;
+const idUltimo  = ctx.datos.habitos[2].id;
+
+ok('el orden inicial es el de creación', nombres() === 'ABC');
+ok('bajar el primero',  ctx.moverHabito(idPrimero, 1) === true && nombres() === 'BAC');
+ok('subir el del medio', ctx.moverHabito(idPrimero, -1) === true && nombres() === 'ABC');
+ok('el primero no puede subir más', ctx.moverHabito(idPrimero, -1) === false);
+ok('el último no puede bajar más',  ctx.moverHabito(idUltimo, 1) === false);
+ok('un intento inválido no altera el orden', nombres() === 'ABC');
+ok('mover un id inexistente no rompe', ctx.moverHabito('no-existe', 1) === false);
+ok('mover no pierde hábitos', ctx.datos.habitos.length === 3);
+ctx.moverHabito(idMedio, 1);
+ok('el nuevo orden se guardó en disco', ctx.cargar().habitos.map(h=>h.nombre).join('') === 'ACB');
 
 // --- copia de seguridad
 ctx.datos.habitos = [];

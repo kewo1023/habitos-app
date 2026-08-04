@@ -36,6 +36,7 @@
   --fondo:        #0f1115;
   --tarjeta:      #191c23;
   --tarjeta-alta: #22262f;
+  --tarjeta-hecha:#12141a;   /* más oscura que la normal: el hábito ya cumplido "se hunde" */
   --borde:        #2a2f3a;
   --texto:        #e8eaed;
   --texto-suave:  #8b919d;
@@ -118,8 +119,20 @@ header { margin-bottom: 22px; }
 
 .habito:active { transform: scale(0.98); }
 
-/* Cuando el hábito ya está hecho hoy */
-.habito.hecho { background: var(--tarjeta-alta); }
+/* Cuando el hábito ya está hecho hoy.
+   Cuatro señales a la vez, para que se note de un vistazo sin leer:
+     1. fondo más oscuro -> la tarjeta se hunde en vez de resaltar
+     2. barra verde a la izquierda (box-shadow "inset" = sombra por dentro;
+        la usamos en vez de un border para que no mueva el contenido)
+     3. borde verdoso tenue
+     4. toda la tarjeta un poco desvanecida */
+.habito.hecho {
+  background: var(--tarjeta-hecha);
+  border-color: rgba(62, 207, 142, .30);
+  box-shadow: inset 3px 0 0 var(--exito);
+  opacity: .72;
+}
+
 .habito.hecho .habito-nombre { color: var(--texto-suave); text-decoration: line-through; }
 
 .habito-emoji {
@@ -142,8 +155,17 @@ header { margin-bottom: 22px; }
 /* Los 7 puntitos de la última semana */
 .semana { display: flex; gap: 4px; margin-top: 7px; align-items: center; }
 
+/* Los 11px son tu ajuste y se respetan como medida ideal, pero ahora los
+   puntos pueden encoger si hace falta. Eso es lo que dice "flex: 0 1 11px":
+     0  -> nunca crezcas más de 11px
+     1  -> sí puedes encoger si no cabes
+     11px -> tu tamaño preferido
+   Antes eran 11px rígidos: 14 puntos ocupaban todo el ancho y la racha se
+   caía a la línea de abajo. aspect-ratio: 1 los mantiene redondos al encoger. */
 .dia {
-  width: 11px; height: 11px;
+  flex: 0 1 11px;
+  min-width: 6px;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: var(--borde);
 }
@@ -155,6 +177,8 @@ header { margin-bottom: 22px; }
   color: var(--texto-suave);
   margin-left: 8px;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;       /* los puntos ceden espacio, la racha no */
+  white-space: nowrap;  /* el 🔥 y el número nunca se separan en dos líneas */
 }
 
 /* El círculo que se marca al tocar */
@@ -176,17 +200,36 @@ header { margin-bottom: 22px; }
   color: #0f1115;
 }
 
-/* Botón pequeño de borrar, solo visible en modo edición */
-.borrar {
+/* Botones de mover y borrar. Solo aparecen en modo edición, donde
+   reemplazan al círculo de marcar. */
+.acciones { display: none; gap: 2px; align-items: center; flex-shrink: 0; }
+
+body.editando .acciones { display: flex; }
+body.editando .check    { display: none; }
+
+.acciones button {
   background: none; border: none;
   color: var(--texto-suave);
-  font-size: 20px; cursor: pointer;
-  padding: 4px 8px;
-  display: none;
+  font-size: 18px; cursor: pointer;
+  padding: 6px 7px;
+  font-family: inherit;
+  line-height: 1;
 }
 
-body.editando .borrar { display: block; }
-body.editando .check  { display: none; }
+/* Un hábito que ya está arriba del todo no puede subir más:
+   en vez de esconder el botón, lo apagamos. Si desapareciera,
+   los botones se moverían de sitio y terminarías tocando el que no era. */
+.acciones button:disabled { opacity: .2; cursor: default; }
+
+.borrar { font-size: 20px; }
+
+/* En modo edición el nombre se puede tocar para cambiarlo.
+   El subrayado punteado es la pista de que ahí se puede tocar. */
+body.editando .habito-nombre {
+  border-bottom: 1px dashed var(--borde);
+  display: inline-block;
+  max-width: 100%;
+}
 
 /* ---------- 4b. PANEL DE COPIA DE SEGURIDAD ----------
    Solo aparece en modo edición, para no estorbar en el uso diario */
@@ -408,6 +451,22 @@ input[type=text]:focus { outline: none; border-color: var(--acento); }
   border-radius: 12px;
   padding: 10px 6px;
   text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--texto);
+}
+
+.stat.activa { border-color: var(--acento); }
+
+/* La explicación que aparece al tocar una estadística.
+   min-height reserva el espacio de dos líneas desde el principio: sin eso,
+   la ventana daría un salto cada vez que aparece o desaparece el texto. */
+.cal-ayuda {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+  margin-top: 12px;
+  min-height: 36px;
 }
 
 .stat-numero {
@@ -507,6 +566,7 @@ input[type=text]:focus { outline: none; border-color: var(--acento); }
 
       <!-- Estadísticas del hábito. Los números los pone JavaScript. -->
       <div class="stats" id="calStats"></div>
+      <p class="cal-ayuda" id="calAyuda"></p>
 
       <button class="btn btn-secundario" id="calCerrar"
               style="width:100%; flex:none; margin-top:16px">Cerrar</button>
@@ -745,6 +805,42 @@ function agregarHabito(nombre, emoji) {
   pintar();
 }
 
+// Cambia el nombre de un hábito. Devuelve true si cambió algo.
+// El historial no se toca: vive atado al id, no al nombre. Es la ventaja de
+// haber usado un id como PRIMARY KEY en vez del nombre.
+function renombrarHabito(idHabito, nombreNuevo) {
+  const limpio = (nombreNuevo || '').trim();
+  if (!limpio) return false;                 // un nombre vacío no sirve
+
+  const h = datos.habitos.find(x => x.id === idHabito);
+  if (!h) return false;
+  if (h.nombre === limpio) return false;     // no cambió nada, no guardamos
+
+  h.nombre = limpio.slice(0, 40);            // el mismo tope que el formulario
+  guardar();
+  pintar();
+  return true;
+}
+
+// Sube o baja un hábito en la lista. direccion: -1 sube, +1 baja.
+// El orden en pantalla es simplemente el orden del array datos.habitos,
+// así que mover un hábito es intercambiarlo con su vecino.
+function moverHabito(idHabito, direccion) {
+  const i = datos.habitos.findIndex(x => x.id === idHabito);
+  if (i === -1) return false;
+
+  const j = i + direccion;
+  if (j < 0 || j >= datos.habitos.length) return false;   // ya está en el extremo
+
+  // Intercambio de dos posiciones en una línea. Se lee así:
+  // "que el de la izquierda pase a valer lo de la derecha, y viceversa".
+  [datos.habitos[i], datos.habitos[j]] = [datos.habitos[j], datos.habitos[i]];
+
+  guardar();
+  pintar();
+  return true;
+}
+
 function borrarHabito(idHabito) {
   const h = datos.habitos.find(x => x.id === idHabito);
   if (!confirm(`¿Borrar "${h.nombre}"? Se pierde su historial.`)) return;
@@ -796,9 +892,11 @@ function pintar() {
 
   // Una tarjeta por hábito
   lista.innerHTML = '';
-  datos.habitos.forEach(h => {
+  datos.habitos.forEach((h, indice) => {
     const hecho = estaHecho(h.id, hoy());
     const racha = calcularRacha(h.id);
+    const esPrimero = indice === 0;
+    const esUltimo  = indice === datos.habitos.length - 1;
 
     // Los 7 puntitos: de hace 6 días hasta hoy
     let puntos = '';
@@ -819,7 +917,11 @@ function pintar() {
         </div>
       </div>
       <div class="check">✓</div>
-      <button class="borrar">✕</button>
+      <div class="acciones">
+        <button class="subir"  ${esPrimero ? 'disabled' : ''}>↑</button>
+        <button class="bajar"  ${esUltimo  ? 'disabled' : ''}>↓</button>
+        <button class="borrar">✕</button>
+      </div>
     `;
 
     // Tocar la tarjeta = marcar/desmarcar
@@ -830,6 +932,20 @@ function pintar() {
     tarjeta.querySelector('.borrar').onclick = () => borrarHabito(h.id);
     // Tocar el emoji abre el calendario de ese hábito
     tarjeta.querySelector('.habito-emoji').onclick = () => abrirCalendario(h.id);
+
+    // Reordenar (solo se ven en modo edición)
+    tarjeta.querySelector('.subir').onclick = () => moverHabito(h.id, -1);
+    tarjeta.querySelector('.bajar').onclick = () => moverHabito(h.id, 1);
+
+    // Renombrar: tocar el nombre estando en modo edición.
+    // stopPropagation evita que el clic siga viajando hacia la tarjeta,
+    // que tiene su propio manejador para marcar el hábito.
+    tarjeta.querySelector('.habito-nombre').onclick = (ev) => {
+      if (!document.body.classList.contains('editando')) return;
+      ev.stopPropagation();
+      const nuevo = prompt('Nuevo nombre para el hábito:', h.nombre);
+      if (nuevo !== null) renombrarHabito(h.id, nuevo);   // null = tocaste Cancelar
+    };
 
     lista.appendChild(tarjeta);
   });
@@ -1082,21 +1198,69 @@ function pintarCalendario() {
 }
 
 /* --- Las estadísticas del hábito abierto ---
-   Se dibujan desde una lista, no escribiendo cuatro veces el mismo HTML.
-   Para agregar una quinta estadística basta con sumar una línea aquí. */
-function pintarStats() {
-  const cifras = [
-    { numero: calcularRacha(calHabitoId),            etiqueta: 'Racha actual' },
-    { numero: mejorRacha(calHabitoId),               etiqueta: 'Mejor racha'  },
-    { numero: porcentajeUltimos(calHabitoId, 30) + '%', etiqueta: 'Últimos 30 días' },
-    { numero: totalDias(calHabitoId),                etiqueta: 'Días en total' }
-  ];
+   Toda la definición vive en esta lista: etiqueta, cómo se calcula y qué
+   explica. Agregar una quinta estadística es agregar un objeto aquí; ni el
+   dibujado ni la ayuda hay que tocarlos. Los datos mandan sobre el código. */
+const ESTADISTICAS = [
+  {
+    etiqueta: 'Racha actual',
+    calcular: id => calcularRacha(id),
+    ayuda: 'Días seguidos cumpliendo, contando hasta hoy. Si todavía no has ' +
+           'marcado hoy, la racha de ayer sigue en pie: no se rompe hasta que ' +
+           'el día termine sin marcarlo.'
+  },
+  {
+    etiqueta: 'Mejor racha',
+    calcular: id => mejorRacha(id),
+    ayuda: 'La racha más larga que has logrado en toda la historia del hábito. ' +
+           'Es tu récord: no se pierde aunque hoy vayas en cero.'
+  },
+  {
+    etiqueta: 'Últimos 30 días',
+    calcular: id => porcentajeUltimos(id, 30) + '%',
+    ayuda: 'Porcentaje de días cumplidos en el último mes. Se mide desde que ' +
+           'creaste el hábito, no sobre 30 días fijos: si lo creaste hace 4 ' +
+           'días y los cumpliste todos, ves 100% y no 13%.'
+  },
+  {
+    etiqueta: 'Días en total',
+    calcular: id => totalDias(id),
+    ayuda: 'Todas las veces que has marcado este hábito, sumando su historia ' +
+           'completa. Incluye los días que corrijas tocándolos en el calendario.'
+  }
+];
 
-  document.getElementById('calStats').innerHTML = cifras.map(c => `
-    <div class="stat">
-      <div class="stat-numero">${c.numero}</div>
-      <div class="stat-etiqueta">${c.etiqueta}</div>
-    </div>`).join('');
+const AYUDA_POR_DEFECTO = 'Toca una estadística para ver qué mide exactamente.';
+
+function pintarStats() {
+  const caja = document.getElementById('calStats');
+  caja.innerHTML = ESTADISTICAS.map((e, i) => `
+    <button class="stat" data-i="${i}">
+      <div class="stat-numero">${e.calcular(calHabitoId)}</div>
+      <div class="stat-etiqueta">${e.etiqueta}</div>
+    </button>`).join('');
+
+  // Un manejador por recuadro: muestra su explicación, y si ya estaba
+  // mostrándose, la cierra. Así el mismo toque sirve para abrir y cerrar.
+  caja.querySelectorAll('.stat').forEach(boton => {
+    boton.onclick = () => {
+      const yaEstaba = boton.classList.contains('activa');
+      caja.querySelectorAll('.stat').forEach(b => b.classList.remove('activa'));
+
+      if (yaEstaba) {
+        mostrarAyuda(null);
+      } else {
+        boton.classList.add('activa');
+        mostrarAyuda(ESTADISTICAS[boton.dataset.i].ayuda);
+      }
+    };
+  });
+
+  mostrarAyuda(null);   // al abrir el calendario siempre parte del texto guía
+}
+
+function mostrarAyuda(texto) {
+  document.getElementById('calAyuda').textContent = texto || AYUDA_POR_DEFECTO;
 }
 
 document.getElementById('calAtras').onclick    = () => moverMes(-1);

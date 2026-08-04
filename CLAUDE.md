@@ -76,10 +76,11 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
   - ✅ Calendario mensual por hábito (se abre tocando su emoji), con corrección
     de días pasados
   - ✅ Estadísticas por hábito dentro del calendario (racha actual, mejor racha,
-    % últimos 30 días, días en total)
-  - Pendiente: reordenar y editar nombre.
+    % últimos 30 días, días en total), cada una con explicación al tocarla
+  - ✅ Reordenar con flechas y renombrar (tocar el nombre en modo edición)
   - Aplazado: metas semanales. Todos los hábitos de Kev son diarios; no aporta
     hoy. Retomar solo si aparece un hábito que no sea de todos los días.
+  - **Fase 2 cerrada.**
 - **Fase 3 — Sincronizar** Supabase (Postgres). Aquí vuelve el SQL de verdad.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
@@ -97,7 +98,8 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v5` (estadísticas). Confirmar que quedó publicada.
+`VERSION` en el Mac: `v6` (ajustes visuales + reordenar/renombrar). Confirmar
+que quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué
@@ -109,7 +111,9 @@ Kev ya edita el código él mismo. Cambios suyos que hay que respetar y no rever
 al tocar `index.html`:
 
 - Muestra **14 días** de historial, no 7 (`for (let i = 13; i >= 0; i--)`).
-- Puntos del historial a `11px` (`.dia`), no 9.
+- Puntos del historial a `11px` (`.dia`), no 9. Ahora es `flex: 0 1 11px`:
+  los 11px siguen siendo su medida, pero pueden encoger para que la racha
+  quepa en la misma línea. Si cambia ese valor, que siga siendo el `flex-basis`.
 - La racha 🔥 solo aparece **desde 3 días** (`racha > 2`).
 - `pintar()` incluye un **saludo según la hora** que reemplaza el título
   ("Buenos días, Kev"). Ojo: si se toca el título en el HTML, ese texto se
