@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  MIS HÁBITOS — v0.1
+  ============================================================
+  Todo el proyecto vive en este único archivo. Tiene 3 partes:
+
+    1. <style>  -> cómo se ve      (CSS)
+    2. <body>   -> qué elementos hay (HTML)
+    3. <script> -> qué hace         (JavaScript)
+
+  Los datos se guardan en el propio teléfono/navegador con
+  "localStorage". No hay servidor, no hay internet, no hay cuentas.
+  ============================================================
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- Esta línea hace que se vea bien en pantalla de teléfono -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mis Hábitos</title>
+
+  <!-- Estas líneas son las que hacen que, al agregarla a la pantalla
+       de inicio del iPhone, se abra sin barra de Safari y con ícono propio -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hábitos">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="icon" href="icono-192.png">
+  <link rel="manifest" href="manifest.json">
+
+<style>
+/* ---------- 1. VARIABLES: los colores en un solo sitio ---------- */
+:root {
+  --fondo:        #0f1115;
+  --tarjeta:      #191c23;
+  --tarjeta-alta: #22262f;
+  --borde:        #2a2f3a;
+  --texto:        #e8eaed;
+  --texto-suave:  #8b919d;
+  --acento:       #5b8def;
+  --exito:        #3ecf8e;
+}
+
+/* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  /* padding extra arriba/abajo para el "notch" del iPhone */
+  padding: max(20px, env(safe-area-inset-top)) 18px calc(110px + env(safe-area-inset-bottom));
+  max-width: 620px;
+  margin: 0 auto;
+  min-height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---------- 3. CABECERA ---------- */
+header { margin-bottom: 22px; }
+
+.fecha {
+  font-size: 13px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 600;
+}
+
+.titulo {
+  font-size: 30px;
+  font-weight: 700;
+  margin-top: 4px;
+  letter-spacing: -0.5px;
+}
+
+/* Barra de progreso del día */
+.progreso-caja { margin-top: 18px; }
+
+.progreso-texto {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--texto-suave);
+  margin-bottom: 8px;
+}
+
+.progreso-fondo {
+  height: 8px;
+  background: var(--tarjeta-alta);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progreso-barra {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--acento), var(--exito));
+  border-radius: 99px;
+  transition: width .45s cubic-bezier(.2,.8,.2,1);
+}
+
+/* ---------- 4. TARJETA DE HÁBITO ---------- */
+.habito {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform .12s ease, background .2s ease;
+}
+
+.habito:active { transform: scale(0.98); }
+
+/* Cuando el hábito ya está hecho hoy */
+.habito.hecho { background: var(--tarjeta-alta); }
+.habito.hecho .habito-nombre { color: var(--texto-suave); text-decoration: line-through; }
+
+.habito-emoji {
+  font-size: 26px;
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: var(--tarjeta-alta);
+  flex-shrink: 0;
+}
+
+.habito-info { flex: 1; min-width: 0; }
+
+.habito-nombre {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Los 7 puntitos de la última semana */
+.semana { display: flex; gap: 4px; margin-top: 7px; align-items: center; }
+
+.dia {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--borde);
+}
+
+.dia.lleno { background: var(--exito); }
+
+.racha {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El círculo que se marca al tocar */
+.check {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--borde);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-size: 16px;
+  color: transparent;
+}
+
+.habito.hecho .check {
+  background: var(--exito);
+  border-color: var(--exito);
+  color: #0f1115;
+}
+
+/* Botón pequeño de borrar, solo visible en modo edición */
+.borrar {
+  background: none; border: none;
+  color: var(--texto-suave);
+  font-size: 20px; cursor: pointer;
+  padding: 4px 8px;
+  display: none;
+}
+
+body.editando .borrar { display: block; }
+body.editando .check  { display: none; }
+
+/* ---------- 4b. PANEL DE COPIA DE SEGURIDAD ----------
+   Solo aparece en modo edición, para no estorbar en el uso diario */
+.panel-datos {
+  display: none;
+  margin-top: 26px;
+  padding: 16px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+}
+
+body.editando .panel-datos { display: block; }
+
+.panel-botones { display: flex; gap: 8px; margin-top: 10px; }
+
+.btn-mini {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-mini:active { background: var(--tarjeta-alta); }
+
+.nota {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+/* ---------- 5. ESTADO VACÍO ---------- */
+.vacio {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--texto-suave);
+}
+
+.vacio-emoji { font-size: 44px; margin-bottom: 14px; }
+
+/* ---------- 6. BOTONES DE ABAJO ---------- */
+.barra-inferior {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fondo) 65%, transparent);
+  display: flex; gap: 10px;
+  max-width: 620px; margin: 0 auto;
+}
+
+.btn {
+  flex: 1;
+  padding: 15px;
+  border-radius: 15px;
+  border: none;
+  font-size: 15px; font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn-principal  { background: var(--acento); color: #fff; }
+.btn-secundario { background: var(--tarjeta); color: var(--texto-suave);
+                  border: 1px solid var(--borde); flex: 0 0 90px; }
+
+/* ---------- 7. VENTANA PARA AGREGAR HÁBITO ---------- */
+.fondo-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  display: none;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.fondo-modal.abierto { display: flex; }
+
+.modal {
+  background: var(--tarjeta);
+  width: 100%;
+  border-radius: 26px 26px 0 0;
+  padding: 26px 20px calc(26px + env(safe-area-inset-bottom));
+  max-width: 620px; margin: 0 auto;
+  animation: subir .25s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes subir { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.modal h2 { font-size: 19px; margin-bottom: 18px; }
+
+.etiqueta {
+  font-size: 12px; color: var(--texto-suave);
+  text-transform: uppercase; letter-spacing: 1px;
+  font-weight: 600; margin-bottom: 8px; display: block;
+}
+
+input[type=text] {
+  width: 100%;
+  padding: 14px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 13px;
+  color: var(--texto);
+  font-size: 16px; /* 16px evita que el iPhone haga zoom al escribir */
+  font-family: inherit;
+  margin-bottom: 18px;
+  -webkit-user-select: text; user-select: text;
+}
+
+input[type=text]:focus { outline: none; border-color: var(--acento); }
+
+.emojis { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+
+.emoji-op {
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  background: var(--fondo);
+  border: 2px solid transparent;
+  font-size: 22px;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+
+.emoji-op.elegido { border-color: var(--acento); }
+
+/* ---------- 8. CALENDARIO MENSUAL ---------- */
+
+/* El emoji del hábito ahora se puede tocar: abre su calendario.
+   El borde tenue es la pista visual de que ahí se puede tocar. */
+.habito-emoji { cursor: pointer; border: 1px solid var(--borde); }
+
+.cal-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cal-cabecera h2 { margin-bottom: 2px; }
+
+.cal-titulo-caja { flex: 1; min-width: 0; text-align: center; }
+
+.cal-mes {
+  font-size: 13px;
+  color: var(--texto-suave);
+  text-transform: capitalize;
+}
+
+.cal-flecha {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cal-flecha:active { background: var(--tarjeta-alta); }
+
+/* "grid" = cuadrícula. 7 columnas = los 7 días de la semana.
+   Es la pieza clave: le decimos "7 columnas iguales" y los días
+   se van acomodando solos, saltando de fila cuando toca. */
+.cal-nombres, .cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.cal-nombres {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cal-dia {
+  aspect-ratio: 1;          /* cuadrado perfecto, mida lo que mida */
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+
+.cal-dia.hecho   { background: var(--exito); color: #0f1115; }
+.cal-dia.hoy     { border-color: var(--acento); }
+.cal-dia.futuro  { opacity: .25; cursor: default; }
+</style>
+</head>
+
+<body>
+
+  <!-- ====== HTML: la estructura visible ====== -->
+  <header>
+    <div class="fecha" id="fecha"></div>
+    <div class="titulo">Mis Hábitos</div>
+
+    <div class="progreso-caja" id="cajaProgreso">
+      <div class="progreso-texto">
+        <span>Hoy</span>
+        <span id="progresoTexto">0 de 0</span>
+      </div>
+      <div class="progreso-fondo"><div class="progreso-barra" id="barra"></div></div>
+    </div>
+  </header>
+
+  <!-- Aquí JavaScript va a insertar las tarjetas de hábitos -->
+  <main id="lista"></main>
+
+  <!-- Copia de seguridad. Solo se ve al tocar "Editar" -->
+  <section class="panel-datos">
+    <span class="etiqueta">Copia de seguridad</span>
+    <div class="panel-botones">
+      <button class="btn-mini" id="btnExportar">↓ Guardar copia</button>
+      <button class="btn-mini" id="btnImportar">↑ Restaurar copia</button>
+    </div>
+    <!-- Este input abre el selector de archivos. Va oculto porque el
+         botón de arriba es más bonito; al tocarlo, lo activamos desde JS -->
+    <input type="file" id="archivoEntrada" accept=".json,application/json" hidden>
+    <p class="nota">Tus hábitos viven solo en este dispositivo. Guarda una copia
+      de vez en cuando: si borras la app, se pierde el historial.</p>
+  </section>
+
+  <div class="barra-inferior">
+    <button class="btn btn-principal"  id="btnAgregar">+ Nuevo hábito</button>
+    <button class="btn btn-secundario" id="btnEditar">Editar</button>
+  </div>
+
+  <!-- Ventana emergente para crear un hábito -->
+  <div class="fondo-modal" id="modal">
+    <div class="modal">
+      <h2>Nuevo hábito</h2>
+
+      <label class="etiqueta" for="nombre">Nombre</label>
+      <input type="text" id="nombre" placeholder="Ej: Leer 20 minutos" maxlength="40" autocomplete="off">
+
+      <label class="etiqueta">Ícono</label>
+      <div class="emojis" id="emojis"></div>
+
+      <div style="display:flex; gap:10px">
+        <button class="btn btn-secundario" id="btnCancelar" style="flex:1">Cancelar</button>
+        <button class="btn btn-principal"  id="btnGuardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendario de un hábito. Se abre al tocar su emoji.
+       Los días se generan desde JavaScript, por eso calGrid va vacío. -->
+  <div class="fondo-modal" id="modalCal">
+    <div class="modal">
+      <div class="cal-cabecera">
+        <button class="cal-flecha" id="calAtras">‹</button>
+        <div class="cal-titulo-caja">
+          <h2 id="calTitulo">Hábito</h2>
+          <div class="cal-mes" id="calMes"></div>
+        </div>
+        <button class="cal-flecha" id="calAdelante">›</button>
+      </div>
+
+      <div class="cal-nombres">
+        <span>L</span><span>M</span><span>M</span><span>J</span>
+        <span>V</span><span>S</span><span>D</span>
+      </div>
+
+      <div class="cal-grid" id="calGrid"></div>
+
+      <p class="nota" id="calResumen"></p>
+
+      <button class="btn btn-secundario" id="calCerrar"
+              style="width:100%; flex:none; margin-top:16px">Cerrar</button>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   JAVASCRIPT — la lógica de la app
+   Leelo de arriba a abajo, está en orden de importancia.
+   ============================================================ */
+
+/* ---------- A. GUARDAR Y LEER DATOS ----------
+   localStorage solo guarda TEXTO. Por eso convertimos nuestro
+   objeto a texto con JSON.stringify al guardar, y de texto a
+   objeto con JSON.parse al leer.                                */
+
+const CLAVE = 'habitos-app-v1';
+
+// Esta es la "forma" de nuestros datos. Piénsalo como dos tablas:
+//   habitos  -> una fila por hábito
+//   registros-> qué hábitos se marcaron en cada fecha
+const datosPorDefecto = { version: 1, habitos: [], registros: {} };
+
+function cargar() {
+  try {
+    const texto = localStorage.getItem(CLAVE);
+    return texto ? JSON.parse(texto) : structuredClone(datosPorDefecto);
+  } catch (e) {
+    // Si algo se corrompe, mejor arrancar limpio que romperse
+    console.error('No se pudieron leer los datos:', e);
+    return structuredClone(datosPorDefecto);
+  }
+}
+
+function guardar() {
+  localStorage.setItem(CLAVE, JSON.stringify(datos));
+}
+
+let datos = cargar();
+
+/* ---------- B. FECHAS ----------
+   Usamos el formato "2026-08-01" (año-mes-día) porque así las
+   fechas se ordenan solas alfabéticamente. Es el mismo formato
+   DATE de SQL, te va a resultar familiar.                       */
+
+function claveFecha(fecha) {
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, '0'); // los meses van de 0 a 11
+  const d = String(fecha.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function hoy() { return claveFecha(new Date()); }
+
+function haceNDias(n) {
+  const f = new Date();
+  f.setDate(f.getDate() - n);
+  return claveFecha(f);
+}
+
+/* --- Fechas para el calendario ---
+   Aquí el mes va de 1 a 12 (como lo dirías hablando), no de 0 a 11
+   como lo maneja JavaScript por dentro. Es una decisión: prefiero
+   traducir en un solo sitio a estar restando 1 por todo el código. */
+
+// Arma la clave de fecha a partir de tres números sueltos.
+function claveDe(anio, mes, dia) {
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+// ¿Cuántos días tiene este mes? Truco clásico: pedirle a JavaScript
+// el "día 0" del mes siguiente. El día 0 no existe, así que retrocede
+// uno y cae en el último día del mes que queremos. Así no hay que
+// acordarse de febrero ni de los años bisiestos.
+function diasDelMes(anio, mes) {
+  return new Date(anio, mes, 0).getDate();
+}
+
+// ¿En qué columna empieza el día 1? La semana la mostramos de lunes a
+// domingo, pero getDay() cuenta 0=domingo ... 6=sábado. El (+6) % 7
+// rota esa numeración para que el lunes quede en 0.
+function columnaInicio(anio, mes) {
+  const diaSemana = new Date(anio, mes - 1, 1).getDay();
+  return (diaSemana + 6) % 7;
+}
+
+// Comparar fechas es comparar texto, y funciona: al estar en formato
+// AAAA-MM-DD, el orden alfabético coincide con el cronológico. Es la
+// misma razón por la que elegimos este formato desde el principio.
+function esFutura(fecha) {
+  return fecha > hoy();
+}
+
+/* ---------- C. CONSULTAS SOBRE LOS DATOS ---------- */
+
+// ¿Este hábito está marcado en esta fecha?
+function estaHecho(idHabito, fecha) {
+  const delDia = datos.registros[fecha] || [];
+  return delDia.includes(idHabito);
+}
+
+// Cuántos días seguidos lleva. Si hoy todavía no lo marca, la racha
+// de ayer hacia atrás sigue contando (no lo castigamos a las 8am).
+function calcularRacha(idHabito) {
+  let racha = 0;
+  let inicio = estaHecho(idHabito, hoy()) ? 0 : 1;
+  for (let i = inicio; i < 3650; i++) {
+    if (estaHecho(idHabito, haceNDias(i))) racha++;
+    else break;
+  }
+  return racha;
+}
+
+// Cuántas veces se marcó este hábito en un mes concreto.
+// En SQL sería: SELECT COUNT(*) ... WHERE fecha LIKE '2026-08%'
+function contarMes(idHabito, anio, mes) {
+  let total = 0;
+  for (let d = 1; d <= diasDelMes(anio, mes); d++) {
+    if (estaHecho(idHabito, claveDe(anio, mes, d))) total++;
+  }
+  return total;
+}
+
+/* ---------- D. ACCIONES (cambian los datos) ---------- */
+
+// Marca o desmarca un hábito en CUALQUIER fecha, no solo hoy.
+// Devuelve true si cambió algo, false si no se permitió.
+function alternarFecha(idHabito, fecha) {
+  if (esFutura(fecha)) return false;   // el futuro no se marca
+
+  if (!datos.registros[fecha]) datos.registros[fecha] = [];
+
+  const posicion = datos.registros[fecha].indexOf(idHabito);
+  if (posicion === -1) datos.registros[fecha].push(idHabito);   // marcar
+  else datos.registros[fecha].splice(posicion, 1);              // desmarcar
+
+  // Si el día quedó sin nada, borramos la clave entera: no vale la pena
+  // guardar filas vacías. Mantiene la copia de seguridad limpia.
+  if (datos.registros[fecha].length === 0) delete datos.registros[fecha];
+
+  guardar();
+  pintar();
+  return true;
+}
+
+// Marcar hoy pasa a ser un caso particular de lo anterior.
+function alternarHoy(idHabito) {
+  return alternarFecha(idHabito, hoy());
+}
+
+function agregarHabito(nombre, emoji) {
+  datos.habitos.push({
+    id: crypto.randomUUID(),   // un identificador único, como una PRIMARY KEY
+    nombre: nombre,
+    emoji: emoji,
+    creado: hoy()
+  });
+  guardar();
+  pintar();
+}
+
+function borrarHabito(idHabito) {
+  const h = datos.habitos.find(x => x.id === idHabito);
+  if (!confirm(`¿Borrar "${h.nombre}"? Se pierde su historial.`)) return;
+
+  datos.habitos = datos.habitos.filter(x => x.id !== idHabito);
+  // También limpiamos su historial de todas las fechas
+  for (const fecha in datos.registros) {
+    datos.registros[fecha] = datos.registros[fecha].filter(x => x !== idHabito);
+  }
+  guardar();
+  pintar();
+}
+
+/* ---------- E. PINTAR LA PANTALLA ----------
+   Regla de oro: los datos son la verdad. Cada vez que cambian,
+   volvemos a dibujar todo desde cero. Es más simple y no se
+   desincroniza nunca.                                           */
+
+const lista = document.getElementById('lista');
+
+function pintar() {
+  // Fecha de arriba
+  document.getElementById('fecha').textContent =
+    new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
+
+  // Saludo personalizado según la hora del día
+  const hora = new Date().getHours();
+  let saludo = 'Buenas noches';
+  if (hora < 12) saludo = 'Buenos días';
+  else if (hora < 19) saludo = 'Buenas tardes';
+  document.querySelector('.titulo').textContent = saludo + ', Kev';
+
+  // Caso: todavía no hay hábitos
+  if (datos.habitos.length === 0) {
+    lista.innerHTML = `
+      <div class="vacio">
+        <div class="vacio-emoji">🌱</div>
+        <div>Aún no tienes hábitos.<br>Empieza con uno o dos, no más.</div>
+      </div>`;
+    document.getElementById('cajaProgreso').style.visibility = 'hidden';
+    return;
+  }
+  document.getElementById('cajaProgreso').style.visibility = 'visible';
+
+  // Barra de progreso del día
+  const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
+  document.getElementById('progresoTexto').textContent = `${hechosHoy} de ${datos.habitos.length}`;
+  document.getElementById('barra').style.width = (hechosHoy / datos.habitos.length * 100) + '%';
+
+  // Una tarjeta por hábito
+  lista.innerHTML = '';
+  datos.habitos.forEach(h => {
+    const hecho = estaHecho(h.id, hoy());
+    const racha = calcularRacha(h.id);
+
+    // Los 7 puntitos: de hace 6 días hasta hoy
+    let puntos = '';
+    for (let i = 13; i >= 0; i--) {
+      const lleno = estaHecho(h.id, haceNDias(i)) ? 'lleno' : '';
+      puntos += `<div class="dia ${lleno}"></div>`;
+    }
+
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'habito' + (hecho ? ' hecho' : '');
+    tarjeta.innerHTML = `
+      <div class="habito-emoji">${h.emoji}</div>
+      <div class="habito-info">
+        <div class="habito-nombre">${h.nombre}</div>
+        <div class="semana">
+          ${puntos}
+          <span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>
+        </div>
+      </div>
+      <div class="check">✓</div>
+      <button class="borrar">✕</button>
+    `;
+
+    // Tocar la tarjeta = marcar/desmarcar
+    tarjeta.querySelector('.check').onclick = () => alternarHoy(h.id);
+    tarjeta.querySelector('.habito-info').onclick = () => {
+      if (!document.body.classList.contains('editando')) alternarHoy(h.id);
+    };
+    tarjeta.querySelector('.borrar').onclick = () => borrarHabito(h.id);
+    // Tocar el emoji abre el calendario de ese hábito
+    tarjeta.querySelector('.habito-emoji').onclick = () => abrirCalendario(h.id);
+
+    lista.appendChild(tarjeta);
+  });
+}
+
+/* ---------- F. LA VENTANA DE "NUEVO HÁBITO" ---------- */
+
+const EMOJIS = ['💪','📖','💧','🧘','🏃','🥗','😴','✍️','🎸','🧠','🌅','🚭','💊','🧹','📵','☎️'];
+let emojiElegido = EMOJIS[0];
+
+const modal = document.getElementById('modal');
+const cajaEmojis = document.getElementById('emojis');
+
+// Dibujamos los emojis disponibles una sola vez
+EMOJIS.forEach((e, i) => {
+  const b = document.createElement('button');
+  b.className = 'emoji-op' + (i === 0 ? ' elegido' : '');
+  b.textContent = e;
+  b.onclick = () => {
+    document.querySelectorAll('.emoji-op').forEach(x => x.classList.remove('elegido'));
+    b.classList.add('elegido');
+    emojiElegido = e;
+  };
+  cajaEmojis.appendChild(b);
+});
+
+document.getElementById('btnAgregar').onclick = () => {
+  modal.classList.add('abierto');
+  document.getElementById('nombre').focus();
+};
+
+document.getElementById('btnCancelar').onclick = cerrarModal;
+
+modal.onclick = (ev) => { if (ev.target === modal) cerrarModal(); };
+
+function cerrarModal() {
+  modal.classList.remove('abierto');
+  document.getElementById('nombre').value = '';
+}
+
+document.getElementById('btnGuardar').onclick = () => {
+  const nombre = document.getElementById('nombre').value.trim();
+  if (!nombre) return;              // no guardamos hábitos sin nombre
+  agregarHabito(nombre, emojiElegido);
+  cerrarModal();
+};
+
+// Enter en el teclado también guarda
+document.getElementById('nombre').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter') document.getElementById('btnGuardar').click();
+});
+
+/* ---------- G. MODO EDICIÓN ---------- */
+document.getElementById('btnEditar').onclick = (ev) => {
+  document.body.classList.toggle('editando');
+  ev.target.textContent = document.body.classList.contains('editando') ? 'Listo' : 'Editar';
+};
+
+/* ---------- H. COPIA DE SEGURIDAD ----------
+   Exportar = convertir nuestros datos a un archivo .json y entregártelo.
+   Importar = leer ese archivo y volver a meter los datos en la app.
+   Un .json es solo texto con la misma forma que ves en la sección A.     */
+
+function nombreArchivo() {
+  return `habitos-${hoy()}.json`;   // ej: habitos-2026-08-02.json
+}
+
+async function exportar() {
+  // JSON.stringify con "null, 2" al final = con saltos de línea y sangría,
+  // para que el archivo se pueda leer con los ojos si haces falta.
+  const texto = JSON.stringify(datos, null, 2);
+  const archivo = new File([texto], nombreArchivo(), { type: 'application/json' });
+
+  // En el iPhone lo natural es el menú Compartir: te deja guardarlo en
+  // Archivos, mandártelo por correo, subirlo a iCloud...
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try {
+      await navigator.share({ files: [archivo], title: 'Copia de mis hábitos' });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;   // cancelaste el menú, todo bien
+      // cualquier otro error: seguimos al plan B de abajo
+    }
+  }
+
+  // Plan B (computador): una descarga normal
+  const url = URL.createObjectURL(archivo);
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombreArchivo();
+  enlace.click();
+  URL.revokeObjectURL(url);
+}
+
+// Nunca confíes en un archivo de afuera. Revisamos que tenga la forma
+// esperada antes de dejarlo entrar; si no, podríamos romper la app entera.
+function esCopiaValida(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  if (!Array.isArray(obj.habitos)) return false;
+  if (!obj.registros || typeof obj.registros !== 'object' || Array.isArray(obj.registros)) return false;
+
+  // Cada hábito debe tener al menos id y nombre
+  const habitosOk = obj.habitos.every(h =>
+    h && typeof h.id === 'string' && typeof h.nombre === 'string');
+
+  // Cada día del historial debe ser una lista de ids
+  const registrosOk = Object.values(obj.registros).every(v => Array.isArray(v));
+
+  return habitosOk && registrosOk;
+}
+
+// Devuelve true si se importó, false si no. Así quien la llama sabe qué pasó.
+function importar(texto) {
+  let copia;
+  try {
+    copia = JSON.parse(texto);
+  } catch (e) {
+    alert('Ese archivo no se puede leer. ¿Seguro que es una copia de Mis Hábitos?');
+    return false;
+  }
+
+  if (!esCopiaValida(copia)) {
+    alert('El archivo se lee, pero no tiene la forma de una copia de Mis Hábitos.');
+    return false;
+  }
+
+  const cuantosHabitos = copia.habitos.length;
+  const cuantosDias = Object.keys(copia.registros).length;
+
+  if (!confirm(
+    `La copia tiene ${cuantosHabitos} hábito(s) y ${cuantosDias} día(s) de historial.\n\n` +
+    `Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?`)) return false;
+
+  datos = { version: 1, habitos: copia.habitos, registros: copia.registros };
+  guardar();
+  pintar();
+  return true;
+}
+
+/* ---------- I. FUNCIONAR SIN INTERNET ----------
+   Registramos el "service worker" (ver sw.js). Solo funciona cuando
+   la app está publicada en una dirección https, no al abrir el
+   archivo con doble clic — por eso el if.                         */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(e => console.log('SW:', e));
+}
+
+/* ---------- J. CONECTAR LOS BOTONES DE COPIA ---------- */
+
+document.getElementById('btnExportar').onclick = exportar;
+
+// El botón bonito solo simula un clic en el input de archivo, que está oculto
+document.getElementById('btnImportar').onclick = () =>
+  document.getElementById('archivoEntrada').click();
+
+document.getElementById('archivoEntrada').onchange = ev => {
+  const archivo = ev.target.files[0];
+  if (!archivo) return;
+
+  // Leer un archivo toma tiempo, por eso avisamos "cuando termines, haz esto"
+  const lector = new FileReader();
+  lector.onload = () => {
+    if (importar(lector.result)) alert('Listo, copia restaurada.');
+  };
+  lector.readAsText(archivo);
+
+  ev.target.value = '';   // permite volver a elegir el mismo archivo después
+};
+
+/* ---------- L. EL CALENDARIO EN PANTALLA ----------
+   La lógica de fechas ya quedó resuelta arriba (secciones B, C y D).
+   Aquí solo traducimos esos números a cuadritos en la pantalla.
+   Esa separación es a propósito: lo de arriba se puede probar con
+   pruebas.js; esto de aquí hay que mirarlo con los ojos.             */
+
+// Estas tres variables recuerdan "qué estoy viendo ahora mismo".
+let calHabitoId = null;
+let calAnio = 0;
+let calMes = 0;
+
+function abrirCalendario(idHabito) {
+  calHabitoId = idHabito;
+  const ahora = new Date();
+  calAnio = ahora.getFullYear();
+  calMes = ahora.getMonth() + 1;      // +1 porque adentro contamos 1-12
+  pintarCalendario();
+  document.getElementById('modalCal').classList.add('abierto');
+}
+
+function cerrarCalendario() {
+  document.getElementById('modalCal').classList.remove('abierto');
+  calHabitoId = null;
+}
+
+// paso vale +1 (mes siguiente) o -1 (mes anterior).
+// El if se encarga del salto de año en diciembre y enero.
+function moverMes(paso) {
+  calMes += paso;
+  if (calMes > 12) { calMes = 1;  calAnio++; }
+  if (calMes < 1)  { calMes = 12; calAnio--; }
+  pintarCalendario();
+}
+
+function pintarCalendario() {
+  const h = datos.habitos.find(x => x.id === calHabitoId);
+  if (!h) return;
+
+  document.getElementById('calTitulo').textContent = `${h.emoji} ${h.nombre}`;
+  document.getElementById('calMes').textContent =
+    new Date(calAnio, calMes - 1, 1)
+      .toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';   // borrón y cuenta nueva, igual que en pintar()
+
+  // 1) Cuadros vacíos hasta llegar al día 1. Sin esto, el mes empezaría
+  //    siempre en lunes y las columnas quedarían corridas.
+  for (let i = 0; i < columnaInicio(calAnio, calMes); i++) {
+    grid.appendChild(document.createElement('div'));
+  }
+
+  // 2) Un botón por cada día real del mes
+  for (let d = 1; d <= diasDelMes(calAnio, calMes); d++) {
+    const fecha = claveDe(calAnio, calMes, d);
+
+    const celda = document.createElement('button');
+    celda.className = 'cal-dia';
+    if (estaHecho(calHabitoId, fecha)) celda.classList.add('hecho');
+    if (fecha === hoy())               celda.classList.add('hoy');
+    if (esFutura(fecha))               celda.classList.add('futuro');
+    celda.textContent = d;
+
+    // Tocar un día lo corrige. alternarFecha devuelve false si es futuro,
+    // así que ahí no repintamos nada: el toque simplemente no hace efecto.
+    celda.onclick = () => {
+      if (alternarFecha(calHabitoId, fecha)) pintarCalendario();
+    };
+
+    grid.appendChild(celda);
+  }
+
+  // 3) El resumen de abajo
+  const hechos = contarMes(calHabitoId, calAnio, calMes);
+  const total = diasDelMes(calAnio, calMes);
+  document.getElementById('calResumen').textContent =
+    `${hechos} de ${total} días. Toca un día para corregirlo.`;
+}
+
+document.getElementById('calAtras').onclick    = () => moverMes(-1);
+document.getElementById('calAdelante').onclick = () => moverMes(1);
+document.getElementById('calCerrar').onclick   = cerrarCalendario;
+
+// Tocar el fondo oscuro (no la tarjeta) también cierra
+document.getElementById('modalCal').onclick = ev => {
+  if (ev.target.id === 'modalCal') cerrarCalendario();
+};
+
+/* ---------- K. ARRANCAR ---------- */
+pintar();
+</script>
+</body>
+</html>
