@@ -386,6 +386,44 @@ input[type=text]:focus { outline: none; border-color: var(--acento); }
 .cal-dia.hecho   { background: var(--exito); color: #0f1115; }
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
+
+/* Con el calendario y las estadísticas, la ventana creció.
+   Esto evita que se salga de la pantalla en teléfonos pequeños. */
+.modal { max-height: 92vh; overflow-y: auto; }
+
+/* ---------- 9. ESTADÍSTICAS ----------
+   auto-fit + minmax = "mete las columnas que quepan, mínimo 72px cada una".
+   Así se acomodan solas: 4 en fila en un iPhone, 2 y 2 si la pantalla es
+   más angosta. No hay que escribir ninguna regla para cada tamaño. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.stat {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.stat-numero {
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;  /* que no bailen los números al cambiar */
+}
+
+.stat-etiqueta {
+  font-size: 10px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-top: 3px;
+  line-height: 1.3;
+}
 </style>
 </head>
 
@@ -466,6 +504,9 @@ input[type=text]:focus { outline: none; border-color: var(--acento); }
       <div class="cal-grid" id="calGrid"></div>
 
       <p class="nota" id="calResumen"></p>
+
+      <!-- Estadísticas del hábito. Los números los pone JavaScript. -->
+      <div class="stats" id="calStats"></div>
 
       <button class="btn btn-secundario" id="calCerrar"
               style="width:100%; flex:none; margin-top:16px">Cerrar</button>
@@ -566,6 +607,82 @@ function esFutura(fecha) {
 function estaHecho(idHabito, fecha) {
   const delDia = datos.registros[fecha] || [];
   return delDia.includes(idHabito);
+}
+
+// Todas las fechas en que se marcó un hábito, ordenadas de vieja a nueva.
+// En SQL: SELECT fecha FROM registros WHERE habito = ? ORDER BY fecha
+// Ordenar textos AAAA-MM-DD ya los deja en orden cronológico.
+function fechasDe(idHabito) {
+  return Object.keys(datos.registros)
+    .filter(f => datos.registros[f].includes(idHabito))
+    .sort();
+}
+
+// Cuántos días en total se ha marcado. El COUNT(*) de toda la vida.
+function totalDias(idHabito) {
+  return fechasDe(idHabito).length;
+}
+
+// Cuántos días hay entre dos fechas.
+// Ojo con el 'T00:00:00': sin eso, JavaScript interpreta "2026-08-04" como
+// medianoche en Londres, y en Colombia eso cae el día anterior. Agregándolo
+// se lee como medianoche local, que es lo que queremos.
+// El Math.round es por el horario de verano: en los países que lo usan hay
+// días de 23 o 25 horas y la división daría 30.958 en vez de 31.
+function diasEntre(desde, hasta) {
+  const a = new Date(desde + 'T00:00:00');
+  const b = new Date(hasta + 'T00:00:00');
+  return Math.round((b - a) / 86400000);   // milisegundos que tiene un día
+}
+
+// La racha más larga que ha logrado, en toda su historia.
+// La idea: recorrer sus fechas en orden y llevar dos cuentas — la racha que
+// viene corriendo y la mejor vista hasta ahora. Cada vez que un día NO es el
+// siguiente del anterior, la racha se reinicia en 1.
+function mejorRacha(idHabito) {
+  const fechas = fechasDe(idHabito);
+  let mejor = 0;
+  let corriendo = 0;
+  let anterior = null;
+
+  for (const f of fechas) {
+    // ¿este día es exactamente el siguiente del anterior?
+    if (anterior !== null && diasEntre(anterior, f) === 1) corriendo++;
+    else corriendo = 1;
+
+    if (corriendo > mejor) mejor = corriendo;
+    anterior = f;
+  }
+  return mejor;
+}
+
+// Desde qué día "cuenta" este hábito, para calcular porcentajes justos.
+// Normalmente es su fecha de creación, pero tomamos la más antigua entre esa
+// y su primer día marcado: con el calendario ahora puedes marcar días
+// anteriores a la creación, y si no, el porcentaje se pasaría de 100%.
+function fechaInicio(idHabito) {
+  const h = datos.habitos.find(x => x.id === idHabito);
+  const candidatas = [h && h.creado, fechasDe(idHabito)[0]].filter(Boolean).sort();
+  return candidatas[0] || hoy();
+}
+
+// Cuántos días lleva vivo el hábito, contando hoy.
+function diasDeVida(idHabito) {
+  return diasEntre(fechaInicio(idHabito), hoy()) + 1;   // +1 para incluir el día de inicio
+}
+
+// Porcentaje de cumplimiento en los últimos n días.
+// Si el hábito es más nuevo que n, medimos solo desde que existe: no tiene
+// sentido castigarlo por días en los que todavía no lo habías creado.
+function porcentajeUltimos(idHabito, n) {
+  const dias = Math.min(n, diasDeVida(idHabito));
+  if (dias <= 0) return 0;
+
+  let hechos = 0;
+  for (let i = 0; i < dias; i++) {
+    if (estaHecho(idHabito, haceNDias(i))) hechos++;
+  }
+  return Math.round(hechos / dias * 100);
 }
 
 // Cuántos días seguidos lleva. Si hoy todavía no lo marca, la racha
@@ -959,6 +1076,27 @@ function pintarCalendario() {
   const total = diasDelMes(calAnio, calMes);
   document.getElementById('calResumen').textContent =
     `${hechos} de ${total} días. Toca un día para corregirlo.`;
+
+  // 4) Las estadísticas
+  pintarStats();
+}
+
+/* --- Las estadísticas del hábito abierto ---
+   Se dibujan desde una lista, no escribiendo cuatro veces el mismo HTML.
+   Para agregar una quinta estadística basta con sumar una línea aquí. */
+function pintarStats() {
+  const cifras = [
+    { numero: calcularRacha(calHabitoId),            etiqueta: 'Racha actual' },
+    { numero: mejorRacha(calHabitoId),               etiqueta: 'Mejor racha'  },
+    { numero: porcentajeUltimos(calHabitoId, 30) + '%', etiqueta: 'Últimos 30 días' },
+    { numero: totalDias(calHabitoId),                etiqueta: 'Días en total' }
+  ];
+
+  document.getElementById('calStats').innerHTML = cifras.map(c => `
+    <div class="stat">
+      <div class="stat-numero">${c.numero}</div>
+      <div class="stat-etiqueta">${c.etiqueta}</div>
+    </div>`).join('');
 }
 
 document.getElementById('calAtras').onclick    = () => moverMes(-1);

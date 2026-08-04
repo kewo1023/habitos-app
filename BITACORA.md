@@ -126,11 +126,100 @@ cambios ya están en `index.html` y publicados (`VERSION` en `sw.js` = `v3`).
 
 **Pendiente / siguiente**
 
-- [ ] Kev sigue `PASOS-GIT.md` y publica el calendario con commit + sync.
-- [ ] Probar el calendario en el iPhone: que los 7 cuadros por fila entren bien
-      en pantalla y que el modal no quede demasiado alto.
+- [x] Kev montó git en VS Code y publicó el calendario.
+- [x] Calendario probado en el iPhone: se ve bien, la cuadrícula entra en
+      pantalla. `VERSION` `v4` publicada y confirmada.
 - [ ] Siguiente bloque de Fase 2: estadísticas, metas semanales, o reordenar y
       editar nombre.
+
+## 2026-08-04 — Montar git: el lío de las dos cuentas
+
+Primera publicación con git. Se atravesaron tres problemas encadenados que
+conviene tener anotados por si vuelven.
+
+**Qué pasó**
+
+1. **"Publish to GitHub" creó un repo equivocado.** Como `habitos-app` ya
+   existía, VS Code creó `habitos-app-1` — y encima **en la cuenta vieja de Kev
+   (`kev1023`)**, no en la actual (`kewo1023`). Arreglado con
+   `git remote set-url origin https://github.com/kewo1023/habitos-app.git`.
+2. **La causa de fondo era el navegador.** GitHub autoriza con la sesión que
+   esté abierta en el navegador; ahí seguía `kev1023`, así que todo se
+   autorizaba con la cuenta vieja sin preguntar. `git config user.email` no
+   tenía nada que ver: eso solo firma el commit, no da permisos. **Firma y
+   credencial son cosas distintas.** Se resolvió cerrando sesión en github.com
+   y entrando con `kewo1023`.
+3. **`fatal: Need to specify how to reconcile divergent branches`** al hacer
+   Sync (Sync = pull y luego push; se atascaba en el pull). El repo de GitHub
+   tenía las subidas manuales viejas y la carpeta local su propia historia.
+   Se resolvió con `git config --global pull.rebase false` y un **force push
+   desde VS Code**, pisando la copia de GitHub con la del Mac. Seguro aquí: los
+   archivos de GitHub eran una versión estrictamente más vieja de los mismos, y
+   los datos de hábitos viven en el teléfono, no en el repo.
+
+**Detalles que costaron tiempo**
+
+- La Terminal **no muestra nada** al escribir una contraseña. Parece que no
+  registra, pero sí. Además GitHub no acepta contraseñas de cuenta desde 2021:
+  para git por HTTPS hace falta un Personal Access Token, o dejar que VS Code
+  maneje la autenticación por navegador (esto último fue lo que se usó).
+- El force push desde VS Code exige activar `Git: Allow Force Push` y desactivar
+  `Git: Use Force Push With Lease` en Settings. **Se volvió a desactivar
+  `Allow Force Push` después de usarlo**, para que no esté a un clic de
+  distancia por accidente.
+
+**Estado**
+
+- `~/Desktop/habitos-app` conectada a `kewo1023/habitos-app`, rama `main`.
+- El ciclo diario ya es: editar → subir `VERSION` en `sw.js` → commit → Sync.
+- `PASOS-GIT.md` describe el camino feliz; esta entrada, los tropiezos reales.
+
+**Pendiente / siguiente**
+
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Actualizar `PASOS-GIT.md` con lo aprendido (revisar la sesión del
+      navegador **antes** de autorizar) si el tema vuelve a aparecer.
+
+## 2026-08-04 — Estadísticas por hábito (Fase 2)
+
+Elegidas sobre metas semanales: Kev confirmó que **todos sus hábitos son
+diarios**, así que las metas semanales no le hacen falta por ahora. Quedan
+aplazadas sin fecha.
+
+**Hecho**
+
+- **Cuatro estadísticas por hábito**, dentro del calendario (debajo de la
+  cuadrícula): racha actual, mejor racha histórica, % de los últimos 30 días y
+  días en total. Decisión de ubicación: el calendario ya es la vista de detalle
+  del hábito; una pantalla nueva o números en la lista principal habrían metido
+  ruido al gesto diario.
+- Lógica nueva en la sección C: `fechasDe`, `totalDias`, `diasEntre`,
+  `mejorRacha`, `fechaInicio`, `diasDeVida`, `porcentajeUltimos`.
+- `pintarStats()` dibuja desde una lista de objetos, no con HTML repetido:
+  agregar una quinta estadística es una línea.
+- `.modal` con `max-height: 92vh` + scroll — la ventana creció y podía salirse
+  de pantalla en teléfonos pequeños.
+- `pruebas.js`: de 53 a **74 tests**. Todos pasan.
+- `sw.js`: `VERSION` subida a `'v5'`.
+
+**Decisiones de cálculo que conviene recordar**
+
+- `diasEntre` parsea con `'T00:00:00'` para leer las fechas en hora local; sin
+  eso JavaScript las toma como UTC y en Colombia caen un día antes. El
+  `Math.round` cubre los días de 23/25 horas del horario de verano.
+- `porcentajeUltimos` mide sobre `min(n, díasDeVida)`: un hábito de 3 días no se
+  castiga con 27 días en los que no existía.
+- `fechaInicio` toma la **más antigua** entre `creado` y el primer día marcado.
+  Como el calendario permite marcar días anteriores a la creación, sin esto el
+  porcentaje podía pasarse de 100%. También cubre los hábitos de copias viejas
+  que no tienen el campo `creado`.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica (commit + Sync) y revisa las estadísticas en el iPhone: que
+      los 4 recuadros entren bien y que el modal no quede demasiado alto.
+- [ ] Siguiente de Fase 2: reordenar hábitos y editar nombre (lo último que
+      queda del bloque). Después, evaluar el salto a Fase 3 (Supabase).
 
 ---
 

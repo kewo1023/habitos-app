@@ -19,7 +19,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -109,7 +109,74 @@ ok('alternarHoy sigue funcionando igual',
    ctx.alternarHoy(idCal) === true && ctx.estaHecho(idCal, ctx.hoy()));
 ctx.alternarHoy(idCal);
 
+// --- estadísticas: distancia entre fechas
+ok('diasEntre días seguidos = 1',      ctx.diasEntre('2026-08-03','2026-08-04') === 1);
+ok('diasEntre la misma fecha = 0',     ctx.diasEntre('2026-08-04','2026-08-04') === 0);
+ok('diasEntre cruzando de mes',        ctx.diasEntre('2026-01-31','2026-02-01') === 1);
+ok('diasEntre cruzando de año',        ctx.diasEntre('2025-12-31','2026-01-01') === 1);
+ok('diasEntre pasando por febrero bisiesto',
+   ctx.diasEntre('2024-02-28','2024-03-01') === 2);
+ok('diasEntre hacia atrás da negativo', ctx.diasEntre('2026-08-04','2026-08-01') === -3);
+
+// --- estadísticas: fechas de un hábito y mejor racha
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.agregarHabito('Meditar','🧘');
+ctx.agregarHabito('Otro','📖');
+const idA = ctx.datos.habitos[0].id;
+const idB = ctx.datos.habitos[1].id;
+
+ok('un hábito sin historial: 0 días',   ctx.totalDias(idA) === 0);
+ok('un hábito sin historial: mejor racha 0', ctx.mejorRacha(idA) === 0);
+
+// Bloque de 3 días, hueco, bloque de 5 días, hueco, 1 día suelto
+['2026-03-01','2026-03-02','2026-03-03',
+ '2026-03-10','2026-03-11','2026-03-12','2026-03-13','2026-03-14',
+ '2026-03-20'].forEach(f => ctx.datos.registros[f] = [idA]);
+// ruido: otro hábito el mismo día, no debe contarse
+ctx.datos.registros['2026-03-01'].push(idB);
+
+ok('fechasDe devuelve solo sus fechas', ctx.fechasDe(idA).length === 9);
+ok('fechasDe las devuelve ordenadas',
+   JSON.stringify(ctx.fechasDe(idA)) === JSON.stringify(ctx.fechasDe(idA).slice().sort()));
+ok('fechasDe no mezcla hábitos',        ctx.fechasDe(idB).length === 1);
+ok('totalDias cuenta bien',             ctx.totalDias(idA) === 9);
+ok('mejorRacha toma el bloque más largo', ctx.mejorRacha(idA) === 5);
+ok('mejorRacha de un solo día es 1',    ctx.mejorRacha(idB) === 1);
+
+// un bloque que cruza de mes debe contarse seguido
+ctx.datos.registros = {};
+['2026-01-30','2026-01-31','2026-02-01','2026-02-02'].forEach(f => ctx.datos.registros[f] = [idA]);
+ok('mejorRacha cruza el cambio de mes', ctx.mejorRacha(idA) === 4);
+
+// --- estadísticas: porcentajes
+ctx.datos.registros = {};
+ctx.datos.habitos[0].creado = ctx.haceNDias(9);   // hábito de 10 días de vida
+ok('diasDeVida cuenta hoy incluido', ctx.diasDeVida(idA) === 10);
+
+// marcado 5 de esos 10 días
+for (let i = 0; i < 5; i++) ctx.datos.registros[ctx.haceNDias(i)] = [idA];
+ok('porcentaje sobre 30 se mide desde que existe (5 de 10 = 50%)',
+   ctx.porcentajeUltimos(idA, 30) === 50);
+ok('porcentaje sobre una ventana corta (5 de 5 = 100%)',
+   ctx.porcentajeUltimos(idA, 5) === 100);
+
+// si marca días anteriores a la creación, el inicio se corre hacia atrás
+ctx.datos.registros['2020-01-01'] = [idA];
+ok('fechaInicio toma la fecha más antigua de las dos',
+   ctx.fechaInicio(idA) === '2020-01-01');
+ok('el porcentaje nunca se pasa de 100', ctx.porcentajeUltimos(idA, 30) <= 100);
+
+// un hábito de una copia vieja, sin campo "creado"
+ctx.datos.registros = {};
+ctx.datos.habitos = [{ id:'viejo', nombre:'Sin fecha', emoji:'❓' }];
+ctx.datos.registros['2026-07-01'] = ['viejo'];
+ok('sin campo creado usa su primer día marcado',
+   ctx.fechaInicio('viejo') === '2026-07-01');
+
 // --- copia de seguridad
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
 ok('el nombre del archivo lleva la fecha', ctx.nombreArchivo() === `habitos-${ctx.hoy()}.json`);
 
 const copiaBuena = { version:1, habitos:[{id:'x1',nombre:'Correr',emoji:'🏃'}], registros:{'2026-07-30':['x1']} };
