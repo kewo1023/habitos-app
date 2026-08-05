@@ -22,12 +22,13 @@ const store = {};
 global.localStorage = { getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=String(v) };
 global.crypto = require('crypto').webcrypto;
 global.pintar = () => {};        // en el test no dibujamos nada
+global.pintarTareas = () => {};  // lo mismo para la sección de pendientes
 let ultimaAlerta = null;
 global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -408,6 +409,127 @@ ok('el emoji quedó intacto tras el rechazo', ctx.datos.habitos[0].emoji === '�
 ok('el mismo emoji no cuenta como cambio', ctx.cambiarEmoji(idE, '🧘') === false);
 ok('un id inexistente no rompe', ctx.cambiarEmoji('no-existe', '🎸') === false);
 ok('el emoji nuevo se guardó en disco', ctx.cargar().habitos[0].emoji === '🧘');
+
+
+// ============================================================
+// PENDIENTES (la segunda sección de la app) — sección D2
+// ============================================================
+
+ctx.datos.tareas = [];
+
+// --- crear
+ok('agregar una tarea funciona', ctx.agregarTarea('Llamar al banco') === true);
+ok('quedó una tarea', ctx.datos.tareas.length === 1);
+ok('el texto se guardó bien', ctx.datos.tareas[0].texto === 'Llamar al banco');
+ok('nace sin marcar', ctx.datos.tareas[0].hecha === false);
+ok('guarda el día en que la escribiste', ctx.datos.tareas[0].creada === ctx.hoy());
+ok('quita los espacios de alrededor',
+   ctx.agregarTarea('   Pagar arriendo   ') && ctx.datos.tareas[1].texto === 'Pagar arriendo');
+ok('una tarea vacía no entra', ctx.agregarTarea('') === false);
+ok('solo espacios tampoco entra', ctx.agregarTarea('     ') === false);
+ok('null no rompe', ctx.agregarTarea(null) === false);
+ok('sin argumento no rompe', ctx.agregarTarea() === false);
+ok('siguen siendo 2 tareas', ctx.datos.tareas.length === 2);
+ok('los ids son distintos', ctx.datos.tareas[0].id !== ctx.datos.tareas[1].id);
+ok('el texto se corta a 120 caracteres',
+   ctx.agregarTarea('x'.repeat(200)) && ctx.datos.tareas[2].texto.length === 120);
+
+// --- marcar y desmarcar
+ctx.datos.tareas = [];
+ctx.agregarTarea('Una');
+ctx.agregarTarea('Dos');
+const idT = ctx.datos.tareas[0].id;
+
+ok('marcar una tarea funciona',
+   ctx.alternarTarea(idT) === true && ctx.datos.tareas[0].hecha === true);
+ok('desmarcar funciona',
+   ctx.alternarTarea(idT) === true && ctx.datos.tareas[0].hecha === false);
+ok('un id que no existe devuelve false', ctx.alternarTarea('no-existe') === false);
+
+// --- el orden: primero lo que falta, al final lo hecho
+ctx.datos.tareas = [];
+ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
+ctx.alternarTarea(ctx.datos.tareas[0].id);   // marcamos la A
+
+const orden = ctx.tareasOrdenadas().map(t => t.texto);
+ok('la hecha se va al final', orden.join('') === 'BCA');
+ok('las que faltan conservan su orden original',
+   orden[0] === 'B' && orden[1] === 'C');
+ok('ordenar no cambia la lista original',
+   ctx.datos.tareas.map(t => t.texto).join('') === 'ABC');
+
+ctx.alternarTarea(ctx.datos.tareas[1].id);   // marcamos también la B
+ok('dos hechas van al final en su orden',
+   ctx.tareasOrdenadas().map(t => t.texto).join('') === 'CAB');
+
+ok('todas hechas no rompe el orden',
+   (ctx.alternarTarea(ctx.datos.tareas[2].id),
+    ctx.tareasOrdenadas().map(t => t.texto).join('') === 'ABC'));
+
+ok('lista vacía devuelve lista vacía', ctx.tareasOrdenadas([]).length === 0);
+
+// --- contar
+ctx.datos.tareas = [];
+ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
+ctx.alternarTarea(ctx.datos.tareas[0].id);
+const cuenta = ctx.contarTareas();
+ok('cuenta el total', cuenta.total === 3);
+ok('cuenta las hechas', cuenta.hechas === 1);
+ok('cuenta las que faltan', cuenta.faltan === 2);
+ok('sin tareas cuenta cero', ctx.contarTareas([]).total === 0);
+
+// --- cambiar el texto
+ok('renombrar funciona',
+   ctx.renombrarTarea(ctx.datos.tareas[1].id, 'B corregida') === true &&
+   ctx.datos.tareas[1].texto === 'B corregida');
+ok('un texto vacío no cambia nada',
+   ctx.renombrarTarea(ctx.datos.tareas[1].id, '   ') === false &&
+   ctx.datos.tareas[1].texto === 'B corregida');
+ok('el mismo texto no cuenta como cambio',
+   ctx.renombrarTarea(ctx.datos.tareas[1].id, 'B corregida') === false);
+ok('renombrar un id inexistente no rompe',
+   ctx.renombrarTarea('no-existe', 'algo') === false);
+ok('renombrar no cambia si estaba marcada o no',
+   ctx.datos.tareas[0].hecha === true);
+
+// --- borrar
+const idBorrar = ctx.datos.tareas[2].id;
+ok('borrar funciona', ctx.borrarTarea(idBorrar) === true);
+ok('quedan 2 tareas', ctx.datos.tareas.length === 2);
+ok('borrar un id inexistente devuelve false', ctx.borrarTarea('no-existe') === false);
+ok('borrar no tocó a las demás', ctx.datos.tareas.every(t => t.id !== idBorrar));
+
+// --- limpiar las hechas
+ctx.datos.tareas = [];
+ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
+ctx.alternarTarea(ctx.datos.tareas[0].id);
+ctx.alternarTarea(ctx.datos.tareas[2].id);
+ok('limpiar devuelve cuántas se llevó', ctx.limpiarHechas() === 2);
+ok('solo queda la que faltaba',
+   ctx.datos.tareas.length === 1 && ctx.datos.tareas[0].texto === 'B');
+ok('limpiar sin hechas devuelve 0', ctx.limpiarHechas() === 0);
+ok('y no borra las que faltan', ctx.datos.tareas.length === 1);
+
+// --- las tareas sobreviven al guardado
+ok('las tareas se guardan en disco', ctx.cargar().tareas.length === 1);
+ok('y conservan su texto', ctx.cargar().tareas[0].texto === 'B');
+
+// --- los pendientes NO se encolan para la nube (viven solo aquí, por ahora)
+ctx.datos.pendientes = [];
+ctx.agregarTarea('No debe subir a la nube');
+ctx.alternarTarea(ctx.datos.tareas[ctx.datos.tareas.length-1].id);
+ok('crear y marcar tareas no encola nada', ctx.datos.pendientes.length === 0);
+
+// --- copias de seguridad con tareas
+ok('una copia con tareas es válida',
+   ctx.esCopiaValida({ habitos: [], registros: {},
+     tareas: [{ id:'1', texto:'algo', hecha:false }] }) === true);
+ok('una copia vieja SIN tareas sigue siendo válida',
+   ctx.esCopiaValida({ habitos: [], registros: {} }) === true);
+ok('una copia con tareas mal formadas se rechaza',
+   ctx.esCopiaValida({ habitos: [], registros: {}, tareas: [{ id: 1 }] }) === false);
+ok('tareas que no son lista se rechaza',
+   ctx.esCopiaValida({ habitos: [], registros: {}, tareas: 'nop' }) === false);
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

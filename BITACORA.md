@@ -470,8 +470,8 @@ pendientes de la sesión anterior quedan cerradas.
 
 **Pendiente / siguiente**
 
-- [ ] Kev publica y prueba el emoji libre en el iPhone (que el teclado de emojis
-      se abra bien en el campo).
+- [x] Publicado y probado en el iPhone. El emoji libre y el cambio de emoji
+      funcionan bien. `v10` en producción.
 - [ ] Ejercicios 1 y 4 de `COMO-EDITAR.md`, y la tanda 7–12 cuando quiera.
 - [ ] **Compartir la app con otra persona**: se evaluó y no está lista. Ver la
       lista de bloqueadores más abajo. No es prioridad de Kev.
@@ -494,6 +494,107 @@ mismo proyecto no se verían nada. Lo que falta:
 Ninguno es difícil por separado; juntos son una sesión de trabajo. La decisión
 real es si Kev quiere pasar de "mi app" a "una app con usuarios", que trae
 soporte y responsabilidad sobre datos ajenos.
+
+---
+
+## Estado al cerrar el 2026-08-04
+
+Cuatro fases construidas y cerradas en cuatro días de trabajo.
+
+| | |
+|---|---|
+| App en vivo | `kewo1023.github.io/habitos-app`, `VERSION` **v10** |
+| Código | `github.com/kewo1023/habitos-app`, rama `main` |
+| Datos | Supabase, proyecto `habitos_app` (`wfqhtnxhxjtdsvjzxaks`) |
+| Pruebas | **153**, todas pasando (`node pruebas.js`) |
+| `index.html` | ~1.760 líneas, secciones A–M |
+
+**Qué se puede hacer hoy:** crear hábitos con cualquier emoji, marcarlos, ver
+racha e historial de 14 días, calendario mensual por hábito con corrección de
+días pasados, cuatro estadísticas con explicación, reordenar, renombrar, cambiar
+emoji, exportar e importar copias, y sincronización automática con Postgres que
+funciona sin señal y se pone al día sola.
+
+**Sin decidir, sin prisa:** la Fase 4 (recordatorios, Capacitor, o reescribir en
+React). Kev va a usar la app un tiempo antes de construir más — las mejores ideas
+van a salir del uso real.
+
+**Para retomar:** invocar `/habitos-app` en una sesión nueva. Leer `CLAUDE.md`
+(sobre todo la regla de verificar documentación de terceros antes de escribir
+pasos) y esta bitácora.
+
+---
+
+## 2026-08-05 — Sección de Pendientes (Fase 2.5)
+
+Primera función que sale del **uso real** de la app, no del plan original: Kev
+quería una lista de tareas al lado de los hábitos, con dos botones para navegar.
+
+**Lo que se discutió antes de escribir código**
+
+- **Una tarea no es un hábito con otro nombre.** Un hábito vive para siempre y se
+  mide con racha, calendario y porcentajes; una tarea se hace una vez y se acabó.
+  Casi nada del código de hábitos se reutiliza. No es una columna nueva en la hoja
+  existente, es una hoja nueva en el mismo libro.
+- **Choque de nombres evitado a tiempo.** `datos.pendientes` ya existía y significa
+  "cola de cambios sin subir a la nube". La lista de tareas se llama `datos.tareas`
+  en el código, aunque en pantalla el botón diga "Pendientes".
+- **Deslizar para borrar: descartado por ahora.** Kev lo propuso y se evaluó: en JS
+  puro son ~150 líneas frágiles, el problema difícil es distinguir el deslizamiento
+  horizontal del scroll vertical, Safari usa el gesto desde el borde izquierdo para
+  "volver atrás", y nada de eso se puede probar con `pruebas.js`. Se reutilizó el
+  **modo edición que ya existe** — mismo precedente que arrastrar-y-soltar en la
+  Fase 2. Kev estuvo de acuerdo: la prioridad es que la app sea fácil y rápida.
+
+**Hecho**
+
+- **Sección D2 (pura, se prueba)** — `agregarTarea`, `alternarTarea`,
+  `renombrarTarea`, `borrarTarea`, `limpiarHechas`, `tareasOrdenadas`,
+  `contarTareas`. Cae dentro del trozo A→E que `pruebas.js` ya recortaba, así que
+  no hubo que tocar el recorte; solo agregar el shim `global.pintarTareas`.
+- **Sección N (dibujado)** — `cambiarVista()`, `pintarTareas()` y los botones.
+  Misma separación que el calendario: lógica arriba, pantalla abajo.
+- **Modelo de tarea, deliberadamente pobre:** `{ id, texto, hecha, creada }`. Sin
+  emoji, sin fecha límite, sin prioridad. La prioridad queda anotada como posible
+  paso 2.
+- **Dos pestañas** debajo de la barra de progreso, con el número de pendientes
+  dentro de la pestaña de Pendientes. La app **siempre abre en Hábitos**: el gesto
+  diario no cambia, Pendientes es un desvío voluntario.
+- **Captura sin ventana emergente.** El campo de texto va fijo arriba de la lista;
+  escribes y das Enter, y el foco se queda ahí para anotar varias seguidas. El
+  botón grande de abajo cambia a "+ Nuevo pendiente" y solo hace foco en el campo.
+- **Al marcar, la tarea se tacha y baja al final.** Como redibujamos todo de golpe,
+  se le agregó la animación `aterrizar` (.28s) para que el movimiento no se sienta
+  un glitch. La variable `tareaRecienMovida` marca a cuál aplicársela y se limpia
+  sola tras dibujarla.
+- **`textContent` en vez de `innerHTML`** para el texto de la tarea. Un pendiente
+  escrito como "comprar \<cosas\>" habría roto el dibujado. Es la primera vez en
+  el proyecto que importa: los nombres de hábitos son cortos, los pendientes no.
+- **`cargar()` le pone `tareas: []` a los datos viejos**, igual que hizo con
+  `pendientes` en la Fase 3. Mismo patrón cada vez que crece el modelo.
+- **Copias de seguridad**: `esCopiaValida` acepta copias viejas sin tareas y valida
+  la forma si vienen; `importar` las restaura.
+- **`bajarTodo()` no toca `datos.tareas`** — comentado explícitamente en el código,
+  porque es justo donde habría que agregarlas si algún día se sincronizan.
+- `pruebas.js`: de 153 a **199 tests**. Todos pasan.
+- `sw.js`: `VERSION` a `'v11'`.
+
+**Decisión pendiente y por qué se aplazó**
+
+Los pendientes viven **solo en `localStorage`**, sin Supabase. A propósito: primero
+se usan unos días y solo entonces se decide si merecen su propia tabla en Postgres.
+Comprometerse al diseño antes de haberlo probado es lo que costó tiempo en la
+Fase 3. El riesgo aceptado es bajo: si se borra la app se pierden las tareas, no el
+historial de hábitos.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica (subir `VERSION` ya está hecho: `v11`) y prueba en el iPhone:
+      que las pestañas se entiendan, que escribir un pendiente sea de verdad un
+      toque, y que el teclado del iPhone no tape el campo al escribir.
+- [ ] Usarlo unos días. Después decidir: ¿sincronizar con Supabase? ¿prioridad?
+      ¿el gesto de deslizar hace falta de verdad?
+- [ ] Ejercicios 1 y 4 de `COMO-EDITAR.md`, y la tanda 7–12 cuando quiera.
 
 ---
 

@@ -68,7 +68,7 @@ Plataforma: iPhone. Kev tiene un Mac.
 - **Sin frameworks, sin dependencias, sin paso de compilación.** Editar y recargar.
   No introducir React/Vue/Tailwind/npm sin discutirlo antes: rompería la premisa.
 - **Todo en `index.html`** — estilos, estructura y lógica en el mismo archivo,
-  separados por secciones comentadas (A hasta I en el `<script>`).
+  separados por secciones comentadas (A hasta N en el `<script>`).
 - **`localStorage` como almacenamiento**, con un modelo de datos que imita dos
   tablas SQL (`habitos` y `registros`) para que la migración futura a Postgres sea
   directa.
@@ -145,6 +145,21 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
     pública (que va en el HTML) cree cuentas en el proyecto.
   - **Decisión clave:** `localStorage` sigue siendo la fuente de lo que se
     dibuja; Supabase va detrás. La app debe seguir funcionando sin internet.
+- **Fase 2.5 — Pendientes (lista de tareas) ✅** Segunda sección de la app, con
+  dos pestañas para navegar. Salió del uso real, no del plan original.
+  - **Decisión clave:** una tarea **no** es un hábito. Modelo aparte y pobre a
+    propósito: `{ id, texto, hecha, creada }`. Sin emoji, sin fecha límite, sin
+    prioridad. El código de hábitos no se reutiliza casi nada.
+  - **Decisión clave:** en el código se llaman `datos.tareas`; en pantalla,
+    "Pendientes". `datos.pendientes` ya existía y es la cola de sincronización.
+    **No confundirlas.**
+  - **Decisión clave:** los pendientes viven **solo en `localStorage`**, sin
+    Supabase, hasta que Kev los use unos días. `bajarTodo()` no los toca.
+  - **Decisión clave:** descartado deslizar (swipe) para borrar/editar. Se
+    reutiliza el modo edición que ya existe, mismo criterio que arrastrar-y-
+    soltar en la Fase 2. Retomar solo si el uso real lo pide.
+  - La app **siempre abre en Hábitos**. Pendientes es un desvío voluntario.
+  - Secciones nuevas: **D2** (lógica pura, se prueba) y **N** (dibujado).
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -164,7 +179,7 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v10` (emoji libre). Confirmar que quedó publicada.
+`VERSION` en el Mac: `v11` (sección de Pendientes). Confirmar que quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué
