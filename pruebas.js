@@ -13,6 +13,7 @@ const script = html.slice(inicio, html.indexOf('</script>', inicio));
 const trozo = (desde, hasta) => script.slice(script.indexOf(desde), script.indexOf(hasta));
 const logica = trozo('const CLAVE', '/* ---------- E.')
              + trozo('/* ---------- H. COPIA', '/* ---------- I.')
+             + trozo('/* ---------- F0.', '/* ---------- fin F0')
              + trozo('/* ---------- M1.', '/* ---------- fin M1')
              + trozo('/* ---------- M5.', '/* ---------- fin M5');
 
@@ -26,7 +27,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -368,6 +369,45 @@ ok('reordenar encola los dos hábitos que se movieron',
 global.localStorage.setItem('habitos-app-v1',
   JSON.stringify({ version:1, habitos:[], registros:{} }));
 ok('los datos viejos reciben una cola vacía', Array.isArray(ctx.cargar().pendientes));
+
+// --- emojis
+ok('un emoji simple pasa',            ctx.primerEmoji('😀') === '😀');
+ok('quita los espacios de alrededor', ctx.primerEmoji('  🏃  ') === '🏃');
+ok('si escribes varios, toma el primero', ctx.primerEmoji('🏃💧📖') === '🏃');
+ok('un emoji con tono de piel no se parte', ctx.primerEmoji('👍🏽') === '👍🏽');
+ok('una familia entera cuenta como uno',  ctx.primerEmoji('👨‍👩‍👧') === '👨‍👩‍👧');
+ok('una bandera no se parte en dos',      ctx.primerEmoji('🇨🇴') === '🇨🇴');
+ok('el emoji de teclado numérico pasa',   ctx.primerEmoji('1️⃣') === '1️⃣');
+ok('una letra no es emoji',   ctx.primerEmoji('a') === '');
+ok('un número no es emoji',   ctx.primerEmoji('7') === '');
+ok('una palabra no es emoji', ctx.primerEmoji('correr') === '');
+ok('texto vacío devuelve vacío', ctx.primerEmoji('') === '');
+ok('solo espacios devuelve vacío', ctx.primerEmoji('   ') === '');
+ok('null no rompe',      ctx.primerEmoji(null) === '');
+ok('sin argumento no rompe', ctx.primerEmoji() === '');
+ok('emoji después de letras no cuela', ctx.primerEmoji('x😀') === '');
+
+// --- cambiar el emoji de un hábito
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.datos.pendientes = [];
+ctx.agregarHabito('Correr','🏃');
+const idE = ctx.datos.habitos[0].id;
+ctx.datos.registros['2026-06-01'] = [idE];
+ctx.datos.pendientes = [];
+
+ok('cambiar el emoji funciona',
+   ctx.cambiarEmoji(idE, '🚴') === true && ctx.datos.habitos[0].emoji === '🚴');
+ok('el historial sobrevive al cambio de emoji', ctx.estaHecho(idE, '2026-06-01') === true);
+ok('cambiar el emoji encola su subida',
+   ctx.datos.pendientes.length === 1 && ctx.datos.pendientes[0].tipo === 'guardarHabito');
+ok('acepta un emoji con texto alrededor y se queda con el emoji',
+   ctx.cambiarEmoji(idE, '  🧘  ') === true && ctx.datos.habitos[0].emoji === '🧘');
+ok('rechaza texto que no es emoji', ctx.cambiarEmoji(idE, 'bici') === false);
+ok('el emoji quedó intacto tras el rechazo', ctx.datos.habitos[0].emoji === '🧘');
+ok('el mismo emoji no cuenta como cambio', ctx.cambiarEmoji(idE, '🧘') === false);
+ok('un id inexistente no rompe', ctx.cambiarEmoji('no-existe', '🎸') === false);
+ok('el emoji nuevo se guardó en disco', ctx.cargar().habitos[0].emoji === '🧘');
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

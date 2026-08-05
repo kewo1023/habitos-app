@@ -439,6 +439,62 @@ quedado desfasado.
 - [ ] Fase 4 sin decidir y sin prisa. Kev va a usar la app un tiempo antes de
       construir más.
 
+## 2026-08-04 — Emoji libre y ejercicios nuevos
+
+Kev publicó la v9 y borró el repo accidental `habitos-app-1`. Las dos cosas
+pendientes de la sesión anterior quedan cerradas.
+
+**Hecho**
+
+- **Emoji desde el teclado, sin perder la lista.** Kev preguntó si valía la pena
+  reemplazar la lista de emojis por un campo de texto. Se decidió tener los dos:
+  la lista sigue siendo un toque (el caso normal) y el campo libre es la escotilla
+  de escape. Lo escrito a mano gana sobre lo seleccionado.
+- **`primerEmoji()` — sección F0, pura y probada.** Un emoji no es un carácter:
+  👨‍👩‍👧 son cinco piezas unidas por caracteres invisibles y 🇨🇴 son dos.
+  Cortar con `texto[0]` habría producido símbolos rotos. Se usa `Intl.Segmenter`
+  con `granularity: 'grapheme'`, con `Array.from` como plan B. La validación
+  acepta `Extended_Pictographic`, `Regional_Indicator` (banderas) y `⃣`
+  (teclados numéricos), y rechaza letras y números.
+- **`cambiarEmoji(id, emoji)`.** En modo edición, tocar el emoji de un hábito lo
+  cambia; en uso normal sigue abriendo el calendario. Mismo criterio que el
+  nombre, para no aprender dos reglas. El historial no se mueve: cuelga del `id`.
+- `pruebas.js`: de 129 a **153 tests**. Los de emoji cubren tonos de piel,
+  familias, banderas y el rechazo de texto normal.
+- `COMO-EDITAR.md`: **tanda avanzada (ejercicios 10, 11 y 12)** sobre el
+  calendario, la consola y la cola de sincronización. El 10 avisa a propósito que
+  van a fallar tres pruebas — para que vea a los tests haciendo su trabajo. El 12
+  no cambia código: enseña a seguir un hilo con ⌘F por el archivo, que es como se
+  navega cualquier proyecto grande.
+- `sw.js`: `VERSION` a `'v10'`.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica y prueba el emoji libre en el iPhone (que el teclado de emojis
+      se abra bien en el campo).
+- [ ] Ejercicios 1 y 4 de `COMO-EDITAR.md`, y la tanda 7–12 cuando quiera.
+- [ ] **Compartir la app con otra persona**: se evaluó y no está lista. Ver la
+      lista de bloqueadores más abajo. No es prioridad de Kev.
+
+**Evaluación: ¿está lista para compartirla?**
+
+Todavía no, pero está más cerca de lo que parece. Lo difícil ya está resuelto:
+el RLS separa los datos de cada usuario correctamente, así que dos personas en el
+mismo proyecto no se verían nada. Lo que falta:
+
+1. **El nombre "Kev" está escrito dentro del código**, en el saludo de `pintar()`.
+   Hay que sacarlo a un ajuste guardado.
+2. **Los registros están cerrados** en Supabase (a propósito). Habría que crear
+   cada usuario a mano desde el panel, o volver a abrirlos y aceptar el riesgo.
+3. **No hay pantalla de registro ni de recuperar contraseña.** Si la otra persona
+   olvida la suya, solo se arregla desde el panel.
+4. **El plan gratuito pausa el proyecto** tras una semana sin consultas, y no
+   manda correos (2 por hora). Con más usuarios eso empieza a pesar.
+
+Ninguno es difícil por separado; juntos son una sesión de trabajo. La decisión
+real es si Kev quiere pasar de "mi app" a "una app con usuarios", que trae
+soporte y responsabilidad sobre datos ajenos.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

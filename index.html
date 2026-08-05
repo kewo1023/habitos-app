@@ -223,13 +223,15 @@ body.editando .check    { display: none; }
 
 .borrar { font-size: 20px; }
 
-/* En modo edición el nombre se puede tocar para cambiarlo.
-   El subrayado punteado es la pista de que ahí se puede tocar. */
+/* En modo edición el nombre y el emoji se pueden tocar para cambiarlos.
+   El punteado es la pista de que ahí se puede tocar. */
 body.editando .habito-nombre {
   border-bottom: 1px dashed var(--borde);
   display: inline-block;
   max-width: 100%;
 }
+
+body.editando .habito-emoji { border-style: dashed; border-color: var(--acento); }
 
 /* ---------- 4b. PANEL DE COPIA DE SEGURIDAD ----------
    Solo aparece en modo edición, para no estorbar en el uso diario */
@@ -570,6 +572,12 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <label class="etiqueta">Ícono</label>
       <div class="emojis" id="emojis"></div>
 
+      <!-- La escotilla de escape: si ninguno de arriba sirve, escribe el
+           tuyo con el teclado de emojis del teléfono. Lo que escribas aquí
+           tiene prioridad sobre el que esté seleccionado. -->
+      <input type="text" id="emojiLibre" maxlength="8" autocomplete="off"
+             placeholder="…o escribe el tuyo 😀">
+
       <div style="display:flex; gap:10px">
         <button class="btn btn-secundario" id="btnCancelar" style="flex:1">Cancelar</button>
         <button class="btn btn-principal"  id="btnGuardar">Guardar</button>
@@ -883,6 +891,22 @@ function renombrarHabito(idHabito, nombreNuevo) {
   return true;
 }
 
+// Cambia el emoji de un hábito. Igual que renombrar: el historial no se
+// mueve, porque cuelga del id y no de cómo se ve el hábito.
+function cambiarEmoji(idHabito, emojiNuevo) {
+  const simbolo = primerEmoji(emojiNuevo);
+  if (!simbolo) return false;                // no era un emoji: no tocamos nada
+
+  const h = datos.habitos.find(x => x.id === idHabito);
+  if (!h || h.emoji === simbolo) return false;
+
+  h.emoji = simbolo;
+  encolar({ tipo: 'guardarHabito', id: idHabito });
+  guardar();
+  pintar();
+  return true;
+}
+
 // Sube o baja un hábito en la lista. direccion: -1 sube, +1 baja.
 // El orden en pantalla es simplemente el orden del array datos.habitos,
 // así que mover un hábito es intercambiarlo con su vecino.
@@ -1002,8 +1026,20 @@ function pintar() {
       if (!document.body.classList.contains('editando')) alternarHoy(h.id);
     };
     tarjeta.querySelector('.borrar').onclick = () => borrarHabito(h.id);
-    // Tocar el emoji abre el calendario de ese hábito
-    tarjeta.querySelector('.habito-emoji').onclick = () => abrirCalendario(h.id);
+    // El emoji hace dos cosas distintas según el modo: en uso normal abre
+    // el calendario; en modo edición te deja cambiarlo. Es el mismo criterio
+    // que el nombre, para no tener que aprender dos reglas.
+    tarjeta.querySelector('.habito-emoji').onclick = () => {
+      if (!document.body.classList.contains('editando')) {
+        abrirCalendario(h.id);
+        return;
+      }
+      const nuevo = prompt(`Nuevo emoji para "${h.nombre}":`, h.emoji);
+      if (nuevo === null) return;                       // tocaste Cancelar
+      if (!cambiarEmoji(h.id, nuevo) && primerEmoji(nuevo) === '') {
+        alert('Eso no parece un emoji. Usa el teclado de emojis del teléfono.');
+      }
+    };
 
     // Reordenar (solo se ven en modo edición)
     tarjeta.querySelector('.subir').onclick = () => moverHabito(h.id, -1);
@@ -1022,6 +1058,37 @@ function pintar() {
     lista.appendChild(tarjeta);
   });
 }
+
+/* ---------- F0. EMOJIS (lógica pura, se prueba) ----------
+   Un emoji no es "un carácter". Para JavaScript, 👨‍👩‍👧 son cinco piezas
+   pegadas con un carácter invisible, y 🇨🇴 son dos. Si cortaras el texto
+   a lo bruto con texto[0] te quedaría media cosa y saldría un símbolo
+   roto. Intl.Segmenter agrupa esas piezas en lo que un humano ve como
+   un solo símbolo — es la herramienta correcta para este trabajo.       */
+
+function primerEmoji(texto) {
+  const limpio = (texto || '').trim();
+  if (!limpio) return '';
+
+  let simbolo;
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    // granularity: 'grapheme' = "córtame por símbolos visibles"
+    const trozos = new Intl.Segmenter('es', { granularity: 'grapheme' }).segment(limpio);
+    simbolo = [...trozos][0].segment;
+  } else {
+    // Plan B para navegadores viejos. Array.from al menos no parte
+    // los pares de piezas, aunque no junta las familias.
+    simbolo = Array.from(limpio)[0];
+  }
+
+  // Y ahora: ¿esto que quedó es de verdad un emoji, o escribiste una letra?
+  //   Extended_Pictographic -> los emojis normales (😀 🏃 💧)
+  //   Regional_Indicator    -> las banderas (🇨🇴 son dos de estos)
+  //   ⃣                -> el cuadrito de los teclados numéricos (1️⃣)
+  const esEmoji = /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u;
+  return esEmoji.test(simbolo) ? simbolo : '';
+}
+/* ---------- fin F0 ---------- */
 
 /* ---------- F. LA VENTANA DE "NUEVO HÁBITO" ---------- */
 
@@ -1056,12 +1123,25 @@ modal.onclick = (ev) => { if (ev.target === modal) cerrarModal(); };
 function cerrarModal() {
   modal.classList.remove('abierto');
   document.getElementById('nombre').value = '';
+  document.getElementById('emojiLibre').value = '';
 }
+
+// Si escribes un emoji propio, apagamos la selección de la lista: así se
+// ve cuál va a ganar. Si borras el campo, vuelve a mandar la lista.
+document.getElementById('emojiLibre').addEventListener('input', ev => {
+  const propio = primerEmoji(ev.target.value);
+  document.querySelectorAll('.emoji-op').forEach(x => {
+    x.classList.toggle('elegido', !propio && x.textContent === emojiElegido);
+  });
+});
 
 document.getElementById('btnGuardar').onclick = () => {
   const nombre = document.getElementById('nombre').value.trim();
   if (!nombre) return;              // no guardamos hábitos sin nombre
-  agregarHabito(nombre, emojiElegido);
+
+  // El escrito a mano gana; si no hay o no es válido, el de la lista.
+  const propio = primerEmoji(document.getElementById('emojiLibre').value);
+  agregarHabito(nombre, propio || emojiElegido);
   cerrarModal();
 };
 

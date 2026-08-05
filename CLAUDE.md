@@ -113,6 +113,9 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
   - Aplazado: metas semanales. Todos los hábitos de Kev son diarios; no aporta
     hoy. Retomar solo si aparece un hábito que no sea de todos los días.
   - **Fase 2 cerrada.**
+  - Añadido después: emoji libre desde el teclado (`primerEmoji`, sección F0) y
+    cambiar el emoji de un hábito ya creado. La lista de emojis se conserva
+    como camino rápido; el campo libre es la escotilla de escape.
 - **Fase 3 — Sincronizar** Supabase (Postgres). Aquí vuelve el SQL de verdad.
   Partida en tres etapas (un cambio grande a la vez):
   - Etapa 1 — Base de datos: proyecto, tablas, RLS, OTP. Guía en
@@ -161,8 +164,7 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v9` (orden de secciones + documentación). Confirmar que
-quedó publicada.
+`VERSION` en el Mac: `v10` (emoji libre). Confirmar que quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué

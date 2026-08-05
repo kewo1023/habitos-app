@@ -140,6 +140,11 @@ Es una **lista**: elementos entre comillas, separados por comas, todo dentro de
 `[ ]`. Cambia los que no uses por los tuyos (**⌃⌘Espacio** abre el selector de
 emojis del Mac).
 
+> Esta lista es el camino rápido, no el único. Al crear un hábito hay un campo
+> debajo para escribir cualquier emoji con el teclado, y en modo edición puedes
+> tocar el emoji de un hábito para cambiárselo. Deja en la lista los que uses de
+> verdad — la gracia es que elegir sea un toque.
+
 **El error clásico:** dejar una coma suelta o quitar unas comillas. Si la app
 aparece en blanco después de este ejercicio, es eso. Mira la sección 6.
 
@@ -235,6 +240,74 @@ rompiste algo de la lógica, aquí te enteras en dos segundos en vez de
 descubrirlo dentro de una semana con las rachas mal contadas.
 
 Si sale algún ❌, el texto de la línea te dice qué dejó de funcionar.
+
+---
+
+## 5c. Tanda avanzada
+
+Sobre el calendario, las fechas y la sincronización. Aquí ya no estás cambiando
+valores: estás leyendo código para entender por qué hace lo que hace.
+
+### Ejercicio 10 — Que la semana empiece en domingo 🟡 medio
+
+⌘F → busca `columnaInicio`. Vas a encontrar esto:
+
+```js
+function columnaInicio(anio, mes) {
+  const diaSemana = new Date(anio, mes - 1, 1).getDay();
+  return (diaSemana + 6) % 7;
+}
+```
+
+Cambia `(diaSemana + 6) % 7` por `diaSemana` a secas. Y en el `<body>`, busca
+`<span>L</span>` y mueve la `D` del final al principio.
+
+**Qué está pasando:** `getDay()` numera 0=domingo hasta 6=sábado. Como nosotros
+mostramos la semana de lunes a domingo, ese `(+6) % 7` rota la numeración para
+que el lunes caiga en 0. Si vuelves a la numeración original, la semana empieza
+en domingo.
+
+El `%` es el **resto de la división**. `(0 + 6) % 7` es 6, `(1 + 6) % 7` es 0. Es
+el truco de siempre para "dar la vuelta" dentro de un rango sin usar `if`.
+
+**Vuelve a dejarlo como estaba** cuando lo entiendas, salvo que prefieras
+domingos. Y corre `node pruebas.js`: hay tres pruebas que revisan justo esto, y
+te van a fallar. Eso está bien — es la prueba haciendo su trabajo.
+
+### Ejercicio 11 — Ver la cola de sincronización por dentro 🟡 medio
+
+Este no cambia nada, solo te deja mirar. Abre la app en el Mac, clic derecho →
+**Inspeccionar** → pestaña **Console**, y escribe:
+
+```js
+datos.pendientes
+```
+
+Enter. Casi siempre va a estar vacía (`[]`), porque se vacía en un segundo.
+Para verla llena: desconecta el wifi del Mac, marca tres hábitos, y vuelve a
+escribirlo. Ahí ves las tres anotaciones esperando.
+
+Prueba también `datos.habitos` y `datos.registros`.
+
+**Para qué sirve esto:** la consola te deja hablar con la app mientras corre. Es
+la forma más rápida de comprobar si el problema está en los datos o en cómo se
+dibujan.
+
+### Ejercicio 12 — Agregar un tipo de cambio a la cola 🔴 difícil
+
+Ahora mismo, si borras un hábito, se encola `borrarHabito`. Sigue el rastro
+completo de esa palabra con ⌘F y responde estas tres preguntas:
+
+1. ¿Dónde se **encola**? (busca `tipo: 'borrarHabito'`)
+2. ¿Dónde se **envía a Supabase**? (busca `p.tipo === 'borrarHabito'`)
+3. ¿Por qué al borrar **no** se encola nada para los registros de ese hábito?
+
+La respuesta a la 3 está en un comentario cerca del sitio de la 1, y es la razón
+por la que vale la pena tener una base de datos de verdad.
+
+**Lo que estás aprendiendo:** a leer código siguiendo un hilo en vez de leerlo de
+arriba abajo. Es como se navega cualquier proyecto grande. ⌘F es tu herramienta
+principal, no la rueda del mouse.
 
 ---
 
