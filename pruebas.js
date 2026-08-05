@@ -1,13 +1,19 @@
 const fs = require('fs');
 const html = fs.readFileSync(__dirname + '/index.html','utf8');
 
-// Extraer solo las secciones A-D (lógica pura, sin DOM)
-const script = html.slice(html.lastIndexOf('<script>'), html.lastIndexOf('</script>'));
-// Secciones A-D (datos y consultas) + H (copia de seguridad).
-// Nos saltamos E-G y J porque tocan la pantalla, y aquí no hay pantalla.
+// Extraer solo el <script> grande. Ojo: al final del archivo hay un
+// segundo <script type="module"> (la librería de Supabase), así que
+// buscamos el cierre que viene DESPUÉS de la apertura, no el último.
+const inicio = html.lastIndexOf('<script>');
+const script = html.slice(inicio, html.indexOf('</script>', inicio));
+
+// Secciones A-D (datos y consultas) + H (copia de seguridad) + M1
+// (traducir errores). Nos saltamos todo lo que toca la pantalla o la
+// red, porque aquí no hay ni pantalla ni red.
 const trozo = (desde, hasta) => script.slice(script.indexOf(desde), script.indexOf(hasta));
 const logica = trozo('const CLAVE', '/* ---------- E.')
-             + trozo('/* ---------- H. COPIA', '/* ---------- I.');
+             + trozo('/* ---------- H. COPIA', '/* ---------- I.')
+             + trozo('/* ---------- M1.', '/* ---------- fin M1');
 
 // Shims mínimos
 const store = {};
@@ -19,7 +25,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -254,6 +260,23 @@ global.confirm = () => true;
 const antes = JSON.stringify(ctx.datos);
 ctx.importar(antes);
 ok('exportar e importar no altera los datos', JSON.stringify(ctx.datos) === antes);
+
+// --- mensajes de error de la nube
+ok('sin error, mensaje vacío', ctx.mensajeDeError(null) === '');
+ok('traduce credenciales inválidas',
+   ctx.mensajeDeError({ message: 'Invalid login credentials' }) === 'Correo o contraseña incorrectos.');
+ok('la traducción no depende de mayúsculas',
+   ctx.mensajeDeError({ message: 'INVALID LOGIN CREDENTIALS' }) === 'Correo o contraseña incorrectos.');
+ok('traduce correo sin confirmar',
+   /sin confirmar/.test(ctx.mensajeDeError({ message: 'Email not confirmed' })));
+ok('traduce fallo de red',
+   /Sin conexión/.test(ctx.mensajeDeError({ message: 'Failed to fetch' })));
+ok('traduce demasiados intentos',
+   /Espera/.test(ctx.mensajeDeError({ message: 'Email rate limit exceeded' })));
+ok('un error desconocido se muestra tal cual',
+   ctx.mensajeDeError({ message: 'Algo raro' }) === 'No se pudo entrar: Algo raro');
+ok('un error sin texto no rompe',
+   ctx.mensajeDeError({}) === 'No se pudo entrar: error desconocido');
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

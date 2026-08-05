@@ -59,6 +59,7 @@ Plataforma: iPhone. Kev tiene un Mac.
 | `GUIA.md` | Explicación del proyecto y hoja de ruta |
 | `PASOS-FASE-1.md` | Instrucciones para publicar en GitHub Pages |
 | `PASOS-GIT.md` | Montar git en VS Code y el ciclo commit/sync |
+| `PASOS-FASE-3.md` | Montar Supabase: tablas, RLS y login por código |
 | `COMO-EDITAR.md` | Manual de VS Code y ejercicios para que Kev edite solo |
 | `BITACORA.md` | Registro de qué se hizo en cada sesión |
 
@@ -82,6 +83,31 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
     hoy. Retomar solo si aparece un hábito que no sea de todos los días.
   - **Fase 2 cerrada.**
 - **Fase 3 — Sincronizar** Supabase (Postgres). Aquí vuelve el SQL de verdad.
+  Partida en tres etapas (un cambio grande a la vez):
+  - Etapa 1 — Base de datos: proyecto, tablas, RLS, OTP. Guía en
+    `PASOS-FASE-3.md`. **La ejecuta Kev.**
+  - Etapa 2 — Login dentro de la app (panel de sesión). ✅ Sección M de
+    `index.html`. Proyecto `wfqhtnxhxjtdsvjzxaks`. La librería entra por un
+    `<script type="module">` aparte desde `esm.sh`; si el CDN falla, la app
+    sigue funcionando solo con `localStorage`.
+  - Etapa 3 — Sincronizar con cola de pendientes para funcionar sin internet.
+  - **Decisión clave:** login con **correo y contraseña**, no con enlace mágico
+    ni código por correo. Tres razones: (1) en iOS una PWA de la pantalla de
+    inicio tiene almacenamiento separado de Safari, así que un enlace mágico
+    abre Safari y la sesión nunca llega a la app; (2) desde junio de 2026 el
+    plan gratuito no deja editar plantillas de correo sin SMTP propio, que es
+    lo que haría falta para mandar un código; (3) el correo por defecto de
+    Supabase permite solo **2 envíos por hora**. Con contraseña no se manda
+    ningún correo y los tres problemas desaparecen.
+    El código debe mantener el login **aislado en una sola función**: Kev quiere
+    dejar abierta la opción de pasarse al código por correo vía Resend más
+    adelante. El anexo de `PASOS-FASE-3.md` tiene los pasos.
+  - **Decisión clave:** el usuario se crea **a mano desde el panel** y se apaga
+    "Allow new users to sign up". La app no tiene pantalla de registro. RLS
+    impide ver datos ajenos; cerrar registros impide que alguien con la llave
+    pública (que va en el HTML) cree cuentas en el proyecto.
+  - **Decisión clave:** `localStorage` sigue siendo la fuente de lo que se
+    dibuja; Supabase va detrás. La app debe seguir funcionando sin internet.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -98,8 +124,7 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v6` (ajustes visuales + reordenar/renombrar). Confirmar
-que quedó publicada.
+`VERSION` en el Mac: `v7` (login de Supabase). Confirmar que quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué

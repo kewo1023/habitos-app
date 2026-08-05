@@ -13,7 +13,7 @@
 
 // Sube este número cada vez que cambies los archivos.
 // Es lo que le dice al navegador "hay versión nueva, bótame la vieja".
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = 'habitos-' + VERSION;
 
 const ARCHIVOS = [
@@ -52,7 +52,10 @@ self.addEventListener('fetch', ev => {
       .then(respuesta => {
         // Guardamos la versión fresca para la próxima vez que no haya señal
         const copia = respuesta.clone();
-        caches.open(CACHE).then(c => c.put(ev.request, copia));
+        // El .catch importa: ahora también pasan por aquí peticiones a otros
+        // dominios (la librería de Supabase desde el CDN) y algunas no se
+        // pueden guardar. Si falla, da igual: la respuesta ya va en camino.
+        caches.open(CACHE).then(c => c.put(ev.request, copia)).catch(() => {});
         return respuesta;
       })
       .catch(() => caches.match(ev.request).then(r => r || caches.match('./index.html')))

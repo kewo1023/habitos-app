@@ -265,6 +265,57 @@ Los tres primeros salen de mirar la app real en el iPhone, no del plan.
       contra Postgres.
 - [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
 
+## 2026-08-04 — Fase 3, etapas 1 y 2: base de datos y login
+
+**Etapa 1 — hecha por Kev.** Proyecto `habitos_app` en Supabase (ref
+`wfqhtnxhxjtdsvjzxaks`), tablas `habitos` y `registros` con RLS, usuario creado a
+mano y registros cerrados. Guía en `PASOS-FASE-3.md`.
+
+**Dos sorpresas que cambiaron el plan de autenticación**
+
+1. El **enlace mágico no sirve** para esta app: en iOS una PWA de la pantalla de
+   inicio tiene almacenamiento separado de Safari. El enlace abre Safari, la
+   sesión queda allá y la app nunca se entera.
+2. El plan B era código de 6 dígitos por correo, y también se cayó: desde el
+   **3 de junio de 2026** el plan gratuito no deja editar plantillas de correo
+   sin SMTP propio, y el correo por defecto de Supabase permite solo **2 envíos
+   por hora**.
+
+Resultado: **correo y contraseña**, que no manda ningún correo y ocurre entero
+dentro de la app. El anexo de `PASOS-FASE-3.md` deja escrito cómo pasarse al
+código por correo con Resend si algún día se quiere.
+
+**Etapa 2 — hecha en esta sesión**
+
+- **Sección M** en `index.html`, dividida en cuatro: M1 traducir errores, M2
+  entrar/salir, M3 arrancar el cliente, M4 el panel.
+- La librería de Supabase entra por un **`<script type="module">` aparte**, al
+  final del archivo, importada desde `esm.sh`. Sin npm y sin compilar. Si el CDN
+  no responde, ese bloque no se ejecuta y **la app funciona igual que antes**:
+  la nube es un extra, no un requisito.
+- `entrar()` es **una sola función** y es el único sitio que sabe cómo se inicia
+  sesión. Cambiar a código por correo = reescribir esa función y nada más.
+- Panel de **Cuenta** junto al de copia de seguridad, visible solo en modo
+  edición: entrar se hace una vez por dispositivo, no a diario.
+- `mensajeDeError()` traduce los errores de Supabase al español. Está marcada
+  con `M1` / `fin M1` para poder recortarla desde `pruebas.js`: es lógica pura
+  aunque viva en una sección que habla con la red.
+- `pruebas.js`: arreglado el recorte del `<script>` — ahora hay dos etiquetas
+  `<script>` en el archivo y `lastIndexOf('</script>')` agarraba la equivocada.
+  De 95 a **103 tests**. Todos pasan.
+- `sw.js`: `VERSION` a `'v7'` y un `.catch` al guardar en caché, porque ahora
+  pasan por ahí peticiones a otros dominios que no siempre se pueden guardar.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica y prueba entrar desde el iPhone. Verificar que la sesión
+      sobreviva a cerrar y volver a abrir la app.
+- [ ] Si `esm.sh` diera problemas, la alternativa es
+      `https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm`.
+- [ ] **Etapa 3 — sincronizar.** Subir los hábitos que ya existen, bajar los de
+      la nube, y la cola de pendientes para funcionar sin señal. Ahí sí hay
+      lógica pura que probar (la mezcla de datos).
+
 ---
 
 <!-- Plantilla para la próxima entrada:

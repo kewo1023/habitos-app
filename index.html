@@ -330,7 +330,7 @@ body.editando .panel-datos { display: block; }
   font-weight: 600; margin-bottom: 8px; display: block;
 }
 
-input[type=text] {
+input[type=text], input[type=email], input[type=password] {
   width: 100%;
   padding: 14px;
   background: var(--fondo);
@@ -343,7 +343,16 @@ input[type=text] {
   -webkit-user-select: text; user-select: text;
 }
 
-input[type=text]:focus { outline: none; border-color: var(--acento); }
+input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
+  outline: none; border-color: var(--acento);
+}
+
+/* ---------- 10. PANEL DE CUENTA ---------- */
+.panel-datos input { margin-bottom: 8px; }
+
+.sesion-estado { font-size: 12px; margin-top: 10px; line-height: 1.5; }
+.sesion-estado.error { color: #ff8a80; }
+.sesion-estado.bien  { color: var(--exito); }
 
 .emojis { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
 
@@ -517,6 +526,32 @@ input[type=text]:focus { outline: none; border-color: var(--acento); }
     <input type="file" id="archivoEntrada" accept=".json,application/json" hidden>
     <p class="nota">Tus hábitos viven solo en este dispositivo. Guarda una copia
       de vez en cuando: si borras la app, se pierde el historial.</p>
+  </section>
+
+  <!-- Cuenta. También solo en modo edición: entrar es algo que se hace
+       una vez por dispositivo, no todos los días. -->
+  <section class="panel-datos">
+    <span class="etiqueta">Cuenta</span>
+
+    <!-- Lo que se ve cuando NO has entrado -->
+    <div id="sesionFuera" hidden>
+      <input type="email" id="correo" placeholder="tu@correo.com"
+             autocomplete="username" autocapitalize="none" spellcheck="false">
+      <input type="password" id="clave" placeholder="Contraseña"
+             autocomplete="current-password">
+      <div class="panel-botones">
+        <button class="btn-mini" id="btnEntrar">Entrar</button>
+      </div>
+    </div>
+
+    <!-- Lo que se ve cuando SÍ has entrado -->
+    <div id="sesionDentro" hidden>
+      <div class="panel-botones">
+        <button class="btn-mini" id="btnSalir">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <p class="sesion-estado" id="sesionEstado"></p>
   </section>
 
   <div class="barra-inferior">
@@ -1272,8 +1307,164 @@ document.getElementById('modalCal').onclick = ev => {
   if (ev.target.id === 'modalCal') cerrarCalendario();
 };
 
+/* ============================================================
+   M. LA NUBE (Supabase)
+   ============================================================
+   Etapa 2 de la Fase 3: solo entrar y salir de la cuenta.
+   Todavía no se sincroniza nada; eso es la etapa 3.
+
+   Regla que no se rompe: si esto falla — no hay señal, Supabase está
+   caído, la librería no baja — la app tiene que seguir funcionando
+   exactamente como antes. Por eso nada de aquí es obligatorio para
+   que pinte la pantalla.                                          */
+
+// La dirección de tu proyecto y su llave pública.
+// La llave es pública a propósito: va dentro de este archivo, que
+// cualquiera puede leer. Lo que protege tus datos es el RLS de la base
+// de datos, no esconderla.
+const NUBE = {
+  url:   'https://wfqhtnxhxjtdsvjzxaks.supabase.co',
+  llave: 'sb_publishable_HFAbU7tq-r3YVGsGz6WMwg_C1CZBC8l'
+};
+
+let nube = null;      // el cliente de Supabase, cuando termine de cargar
+let sesion = null;    // la sesión activa, o null si no has entrado
+
+/* ---------- M1. TRADUCIR ERRORES (lógica pura, se prueba) ----------
+   Supabase responde en inglés y en jerga. Esta función traduce los
+   casos que de verdad te pueden pasar. Está aparte del resto porque
+   no toca ni la pantalla ni la red: así se puede probar. */
+function mensajeDeError(error) {
+  if (!error) return '';
+  const texto = (error.message || '').toLowerCase();
+
+  if (texto.includes('invalid login credentials'))
+    return 'Correo o contraseña incorrectos.';
+  if (texto.includes('email not confirmed'))
+    return 'La cuenta existe pero está sin confirmar. Actívala desde el panel de Supabase.';
+  if (texto.includes('failed to fetch') || texto.includes('network'))
+    return 'Sin conexión. Tus hábitos siguen guardados en el teléfono.';
+  if (texto.includes('rate limit') || texto.includes('too many'))
+    return 'Demasiados intentos seguidos. Espera unos minutos.';
+
+  return 'No se pudo entrar: ' + (error.message || 'error desconocido');
+}
+/* ---------- fin M1 ---------- */
+
+/* ---------- M2. ENTRAR Y SALIR ----------
+   TODA la forma de iniciar sesión vive en la función entrar(). Está
+   aislada a propósito: el día que quieras pasarte al código por correo
+   (ver el anexo de PASOS-FASE-3.md) se reescribe esta función y nada
+   más. Ni el panel ni la sincronización se enteran.                */
+
+async function entrar(correo, contrasena) {
+  if (!nube) return { message: 'La nube todavía no ha cargado.' };
+
+  const { error } = await nube.auth.signInWithPassword({
+    email: correo,
+    password: contrasena
+  });
+  return error;   // null cuando salió bien
+}
+
+async function salir() {
+  if (nube) await nube.auth.signOut();
+}
+
+/* ---------- M3. ARRANCAR LA NUBE ----------
+   Esto lo llama el <script type="module"> del final del archivo, cuando
+   la librería de Supabase termina de bajar del CDN. Si no baja, esta
+   función nunca se ejecuta y no pasa nada malo.                     */
+async function iniciarNube(createClient) {
+  nube = createClient(NUBE.url, NUBE.llave);
+
+  // ¿Ya habías entrado antes en este dispositivo? La librería guarda la
+  // sesión en localStorage y la renueva sola, así que entrar es una vez.
+  const { data } = await nube.auth.getSession();
+  sesion = data.session;
+
+  // Un solo sitio que reacciona a cualquier cambio de sesión: entrar,
+  // salir, o la renovación automática del token cada hora.
+  nube.auth.onAuthStateChange((evento, nuevaSesion) => {
+    sesion = nuevaSesion;
+    pintarSesion();
+  });
+
+  pintarSesion();
+}
+
+/* ---------- M4. EL PANEL DE CUENTA ---------- */
+
+function pintarSesion(mensaje, tipo) {
+  const fuera  = document.getElementById('sesionFuera');
+  const dentro = document.getElementById('sesionDentro');
+  const estado = document.getElementById('sesionEstado');
+
+  const conectado = Boolean(sesion);
+  fuera.hidden  = conectado;
+  dentro.hidden = !conectado;
+
+  estado.className = 'sesion-estado' + (tipo ? ' ' + tipo : '');
+
+  if (mensaje) {
+    estado.textContent = mensaje;
+  } else if (conectado) {
+    estado.textContent = `Conectado como ${sesion.user.email}. Todavía no se ` +
+                         `sincroniza nada: eso llega en el siguiente paso.`;
+  } else if (nube) {
+    estado.textContent = 'Entra para respaldar tus hábitos en la nube.';
+  } else {
+    estado.textContent = 'Sin conexión con la nube. La app funciona igual, ' +
+                         'con los datos del teléfono.';
+  }
+}
+
+document.getElementById('btnEntrar').onclick = async () => {
+  const correo = document.getElementById('correo').value.trim();
+  const clave  = document.getElementById('clave').value;
+
+  if (!correo || !clave) {
+    pintarSesion('Escribe tu correo y tu contraseña.', 'error');
+    return;
+  }
+
+  const boton = document.getElementById('btnEntrar');
+  boton.disabled = true;                       // que no lo toques dos veces
+  pintarSesion('Entrando…');
+
+  const error = await entrar(correo, clave);
+  boton.disabled = false;
+
+  if (error) {
+    pintarSesion(mensajeDeError(error), 'error');
+  } else {
+    document.getElementById('clave').value = '';   // no dejarla en pantalla
+    pintarSesion('Listo, entraste.', 'bien');
+  }
+};
+
+document.getElementById('btnSalir').onclick = async () => {
+  await salir();
+  pintarSesion('Sesión cerrada. Tus hábitos siguen aquí en el teléfono.');
+};
+
+// Estado inicial, mientras la librería baja (o si nunca baja)
+pintarSesion();
+
 /* ---------- K. ARRANCAR ---------- */
 pintar();
+</script>
+
+<!-- La librería de Supabase, directo desde un CDN.
+     type="module" hace falta para poder usar "import". Este bloque va
+     aparte del script grande a propósito: los módulos se ejecutan al
+     final, después de que todo lo de arriba ya existe.
+     Si el CDN no responde, este bloque entero no llega a ejecutarse y
+     la app sigue funcionando con los datos del teléfono. Es justo lo
+     que queremos: la nube es un extra, no un requisito. -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  iniciarNube(createClient).catch(e => console.log('Nube:', e));
 </script>
 </body>
 </html>
