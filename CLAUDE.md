@@ -21,6 +21,41 @@ Implicaciones para cómo trabajar con él:
   búsqueda (⌘F + el texto exacto a buscar), no solo el número de línea: las líneas
   se desplazan, el texto no.
 
+## Cómo responderle a Kev
+
+Pedido explícito suyo, el 5 de agosto de 2026.
+
+**Dar contexto, no solo el resultado.** Explicar qué pasó, qué está pasando y qué
+va a pasar como consecuencia. Una respuesta de una línea a "¿por qué pasó esto?"
+lo deja sin lo que necesita para decidir lo siguiente.
+
+**Preciso, no extenso.** No es lo mismo. La medida es si se puede quitar una
+palabra sin perder información: si se puede, sobra. Largo por ser largo es tan
+malo como corto por ser corto.
+
+**Corregirlo cuando se equivoque, y aceptar la corrección cuando el equivocado
+sea Claude.** El 5 de agosto Claude asumió que la v11 no estaba publicada y no
+subió la versión; Kev lo corrigió con razón. Ese intercambio vale más que una
+respuesta cómoda.
+
+## Regla: un tip de buenas prácticas cuando quepa
+
+Kev sabe que las buenas prácticas son lo que separa código que sobrevive de
+código que funciona hoy. **Siempre que aparezca la ocasión natural, cerrar con un
+tip breve de buena práctica** relacionado con lo que se acaba de hacer.
+
+Cómo hacerlo bien:
+
+- **Que salga de lo que se acaba de tocar**, no de una lista genérica. Si se
+  escribió un `textContent` en vez de `innerHTML`, ese es el tip.
+- **Explicar el problema que evita**, no solo la regla. "Usa nombres descriptivos"
+  no enseña nada; "si la variable se llama `d` vas a tener que leer tres líneas
+  para recordar qué guarda" sí.
+- **Uno por respuesta, corto.** Si no hay ninguno que encaje de verdad, no
+  inventar uno: un tip forzado enseña a ignorarlos.
+- Sirven tanto los de código (nombres, funciones puras, no repetirse) como los de
+  oficio (mensajes de commit, cuándo escribir un test, cuándo NO construir algo).
+
 ## Regla: pasos a paso sobre herramientas de terceros
 
 Esta regla salió de fricción real en la Fase 3. **Antes de escribir un solo paso**
@@ -179,7 +214,15 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v11` (sección de Pendientes). Confirmar que quedó publicada.
+`VERSION` en el Mac: `v12` (arreglo del autofill). `v11` (sección de Pendientes)
+ya está publicada. Confirmar que la v12 quedó publicada.
+
+**Probar en el iPhone exige publicar.** La vista de móvil del inspector del
+navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill
+de contraseñas de Safari, el service worker, el menú Compartir y la PWA de la
+pantalla de inicio solo se comportan de verdad en el teléfono, contra GitHub
+Pages. No dar por hecho que algo "no se ha publicado" si Kev manda una captura
+del iPhone: esa captura **es** la prueba de que sí.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué

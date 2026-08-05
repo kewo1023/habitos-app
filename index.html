@@ -335,6 +335,18 @@ body.vista-tareas .panel-datos { display: none; }
    lo pone .nueva-tarea para los dos elementos a la vez. */
 .nueva-tarea input[type=text] { margin-bottom: 0; }
 
+/* Safari mete un iconito de llave dentro de los campos donde cree que
+   podrías querer rellenar una contraseña. Aquí no aplica nunca, así que
+   lo escondemos. Es un pseudo-elemento propio de Safari/Chrome: el
+   prefijo -webkit- significa "esto solo lo entienden estos navegadores". */
+#tareaNueva::-webkit-credentials-auto-fill-button,
+#tareaNueva::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+  width: 0;
+  margin: 0;
+}
+
 .nueva-tarea button {
   flex: 0 0 52px;
   border-radius: 13px;
@@ -677,11 +689,17 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   <main id="listaTareas" hidden>
     <!-- El campo de captura va arriba y siempre visible: escribir un
          pendiente tiene que ser un toque, no abrir una ventana. -->
-    <div class="nueva-tarea">
-      <input type="text" id="tareaNueva" placeholder="¿Qué tienes pendiente?"
-             maxlength="120" autocomplete="off" enterkeyhint="done">
-      <button id="btnAgregarTarea" aria-label="Agregar pendiente">+</button>
-    </div>
+    <!-- Va dentro de su propio <form> para quedar en un "recinto" distinto al
+         del login. Así Safari deja de ofrecerte tu contraseña aquí.
+         El name="pendiente" también cuenta: Safari adivina para qué sirve un
+         campo por su nombre y su texto de ayuda, no solo por autocomplete. -->
+    <form class="nueva-tarea" id="formTarea" autocomplete="off">
+      <input type="text" id="tareaNueva" name="pendiente"
+             placeholder="¿Qué tienes pendiente?"
+             maxlength="120" autocomplete="off" enterkeyhint="done"
+             autocorrect="off" data-lpignore="true">
+      <button type="submit" id="btnAgregarTarea" aria-label="Agregar pendiente">+</button>
+    </form>
 
     <!-- Aquí JavaScript inserta las tarjetas de pendientes -->
     <div id="tareasCuerpo"></div>
@@ -706,15 +724,21 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   <section class="panel-datos">
     <span class="etiqueta">Cuenta</span>
 
-    <!-- Lo que se ve cuando NO has entrado -->
+    <!-- Lo que se ve cuando NO has entrado.
+         Los dos campos van dentro de un <form> a propósito. Sin él, Safari
+         trata la página entera como un formulario y ofrece rellenar tu
+         contraseña en CUALQUIER campo de texto, incluido el de escribir un
+         pendiente. El <form> le pone una cerca a las credenciales. -->
     <div id="sesionFuera" hidden>
-      <input type="email" id="correo" placeholder="tu@correo.com"
-             autocomplete="username" autocapitalize="none" spellcheck="false">
-      <input type="password" id="clave" placeholder="Contraseña"
-             autocomplete="current-password">
-      <div class="panel-botones">
-        <button class="btn-mini" id="btnEntrar">Entrar</button>
-      </div>
+      <form id="formEntrar">
+        <input type="email" id="correo" name="correo" placeholder="tu@correo.com"
+               autocomplete="username" autocapitalize="none" spellcheck="false">
+        <input type="password" id="clave" name="clave" placeholder="Contraseña"
+               autocomplete="current-password">
+        <div class="panel-botones">
+          <button class="btn-mini" id="btnEntrar" type="submit">Entrar</button>
+        </div>
+      </form>
     </div>
 
     <!-- Lo que se ve cuando SÍ has entrado -->
@@ -1885,7 +1909,13 @@ function pintarSesion(mensaje, tipo) {
   }
 }
 
-document.getElementById('btnEntrar').onclick = async () => {
+// Ahora el botón "Entrar" vive dentro de un <form>, así que en vez de
+// escuchar su clic escuchamos el "submit" del formulario. Es lo mismo, pero
+// además cubre el caso de darle a "Ir" en el teclado del teléfono.
+// El preventDefault es obligatorio: sin él, el navegador intentaría enviar
+// el formulario a un servidor y recargaría la página.
+document.getElementById('formEntrar').onsubmit = async (ev) => {
+  ev.preventDefault();
   const correo = document.getElementById('correo').value.trim();
   const clave  = document.getElementById('clave').value;
 
@@ -2240,11 +2270,14 @@ function guardarTareaEscrita() {
   campoTarea.focus();
 }
 
-document.getElementById('btnAgregarTarea').onclick = guardarTareaEscrita;
-
-campoTarea.addEventListener('keydown', ev => {
-  if (ev.key === 'Enter') guardarTareaEscrita();
-});
+// El campo y el botón "+" viven dentro de un <form>, así que basta con
+// escuchar el "submit": lo disparan tanto el botón como la tecla Enter.
+// preventDefault evita que el navegador recargue la página intentando
+// mandar el formulario a un servidor que no existe.
+document.getElementById('formTarea').onsubmit = (ev) => {
+  ev.preventDefault();
+  guardarTareaEscrita();
+};
 
 /* ---------- K. ARRANCAR ---------- */
 pintar();

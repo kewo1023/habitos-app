@@ -587,11 +587,45 @@ Comprometerse al diseño antes de haberlo probado es lo que costó tiempo en la
 Fase 3. El riesgo aceptado es bajo: si se borra la app se pierden las tareas, no el
 historial de hábitos.
 
+**Arreglo del mismo día — Safari ofrecía la contraseña en el campo de tareas**
+
+Kev publicó la `v11`, probó en el iPhone y mandó captura: al tocar "¿Qué tienes
+pendiente?", Safari sugería rellenar con la contraseña guardada del sitio.
+
+(Nota de método: Claude asumió que la v11 no estaba publicada y por eso no subió
+la versión al arreglar. Kev lo corrigió. **Una captura del iPhone es prueba de que
+la app está publicada** — probar en el teléfono real exige GitHub Pages; la vista
+de móvil del inspector solo simula el tamaño. Este arreglo va en la `v12`.)
+
+Causa: **ninguno de los inputs estaba dentro de un `<form>`**. Sin formularios,
+Safari trata la página entera como uno solo, ve el `<input type="password">` del
+login (aunque esté oculto) y ofrece las credenciales guardadas en cualquier campo
+de texto. **`autocomplete="off"` no sirve aquí**: Safari lo ignora a propósito
+para credenciales, y adivina el propósito de un campo por su `name`, su etiqueta y
+su `placeholder`.
+
+Arreglo, en tres capas:
+
+1. Login envuelto en `<form id="formEntrar">` — le pone una cerca a las
+   credenciales. `btnEntrar.onclick` pasó a `formEntrar.onsubmit`, que además
+   cubre el "Ir" del teclado.
+2. Campo de tareas envuelto en `<form id="formTarea">` con `name="pendiente"`.
+   Al estar en otro formulario, ya no hereda el contexto de login. El `keydown` de
+   Enter y el `onclick` del "+" se unificaron en un solo `onsubmit`.
+3. CSS `::-webkit-credentials-auto-fill-button` oculto, para quitar el iconito de
+   llave que Safari mete dentro del campo.
+
+Los dos `onsubmit` llevan `preventDefault()`: sin él el navegador recargaría la
+página al enviar el formulario.
+
 **Pendiente / siguiente**
 
-- [ ] Kev publica (subir `VERSION` ya está hecho: `v11`) y prueba en el iPhone:
-      que las pestañas se entiendan, que escribir un pendiente sea de verdad un
-      toque, y que el teclado del iPhone no tape el campo al escribir.
+- [x] `v11` publicada y probada en el iPhone. Las pestañas y la captura de
+      pendientes funcionan bien; salió el problema del autofill.
+- [ ] Publicar la **`v12`** (ya subida en `sw.js`) y comprobar dos cosas: que
+      Safari ya no ofrezca la contraseña en el campo de pendientes, y que
+      **entrar con correo y contraseña siga funcionando** tras meter el login
+      dentro de un `<form>`.
 - [ ] Usarlo unos días. Después decidir: ¿sincronizar con Supabase? ¿prioridad?
       ¿el gesto de deslizar hace falta de verdad?
 - [ ] Ejercicios 1 y 4 de `COMO-EDITAR.md`, y la tanda 7–12 cuando quiera.
