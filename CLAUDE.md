@@ -241,6 +241,16 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
   - Una idea se puede **marcar como hecha** o **mover a Pendientes** (flecha →,
     siempre visible salvo si ya está hecha). Al moverse vuelve a `hecha: false`.
   - `limpiarHechas(lista)` recibe la lista: limpiar pendientes no toca ideas.
+  - **Ficha de la idea (v14).** Tocar el texto de una idea abre una ventana con
+    título, nota de contexto y las acciones (mover, borrar). El campo `nota` es
+    opcional: si está vacío no existe en los datos, no se guarda como `''`.
+    `editarTarea(id, texto, nota)` es la función general; `renombrarTarea` es un
+    caso particular que la llama.
+  - **Decisión clave:** el círculo ✓ es el **único** sitio que marca, en las dos
+    listas. En Ideas tocar el texto abre la ficha; **en Pendientes tocar sigue
+    marcando**, porque ahí ese es el gesto de cada día y obligar a apuntarle al
+    círculo lo haría más lento. Son dos comportamientos a propósito, no un
+    descuido: la tarjeta de idea lleva subrayado punteado como pista.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -260,9 +270,9 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v13` (pestaña Ideas). `v11` (Pendientes) está publicada;
-la `v12` (arreglo del autofill) quedó absorbida por la `v13` sin publicarse
-aparte. Confirmar que la v13 quedó publicada.
+`VERSION` en el Mac: `v14` (ficha de la idea + pestaña activa más visible).
+`v13` (pestaña Ideas) está publicada y probada. Confirmar que la v14 quedó
+publicada.
 
 **Probar en el iPhone exige publicar.** La vista de móvil del inspector del
 navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill

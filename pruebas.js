@@ -28,7 +28,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -527,6 +527,44 @@ ok('un texto vacío no cambia nada',
 ok('el mismo texto no cuenta como cambio', ctx.renombrarTarea(idTexto, 'Corregido') === false);
 ok('renombrar un id inexistente no rompe', ctx.renombrarTarea('no-existe', 'algo') === false);
 ok('renombrar no cambia de lista', ctx.tareasDe(P)[0].lista === P);
+
+// --- la nota de contexto de una idea
+ctx.datos.tareas = [];
+ctx.agregarTarea('App de propinas', I);
+const idNota = ctx.tareasDe(I)[0].id;
+
+ok('una idea nace sin nota', ctx.tareasDe(I)[0].nota === undefined);
+ok('escribir la nota funciona',
+   ctx.editarTarea(idNota, undefined, 'Calcular el split del turno') === true &&
+   ctx.tareasDe(I)[0].nota === 'Calcular el split del turno');
+ok('la nota no cambió el título', ctx.tareasDe(I)[0].texto === 'App de propinas');
+ok('cambiar solo el título deja la nota intacta',
+   ctx.editarTarea(idNota, 'App de propinas v2') === true &&
+   ctx.tareasDe(I)[0].nota === 'Calcular el split del turno');
+ok('cambiar los dos a la vez funciona',
+   ctx.editarTarea(idNota, 'Propinas', 'Otra nota') === true &&
+   ctx.tareasDe(I)[0].texto === 'Propinas' && ctx.tareasDe(I)[0].nota === 'Otra nota');
+ok('guardar lo mismo no cuenta como cambio',
+   ctx.editarTarea(idNota, 'Propinas', 'Otra nota') === false);
+ok('la nota se recorta a 500 caracteres',
+   ctx.editarTarea(idNota, undefined, 'y'.repeat(700)) && ctx.tareasDe(I)[0].nota.length === 500);
+ok('la nota quita espacios de alrededor',
+   ctx.editarTarea(idNota, undefined, '   con espacios   ') &&
+   ctx.tareasDe(I)[0].nota === 'con espacios');
+ok('vaciar la nota borra el campo, no lo deja vacío',
+   ctx.editarTarea(idNota, undefined, '') === true && !('nota' in ctx.tareasDe(I)[0]));
+ok('un título vacío no se acepta ni con nota',
+   ctx.editarTarea(idNota, '   ', 'algo') === false);
+ok('el título sobrevivió al intento', ctx.tareasDe(I)[0].texto === 'Propinas');
+ok('editar un id inexistente no rompe', ctx.editarTarea('no-existe', 'x', 'y') === false);
+ok('la nota sobrevive al guardado en disco',
+   (ctx.editarTarea(idNota, undefined, 'para el disco'),
+    ctx.cargar().tareas[0].nota === 'para el disco'));
+ok('la nota sobrevive a mover la idea a pendientes',
+   (ctx.moverALista(idNota, P), ctx.tareasDe(P)[0].nota === 'para el disco'));
+ok('renombrarTarea sigue funcionando y no borra la nota',
+   ctx.renombrarTarea(idNota, 'Propinas final') === true &&
+   ctx.tareasDe(P)[0].nota === 'para el disco');
 
 // --- borrar
 ctx.datos.tareas = [];

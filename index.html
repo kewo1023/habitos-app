@@ -286,9 +286,10 @@ body.editando .panel-datos { display: block; }
 }
 
 .pestana {
+  position: relative;        /* para poder colgarle la línea de abajo */
   flex: 1;
   min-width: 0;              /* deja que encojan si el texto es largo */
-  padding: 10px 6px;
+  padding: 10px 6px 13px;
   border: none;
   border-radius: 10px;
   background: none;
@@ -300,11 +301,29 @@ body.editando .panel-datos { display: block; }
   transition: background .18s ease, color .18s ease;
 }
 
-/* La pestaña en la que estás parado se ilumina. Es la única pista de
-   "dónde estoy", así que tiene que notarse sin pensarlo. */
+/* La pestaña en la que estás parado. Es la única pista de "dónde estoy", así
+   que lleva CUATRO señales pequeñas a la vez en vez de una grande: fondo más
+   claro, blanco puro (las otras son grises), negrilla y una línea de acento
+   debajo. El mismo criterio que usamos con los hábitos ya cumplidos: varias
+   señales suaves se leen mejor y más rápido que una sola señal fuerte. */
 .pestana.activa {
   background: var(--tarjeta-alta);
-  color: var(--texto);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* La línea azul. Va como pseudo-elemento y no como border-bottom para que no
+   empuje el texto ni un píxel al aparecer y desaparecer: está posicionada
+   encima, no dentro del flujo. */
+.pestana.activa::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+  width: 20px; height: 2px;
+  border-radius: 2px;
+  background: var(--acento);
 }
 
 /* El contador de pendientes ahí mismo, en la pestaña. Así sabes si hay
@@ -390,9 +409,11 @@ body.vista-tareas .panel-datos { display: none; }
   text-decoration: line-through;
 }
 
+/* El título y la nota van juntos en un bloque, para que el círculo y los
+   botones queden centrados respecto a los dos y no solo respecto al título. */
+.tarea-info { flex: 1; min-width: 0; }
+
 .tarea-texto {
-  flex: 1;
-  min-width: 0;
   font-size: 16px;
   font-weight: 500;
   /* A diferencia del nombre de un hábito, un pendiente puede ser largo
@@ -416,6 +437,56 @@ body.editando .tarea-texto {
 }
 
 .tarea.recien-movida { animation: aterrizar .28s ease-out; }
+
+/* En Ideas, tocar el texto abre su ficha en vez de marcarla. El punteado es
+   la pista de que ahí se puede tocar — la misma señal que la app ya usa en
+   modo edición, para no tener que aprender un símbolo nuevo. */
+.tarea.idea .tarea-texto {
+  border-bottom: 1px dashed var(--borde);
+  display: inline-block;
+}
+
+/* El comienzo de la nota, debajo del título. Sirve para reconocer la idea
+   sin abrirla. Se corta a dos líneas: si creciera, la lista dejaría de ser
+   una lista. */
+.tarea-nota {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  line-height: 1.45;
+  margin-top: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- La ficha de una idea --- */
+.modal textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 13px;
+  color: var(--texto);
+  font-size: 16px;          /* 16px evita que el iPhone haga zoom al escribir */
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  margin-bottom: 18px;
+  -webkit-user-select: text; user-select: text;
+}
+
+.modal textarea:focus { outline: none; border-color: var(--acento); }
+
+/* Los dos botones secundarios de la ficha, en una fila aparte del Guardar.
+   Mover y borrar son acciones poco frecuentes: no compiten por el sitio
+   principal, pero tampoco se esconden. */
+.ficha-acciones { display: flex; gap: 10px; margin-bottom: 12px; }
+
+.ficha-acciones .btn-mini { flex: 1; }
+
+.btn-peligro { color: #ff8a80; border-color: rgba(255,138,128,.35); }
 
 /* La flecha que manda una idea a Pendientes. Va siempre visible (no solo en
    modo edición) porque es LA acción de una idea: dejar de serlo. */
@@ -831,6 +902,32 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
       <button class="btn btn-secundario" id="calCerrar"
               style="width:100%; flex:none; margin-top:16px">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- La ficha de una idea. Se abre al tocar su texto en la lista.
+       Aquí vive todo lo que se hace con una idea: cambiarle el título,
+       escribirle el contexto, mandarla a Pendientes o borrarla. -->
+  <div class="fondo-modal" id="modalIdea">
+    <div class="modal">
+      <h2>Idea</h2>
+
+      <label class="etiqueta" for="ideaTexto">Idea</label>
+      <input type="text" id="ideaTexto" maxlength="120" autocomplete="off">
+
+      <label class="etiqueta" for="ideaNota">Contexto</label>
+      <textarea id="ideaNota" maxlength="500"
+                placeholder="¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes."></textarea>
+
+      <div class="ficha-acciones">
+        <button class="btn-mini" id="ideaMover">→ A Pendientes</button>
+        <button class="btn-mini btn-peligro" id="ideaBorrar">Borrar</button>
+      </div>
+
+      <div style="display:flex; gap:10px">
+        <button class="btn btn-secundario" id="ideaCancelar" style="flex:1">Cancelar</button>
+        <button class="btn btn-principal"  id="ideaGuardar">Guardar</button>
+      </div>
     </div>
   </div>
 
@@ -1278,21 +1375,43 @@ function moverALista(idTarea, lista) {
   return true;
 }
 
-// Cambiar el texto. Misma idea que renombrar un hábito: se toca en modo
-// edición. Devuelve false si el texto está vacío o no cambió nada, para
-// no guardar en disco por gusto.
-function renombrarTarea(idTarea, textoNuevo) {
-  const limpio = (textoNuevo || '').trim();
-  if (!limpio) return false;
-
+// Cambiar el texto y/o la nota de contexto de una tarea.
+//
+// La nota es el campo que hace útiles las Ideas: "app de propinas" no dice
+// nada dentro de tres semanas; la nota guarda por qué te pareció buena. Es
+// opcional a propósito — si no escribes nada, el campo ni siquiera existe en
+// los datos. Un campo vacío guardado en todas las filas es basura que se
+// arrastra para siempre.
+//
+// Pasar "undefined" en un parámetro significa "no toques eso". Por eso se usa
+// ?? y no ||: con || un texto vacío se confundiría con "no lo mandaron", y
+// borrar una nota dejaría de funcionar.
+function editarTarea(idTarea, textoNuevo, notaNueva) {
   const t = datos.tareas.find(x => x.id === idTarea);
   if (!t) return false;
-  if (t.texto === limpio) return false;
 
-  t.texto = limpio.slice(0, 120);
+  const texto = (textoNuevo ?? t.texto ?? '').trim().slice(0, 120);
+  if (!texto) return false;                  // sin título no hay tarea
+
+  const nota = (notaNueva ?? t.nota ?? '').trim().slice(0, 500);
+
+  // Si no cambió nada, no guardamos: escribir en disco por gusto es trabajo
+  // que no hace falta, y hace más difícil saber qué cambió de verdad.
+  if (t.texto === texto && (t.nota || '') === nota) return false;
+
+  t.texto = texto;
+  if (nota) t.nota = nota; else delete t.nota;
+
   guardar();
   pintarLista();
   return true;
+}
+
+// Cambiar solo el texto pasa a ser un caso particular de lo anterior, igual
+// que alternarHoy es un caso particular de alternarFecha. Una sola lógica de
+// verdad, dos maneras cómodas de llamarla.
+function renombrarTarea(idTarea, textoNuevo) {
+  return editarTarea(idTarea, textoNuevo, undefined);
 }
 
 // Borrar no pide confirmación, a diferencia de borrar un hábito. La diferencia
@@ -2319,19 +2438,24 @@ function pintarLista() {
   }
 
   // tareasOrdenadas() ya devuelve las que faltan primero y las hechas al final.
+  const enIdeas = vista === 'ideas';
+
   tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
     tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
+                      + (enIdeas ? ' idea' : '')
                       + (item.id === tareaRecienMovida ? ' recien-movida' : '');
 
     // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
     // pendientes algo que ya diste por hecho no tiene sentido.
-    const botonMover = (vista === 'ideas' && !item.hecha)
+    const botonMover = (enIdeas && !item.hecha)
       ? '<button class="mover" title="Mover a Pendientes">→</button>' : '';
 
     tarjeta.innerHTML = `
       <div class="check">✓</div>
-      <div class="tarea-texto"></div>
+      <div class="tarea-info">
+        <div class="tarea-texto"></div>
+      </div>
       ${botonMover}
       <div class="acciones">
         <button class="borrar">✕</button>
@@ -2345,25 +2469,44 @@ function pintarLista() {
     // del código.
     tarjeta.querySelector('.tarea-texto').textContent = item.texto;
 
+    // Si la idea tiene contexto escrito, se asoma debajo del título. Así la
+    // reconoces sin abrirla, que es justo el problema que la nota vino a
+    // resolver. El CSS la corta a dos líneas.
+    if (enIdeas && item.nota) {
+      const nota = document.createElement('div');
+      nota.className = 'tarea-nota';
+      nota.textContent = item.nota;
+      tarjeta.querySelector('.tarea-info').appendChild(nota);
+    }
+
     const marcar = () => {
       tareaRecienMovida = item.hecha ? null : item.id;   // solo al completarla
       alternarTarea(item.id);
     };
 
+    // El círculo es el ÚNICO sitio que marca. Vale para las dos listas.
     tarjeta.querySelector('.check').onclick = marcar;
 
-    tarjeta.querySelector('.tarea-texto').onclick = () => {
-      // En modo edición, tocar el texto lo cambia (igual que el nombre de un
-      // hábito). Fuera de él, marca.
+    tarjeta.querySelector('.tarea-info').onclick = () => {
+      // Aquí las dos listas se separan a propósito:
+      //   En IDEAS, tocar abre su ficha. El gesto que más haces con una idea
+      //   es leerla y recordar de qué iba, no tacharla.
+      //   En PENDIENTES, tocar marca. Ese sí es el gesto de cada día, y
+      //   obligarte a apuntarle al círculo de 32px lo haría más lento.
+      if (enIdeas) { abrirIdea(item.id); return; }
+
       if (!document.body.classList.contains('editando')) { marcar(); return; }
-      const nuevo = prompt(vista === 'ideas' ? 'Cambiar la idea:' : 'Cambiar el pendiente:', item.texto);
+      const nuevo = prompt('Cambiar el pendiente:', item.texto);
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
 
     tarjeta.querySelector('.borrar').onclick = () => borrarTarea(item.id);
 
     if (botonMover) {
-      tarjeta.querySelector('.mover').onclick = () => {
+      tarjeta.querySelector('.mover').onclick = (ev) => {
+        // stopPropagation evita que el clic siga viajando hasta la tarjeta,
+        // que abriría la ficha justo después de moverla.
+        ev.stopPropagation();
         moverALista(item.id, 'pendientes');
         // Se queda en Ideas a propósito: si la app saltara sola a Pendientes,
         // perderías el hilo de lo que estabas revisando.
@@ -2415,6 +2558,71 @@ document.getElementById('formTarea').onsubmit = (ev) => {
   ev.preventDefault();
   guardarTareaEscrita();
 };
+
+/* --- La ficha de una idea --- */
+
+// Igual que el calendario guarda "qué hábito estoy viendo", esta variable
+// guarda "qué idea tengo abierta". Sin ella, al tocar Guardar no sabríamos
+// sobre cuál escribir.
+let ideaAbierta = null;
+
+const modalIdea = document.getElementById('modalIdea');
+
+function abrirIdea(idTarea) {
+  const t = datos.tareas.find(x => x.id === idTarea);
+  if (!t) return;
+
+  ideaAbierta = idTarea;
+  document.getElementById('ideaTexto').value = t.texto;
+  document.getElementById('ideaNota').value  = t.nota || '';
+
+  // Una idea ya dada por hecha no se manda a Pendientes. Se deshabilita en
+  // vez de esconderse, para que los botones no cambien de sitio bajo el dedo
+  // — el mismo criterio que las flechas de reordenar hábitos.
+  document.getElementById('ideaMover').disabled = t.hecha;
+
+  modalIdea.classList.add('abierto');
+}
+
+function cerrarIdea() {
+  modalIdea.classList.remove('abierto');
+  ideaAbierta = null;
+}
+
+document.getElementById('ideaGuardar').onclick = () => {
+  editarTarea(ideaAbierta,
+              document.getElementById('ideaTexto').value,
+              document.getElementById('ideaNota').value);
+  cerrarIdea();
+};
+
+document.getElementById('ideaMover').onclick = () => {
+  // Se guarda antes de mover: si escribiste algo y tocaste "A Pendientes"
+  // sin guardar, sería raro perderlo.
+  editarTarea(ideaAbierta,
+              document.getElementById('ideaTexto').value,
+              document.getElementById('ideaNota').value);
+  moverALista(ideaAbierta, 'pendientes');
+  cerrarIdea();
+};
+
+document.getElementById('ideaBorrar').onclick = () => {
+  // Aquí sí se pregunta, a diferencia de la ✕ de la lista. La razón es lo que
+  // se pierde: una idea con contexto escrito ya no es una línea de texto que
+  // reescribes en tres segundos.
+  const t = datos.tareas.find(x => x.id === ideaAbierta);
+  const aviso = t && t.nota
+    ? '¿Borrar esta idea? También se pierde el contexto que escribiste.'
+    : '¿Borrar esta idea?';
+  if (!confirm(aviso)) return;
+  borrarTarea(ideaAbierta);
+  cerrarIdea();
+};
+
+document.getElementById('ideaCancelar').onclick = cerrarIdea;
+
+// Tocar el fondo oscuro (no la tarjeta) también cierra
+modalIdea.onclick = (ev) => { if (ev.target === modalIdea) cerrarIdea(); };
 
 /* ---------- K. ARRANCAR ---------- */
 pintar();

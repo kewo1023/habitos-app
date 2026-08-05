@@ -700,6 +700,73 @@ y agregar una tercera lista mañana no duplica nada.
 - [ ] Usar Pendientes e Ideas unos días. Después decidir: ¿sincronizar con
       Supabase? ¿prioridad en los pendientes? ¿hace falta el gesto de deslizar?
 
+## 2026-08-05 — Ficha de la idea y pestaña activa más visible (v14)
+
+Kev publicó la `v13`, la probó y confirmó que funciona. De usarla salieron dos
+pedidos, los dos de uso real y no de plan.
+
+**1. Tocar una idea abre su ficha, ya no la marca**
+
+Evaluación previa: el problema es real y específico de Ideas — "app de propinas"
+no dice nada tres semanas después, mientras que "llamar al banco" se explica solo.
+Y de paso arregla un error fácil: hoy tocar en cualquier parte de la tarjeta la
+tachaba sin querer.
+
+- **Campo `nota` opcional.** Si está vacío, el campo no existe en los datos: no se
+  guarda como `''`. Un campo vacío repetido en todas las filas es basura que se
+  arrastra para siempre.
+- **`editarTarea(id, texto, nota)`** es la función general y `renombrarTarea` pasó
+  a ser un caso particular que la llama — mismo patrón que `alternarHoy` sobre
+  `alternarFecha`. Usa `??` y no `||` a propósito: con `||` un texto vacío se
+  confundiría con "no me mandaron ese parámetro" y borrar una nota dejaría de
+  funcionar.
+- **Ventana `#modalIdea`** reusando el patrón `.fondo-modal` del calendario:
+  título editable, `<textarea>` de contexto (tope 500), y las acciones "→ A
+  Pendientes" y "Borrar" ahí mismo. Guardar antes de mover, para no perder lo
+  escrito. Borrar desde la ficha **sí** pregunta, a diferencia de la ✕ de la
+  lista: una idea con contexto ya no es una línea que reescribes en 3 segundos.
+- **En la lista, la nota se asoma debajo del título** cortada a dos líneas
+  (`-webkit-line-clamp`). Sirve para reconocer la idea sin abrirla, que es el
+  problema que la nota vino a resolver.
+- **Decisión de fondo:** el ✓ es el único sitio que marca, en las dos listas.
+  Pero **en Pendientes tocar el texto sigue marcando**, y eso es deliberado: ahí
+  el gesto es diario y meterle puntería al elemento más usado de la app sería un
+  mal negocio. En Ideas el gesto dominante es leer, no tachar. Para que no sean
+  "dos reglas", la tarjeta de idea lleva subrayado punteado — la misma pista de
+  "esto se toca" que la app ya usa en modo edición.
+
+**2. La pestaña activa se distinguía poco**
+
+Kev tenía razón: la única diferencia era un fondo apenas más claro. Se aplicó el
+mismo criterio que con los hábitos ya cumplidos — **varias señales suaves a la vez
+se leen más rápido que una sola señal fuerte**: fondo elevado, blanco puro contra
+el gris de las otras, negrilla, y una línea de acento de 2px debajo.
+
+La línea va como pseudo-elemento `::after` posicionado y no como `border-bottom`,
+para que no empuje el texto ni un píxel al aparecer. Es la misma razón por la que
+la barra verde de los hábitos cumplidos es un `box-shadow: inset` y no un borde.
+
+Se descartó la pastilla azul sólida: ese azul ya es el botón grande de abajo, y
+dos azules fuertes compiten entre sí.
+
+**Otros**
+
+- `.tarea-info` envuelve título y nota, para que el ✓ y los botones queden
+  centrados respecto a los dos y no solo respecto al título.
+- `pruebas.js`: de 224 a **239 tests**. Cubren que la nota no pise el título, que
+  vaciarla borre el campo, el recorte a 500, y que sobreviva a mover la idea a
+  Pendientes.
+- `sw.js`: `VERSION` a `'v14'`.
+
+**Pendiente / siguiente**
+
+- [ ] Publicar la **`v14`** y probar en el iPhone: que el `<textarea>` no quede
+      tapado por el teclado al escribir la nota (la ventana tiene
+      `max-height: 92vh` con scroll, pero eso hay que verlo en el teléfono), y
+      que la pestaña activa ahora sí se distinga de un vistazo.
+- [ ] Usar las tres secciones unos días. Después decidir: ¿sincronizar
+      pendientes e ideas con Supabase? ¿prioridad en los pendientes?
+
 ---
 
 <!-- Plantilla para la próxima entrada:
