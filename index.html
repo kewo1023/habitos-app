@@ -287,13 +287,15 @@ body.editando .panel-datos { display: block; }
 
 .pestana {
   flex: 1;
-  padding: 10px;
+  min-width: 0;              /* deja que encojan si el texto es largo */
+  padding: 10px 6px;
   border: none;
   border-radius: 10px;
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
   font-size: 14px; font-weight: 600;
+  white-space: nowrap;       /* "Pendientes 4" nunca se parte en dos líneas */
   cursor: pointer;
   transition: background .18s ease, color .18s ease;
 }
@@ -414,6 +416,22 @@ body.editando .tarea-texto {
 }
 
 .tarea.recien-movida { animation: aterrizar .28s ease-out; }
+
+/* La flecha que manda una idea a Pendientes. Va siempre visible (no solo en
+   modo edición) porque es LA acción de una idea: dejar de serlo. */
+.mover {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  color: var(--acento);
+  font-family: inherit;
+  font-size: 15px; font-weight: 700;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.mover:active { background: var(--tarjeta-alta); }
 
 /* El botón de limpiar las hechas. Solo se dibuja si hay alguna. */
 .limpiar-hechas {
@@ -674,18 +692,23 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <div class="progreso-fondo"><div class="progreso-barra" id="barra"></div></div>
     </div>
 
-    <!-- Las dos secciones de la app. El número de pendientes lo pone JS. -->
+    <!-- Las tres secciones de la app, todas al mismo nivel: un toque para
+         llegar a cualquiera. Solo Pendientes lleva contador — una idea sin
+         hacer no es una deuda, así que no debe pesarte con un número. -->
     <div class="pestanas">
       <button class="pestana activa" id="pestanaHabitos">Hábitos</button>
       <button class="pestana" id="pestanaTareas">Pendientes <span class="cuantas" id="contadorTareas"></span></button>
+      <button class="pestana" id="pestanaIdeas">Ideas</button>
     </div>
   </header>
 
   <!-- Aquí JavaScript va a insertar las tarjetas de hábitos -->
   <main id="lista"></main>
 
-  <!-- La segunda sección. Arranca oculta: la app siempre abre en Hábitos,
-       que es el gesto diario. Pendientes es un desvío voluntario. -->
+  <!-- Pendientes e Ideas comparten este mismo bloque: las dos son una lista de
+       textos y solo cambian las palabras y a qué lista van. Duplicar el HTML
+       para tener dos cosas idénticas sería la misma trampa que tener dos
+       arrays. Arranca oculto: la app siempre abre en Hábitos. -->
   <main id="listaTareas" hidden>
     <!-- El campo de captura va arriba y siempre visible: escribir un
          pendiente tiene que ser un toque, no abrir una ventana. -->
@@ -849,6 +872,13 @@ function cargar() {
     // cada vez que agregamos algo al modelo, y es lo que permite estrenar
     // una función sin que pierdas lo que ya tenías.
     if (!Array.isArray(leidos.tareas)) leidos.tareas = [];
+
+    // Y lo mismo una capa más adentro: las tareas guardadas antes de que
+    // existieran las Ideas no tienen la columna "lista". Todas eran
+    // pendientes, así que ese es su valor. En SQL esto sería el
+    // UPDATE tareas SET lista = 'pendientes' WHERE lista IS NULL
+    // que corres una vez al agregar una columna a una tabla que ya tiene datos.
+    leidos.tareas.forEach(t => { if (!t.lista) t.lista = 'pendientes'; });
 
     return leidos;
   } catch (e) {
@@ -1156,24 +1186,47 @@ function borrarHabito(idHabito) {
   pintar();
 }
 
-/* ---------- D2. PENDIENTES: LA LÓGICA ----------
-   Esta es toda la inteligencia de la segunda sección. Está aquí arriba,
-   junto al resto de la lógica, y no abajo con el dibujado, por una razón
-   muy práctica: lo de aquí se puede probar con "node pruebas.js" y lo de
-   abajo no. Una función que solo mueve datos se prueba sola; una que
-   dibuja en pantalla hay que mirarla con los ojos.
+/* ---------- D2. PENDIENTES E IDEAS: LA LÓGICA ----------
+   Esta es toda la inteligencia de las dos listas de texto. Está aquí arriba,
+   junto al resto de la lógica, y no abajo con el dibujado, por una razón muy
+   práctica: lo de aquí se puede probar con "node pruebas.js" y lo de abajo no.
+   Una función que solo mueve datos se prueba sola; una que dibuja en pantalla
+   hay que mirarla con los ojos.
 
    Una tarea es deliberadamente pobre:
-     { id, texto, hecha, creada }
+     { id, texto, hecha, creada, lista }
    Sin emoji, sin fecha límite, sin prioridad. Un hábito necesita historial
    porque su gracia es repetirse; una tarea se hace una vez y se acabó.
-   Meterle campos "por si acaso" sería justo la fricción que no queremos.
 
-   Nota: estas funciones NO llaman a encolar(). Los pendientes viven solo
-   en este dispositivo por ahora, a propósito: primero los usamos unos días
-   y solo entonces decidimos si merecen su propia tabla en Supabase.       */
+   POR QUÉ UN SOLO ARRAY Y NO DOS.
+   Los pendientes y las ideas guardan exactamente los mismos campos. Cuando dos
+   tablas tienen las mismas columnas, casi nunca son dos tablas: son una tabla
+   con una columna más. Así que en vez de datos.tareas y datos.ideas por
+   separado, hay un solo array con una columna "lista" que dice a cuál pertenece
+   cada fila. En SQL sería la diferencia entre:
 
-function agregarTarea(texto) {
+     SELECT * FROM ideas                          (dos tablas gemelas)
+     SELECT * FROM tareas WHERE lista = 'ideas'   (una tabla y un WHERE)
+
+   Lo que se gana con la segunda: mover una idea a pendientes es cambiar un
+   campo (un UPDATE), no borrarla de un sitio y crearla en otro. Y toda la
+   lógica de abajo sirve para las dos listas con solo pasarle cuál.
+
+   Nota: estas funciones NO llaman a encolar(). Pendientes e ideas viven solo
+   en este dispositivo por ahora, a propósito: primero se usan unos días y solo
+   entonces se decide si merecen su propia tabla en Supabase.                */
+
+// Los dos valores válidos de la columna "lista", en un solo sitio. Si algún día
+// aparece una tercera, se agrega aquí y no hay que buscar textos sueltos por
+// todo el archivo.
+const LISTAS = { pendientes: 'pendientes', ideas: 'ideas' };
+
+// El WHERE de arriba, en JavaScript. Devuelve solo las filas de una lista.
+function tareasDe(lista) {
+  return datos.tareas.filter(t => t.lista === lista);
+}
+
+function agregarTarea(texto, lista) {
   const limpio = (texto || '').trim();
   if (!limpio) return false;              // una tarea vacía no es una tarea
 
@@ -1181,22 +1234,47 @@ function agregarTarea(texto) {
     id: crypto.randomUUID(),
     texto: limpio.slice(0, 120),          // el mismo tope que el campo del HTML
     hecha: false,
-    creada: hoy()
+    creada: hoy(),
+    // Si no dicen a cuál lista va, es un pendiente. Los valores por defecto
+    // sirven para que quien llame a la función no tenga que pensar en el caso
+    // normal, solo en el excepcional.
+    lista: lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
   });
 
   guardar();
-  pintarTareas();
+  pintarLista();
   return true;
 }
 
 // Marca o desmarca. Devuelve true si encontró la tarea y la cambió.
+// No necesita saber de qué lista es: el id ya la identifica sin ambigüedad.
 function alternarTarea(idTarea) {
   const t = datos.tareas.find(x => x.id === idTarea);
   if (!t) return false;
 
   t.hecha = !t.hecha;
   guardar();
-  pintarTareas();
+  pintarLista();
+  return true;
+}
+
+// Mover algo de una lista a la otra. Esta es la función que justifica haber
+// usado un solo array: es una línea que cambia un campo. Con dos arrays
+// separados habría que sacarlo de uno, meterlo en el otro y cuidar de no
+// perderlo en el camino.
+function moverALista(idTarea, lista) {
+  if (lista !== LISTAS.pendientes && lista !== LISTAS.ideas) return false;
+
+  const t = datos.tareas.find(x => x.id === idTarea);
+  if (!t || t.lista === lista) return false;
+
+  t.lista = lista;
+  // Una idea que pasa a ser pendiente arranca sin marcar: acabas de decidir
+  // hacerla, así que todavía está por hacer.
+  t.hecha = false;
+
+  guardar();
+  pintarLista();
   return true;
 }
 
@@ -1213,54 +1291,57 @@ function renombrarTarea(idTarea, textoNuevo) {
 
   t.texto = limpio.slice(0, 120);
   guardar();
-  pintarTareas();
+  pintarLista();
   return true;
 }
 
-// Borrar una tarea no pide confirmación, a diferencia de borrar un hábito.
-// La diferencia es lo que se pierde: un hábito se lleva años de historial;
-// una tarea es una línea de texto que vuelves a escribir en tres segundos.
-// Además la ✕ solo existe en modo edición, que ya es una barrera.
+// Borrar no pide confirmación, a diferencia de borrar un hábito. La diferencia
+// es lo que se pierde: un hábito se lleva años de historial; una tarea es una
+// línea de texto que vuelves a escribir en tres segundos. Además la ✕ solo
+// existe en modo edición, que ya es una barrera.
 function borrarTarea(idTarea) {
   const antes = datos.tareas.length;
   datos.tareas = datos.tareas.filter(x => x.id !== idTarea);
   if (datos.tareas.length === antes) return false;   // ese id no existía
 
   guardar();
-  pintarTareas();
+  pintarLista();
   return true;
 }
 
-// Barrer de una vez todas las hechas. Devuelve cuántas se llevó.
-// En SQL sería: DELETE FROM tareas WHERE hecha = true
-function limpiarHechas() {
-  const cuantas = datos.tareas.filter(t => t.hecha).length;
+// Barrer de una vez las hechas DE UNA LISTA. Devuelve cuántas se llevó.
+// Que reciba la lista importa: limpiar tus pendientes no debe tocar tus ideas.
+// En SQL: DELETE FROM tareas WHERE hecha = true AND lista = ?
+function limpiarHechas(lista) {
+  const cuantas = datos.tareas.filter(t => t.hecha && t.lista === lista).length;
   if (cuantas === 0) return 0;
 
-  datos.tareas = datos.tareas.filter(t => !t.hecha);
+  datos.tareas = datos.tareas.filter(t => !(t.hecha && t.lista === lista));
   guardar();
-  pintarTareas();
+  pintarLista();
   return cuantas;
 }
 
 // El orden en que se dibujan: primero lo que falta, al final lo hecho.
 // Dentro de cada grupo se respeta el orden en que las escribiste.
 //
-// Se hace con dos filtros en vez de con .sort() a propósito. Con sort
-// habría que confiar en que no reordena los empates entre sí, y además
-// costaría más leerlo. Dos filtros y un concat dicen exactamente lo que
-// pasa: "las que faltan, y detrás las hechas".
+// Se hace con dos filtros en vez de con .sort() a propósito. Con sort habría
+// que confiar en que no reordena los empates entre sí, y además costaría más
+// leerlo. Dos filtros y un concat dicen exactamente lo que pasa: "las que
+// faltan, y detrás las hechas".
 //
-// Es una función pura: recibe una lista y devuelve una lista nueva sin
-// tocar la original. Por eso se puede probar sin arrancar la app.
+// Es una función pura: no toca nada, solo devuelve una lista nueva. Por eso se
+// puede probar sin arrancar la app.
 function tareasOrdenadas(lista) {
-  const todas = lista || datos.tareas;
+  const todas = tareasDe(lista);
   return todas.filter(t => !t.hecha).concat(todas.filter(t => t.hecha));
 }
 
-// Los números para el contador y la barra de progreso.
+// Los números de UNA lista, para el contador y la barra de progreso. Aislado
+// por lista a propósito: las ideas no deben sumar al contador de pendientes,
+// porque una idea sin hacer no es una deuda.
 function contarTareas(lista) {
-  const todas = lista || datos.tareas;
+  const todas = tareasDe(lista);
   const hechas = todas.filter(t => t.hecha).length;
   return { total: todas.length, hechas: hechas, faltan: todas.length - hechas };
 }
@@ -1431,7 +1512,7 @@ document.getElementById('btnAgregar').onclick = () => {
   // El botón grande de abajo hace lo que toque según la sección en la que
   // estés. En Pendientes no abre ninguna ventana: solo salta al campo de
   // escribir, que ya está ahí arriba. Un toque, no tres.
-  if (vista === 'tareas') {
+  if (vista !== 'habitos') {
     document.getElementById('tareaNueva').focus();
     return;
   }
@@ -1572,7 +1653,7 @@ function importar(texto) {
   };
   guardar();
   pintar();
-  if (typeof pintarTareas === 'function') pintarTareas();
+  if (typeof pintarLista === 'function') pintarLista();
 
   // Restaurar una copia cambia todo de golpe, así que hay que volver a
   // subirlo entero. Si la nube no está cargada, esto simplemente no pasa.
@@ -2120,66 +2201,105 @@ async function sincronizar() {
   }
 }
 
-/* ---------- N. PENDIENTES EN PANTALLA Y LAS DOS SECCIONES ----------
-   La lógica ya quedó resuelta arriba, en D2. Aquí solo traducimos esos
-   datos a tarjetas y manejamos el cambio entre una sección y la otra.
-   Misma separación que hicimos con el calendario (lógica en B/C/D,
-   dibujado en L): lo de arriba se prueba, lo de aquí se mira.          */
+/* ---------- N. PENDIENTES E IDEAS EN PANTALLA ----------
+   La lógica ya quedó resuelta arriba, en D2. Aquí solo traducimos esos datos
+   a tarjetas y manejamos el cambio entre secciones. Misma separación que con
+   el calendario (lógica en B/C/D, dibujado en L): lo de arriba se prueba con
+   node, lo de aquí se mira con los ojos.                                   */
 
-// Dónde estás parado ahora mismo. Es la única variable que decide qué
-// se ve; todo lo demás se deduce de ella.
+// Dónde estás parado ahora mismo: 'habitos', 'pendientes' o 'ideas'.
+// Es la única variable que decide qué se ve; todo lo demás se deduce de ella.
 let vista = 'habitos';
+
+// Las dos listas comparten pantalla y solo cambian las palabras. Tenerlas aquí
+// en una tabla, en vez de repartidas en ifs por todo el código, significa que
+// agregar una tercera lista mañana es agregar un objeto a esta tabla.
+const TEXTOS_LISTA = {
+  pendientes: {
+    etiqueta:    'Pendientes',
+    placeholder: '¿Qué tienes pendiente?',
+    boton:       '+ Nuevo pendiente',
+    vacioEmoji:  '☑️',
+    vacioTexto:  'Nada pendiente.<br>Escribe algo arriba cuando aparezca.'
+  },
+  ideas: {
+    etiqueta:    'Ideas',
+    placeholder: '¿Qué se te ocurrió?',
+    boton:       '+ Nueva idea',
+    vacioEmoji:  '💡',
+    vacioTexto:  'Sin ideas guardadas.<br>Apunta lo que se te ocurra, sin compromiso.'
+  }
+};
 
 const listaTareas  = document.getElementById('listaTareas');
 const tareasCuerpo = document.getElementById('tareasCuerpo');
+const campoTarea   = document.getElementById('tareaNueva');
 
-// Al marcar una tarea esta se va al final de la lista. Guardamos cuál fue
-// para darle la animación de "aterrizaje" y que el salto no se sienta un
-// error. Se limpia sola después de dibujarla una vez.
+// Al marcar algo, la tarjeta se va al final de la lista. Guardamos cuál fue
+// para darle la animación de "aterrizaje" y que el salto no se sienta un error.
+// Se limpia sola después de dibujarla una vez.
 let tareaRecienMovida = null;
 
 function cambiarVista(nueva) {
   vista = nueva;
-  const enTareas = vista === 'tareas';
+  const enHabitos = vista === 'habitos';
 
   // Mostrar una lista y esconder la otra
-  lista.hidden        = enTareas;
-  listaTareas.hidden  = !enTareas;
+  lista.hidden       = !enHabitos;
+  listaTareas.hidden = enHabitos;
 
   // La clase en el body deja que el CSS reaccione sin más JavaScript
   // (por ejemplo, esconder los paneles de copia y cuenta).
-  document.body.classList.toggle('vista-tareas', enTareas);
+  document.body.classList.toggle('vista-tareas', !enHabitos);
 
   // Las pestañas se iluminan según dónde estés
-  document.getElementById('pestanaHabitos').classList.toggle('activa', !enTareas);
-  document.getElementById('pestanaTareas').classList.toggle('activa', enTareas);
-
-  // El botón grande de abajo cambia de oficio según la sección
-  document.getElementById('btnAgregar').textContent =
-    enTareas ? '+ Nuevo pendiente' : '+ Nuevo hábito';
-
-  // Y la etiqueta de la barra de progreso también
-  document.getElementById('progresoEtiqueta').textContent = enTareas ? 'Pendientes' : 'Hoy';
+  document.getElementById('pestanaHabitos').classList.toggle('activa', enHabitos);
+  document.getElementById('pestanaTareas').classList.toggle('activa', vista === 'pendientes');
+  document.getElementById('pestanaIdeas').classList.toggle('activa', vista === 'ideas');
 
   // Salir del modo edición al cambiar de sección: si te quedaras dentro,
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
   document.body.classList.remove('editando');
   document.getElementById('btnEditar').textContent = 'Editar';
 
-  // Y redibujar la sección a la que llegaste
-  if (enTareas) pintarTareas(); else pintar();
+  if (enHabitos) {
+    document.getElementById('btnAgregar').textContent = '+ Nuevo hábito';
+    document.getElementById('progresoEtiqueta').textContent = 'Hoy';
+    pintar();
+    return;
+  }
+
+  // Las palabras de la lista a la que llegaste
+  const t = TEXTOS_LISTA[vista];
+  document.getElementById('btnAgregar').textContent = t.boton;
+  document.getElementById('progresoEtiqueta').textContent = t.etiqueta;
+  campoTarea.placeholder = t.placeholder;
+  campoTarea.value = '';          // lo que ibas a escribir era para la otra lista
+
+  pintarLista();
 }
 
-function pintarTareas() {
-  // Al arrancar la app esta función corre una vez para dejar la lista
-  // lista y el contador puesto, aunque estés viendo Hábitos. Este if
-  // evita que en ese momento pise la barra de progreso del otro lado.
-  const cuenta = contarTareas();
+// Dibuja la lista en la que estés parado. Si estás en Hábitos no dibuja nada,
+// pero sí actualiza el contador de la pestaña: por eso puede llamarse siempre.
+function pintarLista() {
+  // El contador de la pestaña cuenta SOLO pendientes sin hacer. Las ideas no
+  // suman: una idea sin hacer no es una deuda, y verla como número la
+  // convertiría en una.
+  const faltanPendientes = contarTareas('pendientes').faltan;
   document.getElementById('contadorTareas').textContent =
-    cuenta.faltan > 0 ? cuenta.faltan : '';
+    faltanPendientes > 0 ? faltanPendientes : '';
 
-  if (vista === 'tareas') {
-    const cajaProgreso = document.getElementById('cajaProgreso');
+  if (vista === 'habitos') return;
+
+  const cuenta = contarTareas(vista);
+  const cajaProgreso = document.getElementById('cajaProgreso');
+
+  // En Ideas se esconde la barra de progreso entera. No es un descuido: medir
+  // cuántas ideas "llevas hechas" convertiría la lista en otra cosa que te
+  // reclama. En Pendientes sí tiene sentido, ahí sí es una deuda que baja.
+  if (vista === 'ideas') {
+    cajaProgreso.style.visibility = 'hidden';
+  } else {
     cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
     document.getElementById('progresoTexto').textContent = `${cuenta.hechas} de ${cuenta.total}`;
     document.getElementById('barra').style.width =
@@ -2188,69 +2308,85 @@ function pintarTareas() {
 
   tareasCuerpo.innerHTML = '';
 
-  if (datos.tareas.length === 0) {
+  if (cuenta.total === 0) {
+    const t = TEXTOS_LISTA[vista];
     tareasCuerpo.innerHTML = `
       <div class="vacio">
-        <div class="vacio-emoji">☑️</div>
-        <div>Nada pendiente.<br>Escribe algo arriba cuando aparezca.</div>
+        <div class="vacio-emoji">${t.vacioEmoji}</div>
+        <div>${t.vacioTexto}</div>
       </div>`;
     return;
   }
 
-  // tareasOrdenadas() ya devuelve las que faltan primero y las hechas al
-  // final. Aquí solo recorremos el resultado.
-  tareasOrdenadas().forEach(t => {
+  // tareasOrdenadas() ya devuelve las que faltan primero y las hechas al final.
+  tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
-    tarjeta.className = 'tarea' + (t.hecha ? ' hecha' : '')
-                      + (t.id === tareaRecienMovida ? ' recien-movida' : '');
+    tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
+                      + (item.id === tareaRecienMovida ? ' recien-movida' : '');
+
+    // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
+    // pendientes algo que ya diste por hecho no tiene sentido.
+    const botonMover = (vista === 'ideas' && !item.hecha)
+      ? '<button class="mover" title="Mover a Pendientes">→</button>' : '';
 
     tarjeta.innerHTML = `
       <div class="check">✓</div>
       <div class="tarea-texto"></div>
+      ${botonMover}
       <div class="acciones">
         <button class="borrar">✕</button>
       </div>
     `;
 
     // El texto se pone con textContent y no dentro del innerHTML de arriba.
-    // Motivo: innerHTML interpreta lo que le des como HTML, así que un
-    // pendiente escrito como "comprar <cosas>" se rompería. textContent lo
-    // trata como texto y punto. Es la costumbre correcta con cualquier
-    // texto que venga de fuera del código.
-    tarjeta.querySelector('.tarea-texto').textContent = t.texto;
+    // Motivo: innerHTML interpreta lo que le des como HTML, así que una idea
+    // escrita como "app de <algo>" se rompería. textContent lo trata como texto
+    // y punto. Es la costumbre correcta con cualquier texto que venga de fuera
+    // del código.
+    tarjeta.querySelector('.tarea-texto').textContent = item.texto;
 
-    // Marcar: el círculo, o tocar el texto fuera del modo edición
     const marcar = () => {
-      tareaRecienMovida = t.hecha ? null : t.id;   // solo al completarla
-      alternarTarea(t.id);
+      tareaRecienMovida = item.hecha ? null : item.id;   // solo al completarla
+      alternarTarea(item.id);
     };
 
     tarjeta.querySelector('.check').onclick = marcar;
 
     tarjeta.querySelector('.tarea-texto').onclick = () => {
-      // En modo edición, tocar el texto lo cambia (igual que el nombre de
-      // un hábito). Fuera de él, marca la tarea.
+      // En modo edición, tocar el texto lo cambia (igual que el nombre de un
+      // hábito). Fuera de él, marca.
       if (!document.body.classList.contains('editando')) { marcar(); return; }
-      const nuevo = prompt('Cambiar el pendiente:', t.texto);
-      if (nuevo !== null) renombrarTarea(t.id, nuevo);
+      const nuevo = prompt(vista === 'ideas' ? 'Cambiar la idea:' : 'Cambiar el pendiente:', item.texto);
+      if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
 
-    tarjeta.querySelector('.borrar').onclick = () => borrarTarea(t.id);
+    tarjeta.querySelector('.borrar').onclick = () => borrarTarea(item.id);
+
+    if (botonMover) {
+      tarjeta.querySelector('.mover').onclick = () => {
+        moverALista(item.id, 'pendientes');
+        // Se queda en Ideas a propósito: si la app saltara sola a Pendientes,
+        // perderías el hilo de lo que estabas revisando.
+      };
+    }
 
     tareasCuerpo.appendChild(tarjeta);
   });
 
-  // Ya la dibujamos con su animación; se limpia para que no vuelva a
-  // animarse en el siguiente repintado.
+  // Ya la dibujamos con su animación; se limpia para que no vuelva a animarse
+  // en el siguiente repintado.
   tareaRecienMovida = null;
 
   // El botón de limpiar solo tiene sentido si hay algo que limpiar.
   if (cuenta.hechas > 0) {
+    const listaActual = vista;   // se guarda porque el clic ocurre después
     const btn = document.createElement('button');
     btn.className = 'limpiar-hechas';
     btn.textContent = `Limpiar ${cuenta.hechas} hecha(s)`;
     btn.onclick = () => {
-      if (confirm(`¿Borrar las ${cuenta.hechas} tareas ya hechas?`)) limpiarHechas();
+      if (confirm(`¿Borrar las ${cuenta.hechas} ya hechas de esta lista?`)) {
+        limpiarHechas(listaActual);
+      }
     };
     tareasCuerpo.appendChild(btn);
   }
@@ -2259,12 +2395,13 @@ function pintarTareas() {
 /* --- Conectar los botones de esta sección --- */
 
 document.getElementById('pestanaHabitos').onclick = () => cambiarVista('habitos');
-document.getElementById('pestanaTareas').onclick  = () => cambiarVista('tareas');
-
-const campoTarea = document.getElementById('tareaNueva');
+document.getElementById('pestanaTareas').onclick  = () => cambiarVista('pendientes');
+document.getElementById('pestanaIdeas').onclick   = () => cambiarVista('ideas');
 
 function guardarTareaEscrita() {
-  if (agregarTarea(campoTarea.value)) campoTarea.value = '';
+  // Lo que escribas entra en la lista que estés viendo. Esa es toda la
+  // diferencia entre anotar un pendiente y anotar una idea.
+  if (agregarTarea(campoTarea.value, vista)) campoTarea.value = '';
   // El foco se queda en el campo: lo normal es anotar dos o tres cosas
   // seguidas, no una sola.
   campoTarea.focus();
@@ -2272,8 +2409,8 @@ function guardarTareaEscrita() {
 
 // El campo y el botón "+" viven dentro de un <form>, así que basta con
 // escuchar el "submit": lo disparan tanto el botón como la tecla Enter.
-// preventDefault evita que el navegador recargue la página intentando
-// mandar el formulario a un servidor que no existe.
+// preventDefault evita que el navegador recargue la página intentando mandar
+// el formulario a un servidor que no existe.
 document.getElementById('formTarea').onsubmit = (ev) => {
   ev.preventDefault();
   guardarTareaEscrita();
@@ -2281,7 +2418,7 @@ document.getElementById('formTarea').onsubmit = (ev) => {
 
 /* ---------- K. ARRANCAR ---------- */
 pintar();
-pintarTareas();   // deja el contador de la pestaña puesto desde el arranque
+pintarLista();   // deja el contador de la pestaña puesto desde el arranque
 </script>
 
 <!-- La librería de Supabase, directo desde un CDN.

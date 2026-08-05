@@ -38,6 +38,37 @@ sea Claude.** El 5 de agosto Claude asumió que la v11 no estaba publicada y no
 subió la versión; Kev lo corrigió con razón. Ese intercambio vale más que una
 respuesta cómoda.
 
+## Regla: evaluar antes de construir
+
+Pedido explícito de Kev, el 5 de agosto de 2026. **Cuando Kev proponga una función
+nueva, no empezar a escribirla.** Primero devolverle una evaluación con estos
+cuatro ejes, y solo después construir:
+
+1. **Utilidad** — ¿qué problema real resuelve? ¿Es un problema que Kev tiene hoy o
+   uno que cree que va a tener? Los mejores cambios de este proyecto salieron del
+   uso real (la sección de Pendientes), no del plan.
+2. **Fricción** — ¿hace más lento el uso diario? La premisa de la app es que sea
+   rápida; una función que añade un toque al gesto de cada día tiene que
+   justificarse muy bien. Ojo especial con la navegación: cada nivel que se
+   agrega es una decisión más antes de cada uso.
+3. **Impacto en el código existente** — ¿cuánto hay que tocar de lo que ya
+   funciona? ¿Se puede reutilizar el modelo actual o hace falta uno nuevo?
+   ¿Qué tests hay que escribir?
+4. **Lo que no se ve** — límites de plataforma (iOS, Safari, el plan gratuito de
+   Supabase), cosas que se rompen en el teléfono pero no en el Mac, y decisiones
+   de hoy que cierran puertas mañana.
+
+**Ser propositivo, no solo evaluador.** Si la idea tal como la pensó Kev es
+inviable o cara, **no basta con decir que no**: hay que ofrecer la alternativa que
+resuelve el mismo problema por otro camino, y explicar qué se gana y qué se pierde
+con el cambio. Kev decide; Claude le da con qué decidir.
+
+Precedente que funcionó: el 5 de agosto Kev propuso deslizar (swipe) para borrar
+pendientes. En vez de construirlo, se evaluó (≈150 líneas frágiles, el problema
+real es distinguir el gesto del scroll, no se puede probar con `pruebas.js`) y se
+propuso reutilizar el modo edición que ya existía. Kev estuvo de acuerdo y la app
+quedó más simple.
+
 ## Regla: un tip de buenas prácticas cuando quepa
 
 Kev sabe que las buenas prácticas son lo que separa código que sobrevive de
@@ -195,6 +226,21 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
     soltar en la Fase 2. Retomar solo si el uso real lo pide.
   - La app **siempre abre en Hábitos**. Pendientes es un desvío voluntario.
   - Secciones nuevas: **D2** (lógica pura, se prueba) y **N** (dibujado).
+- **Fase 2.6 — Ideas ✅** Tercera pestaña, al mismo nivel que las otras dos.
+  Para anotar lo que se le ocurra a corto/mediano plazo, sin que pese.
+  - **Decisión clave:** **un solo array `datos.tareas` con una columna
+    `lista`** (`'pendientes'` o `'ideas'`), no dos arrays gemelos. Dos tablas
+    con las mismas columnas son una tabla con una columna más. Gracias a esto,
+    mover una idea a pendientes es un `UPDATE` de un campo, no un borrar+crear.
+  - **Decisión clave:** tres pestañas al **mismo nivel**, no anidadas dentro de
+    Pendientes. Un solo nivel de navegación; un toque para llegar a cualquier
+    sección.
+  - **Decisión clave:** Ideas **no tiene contador ni barra de progreso**. Una
+    idea sin hacer no es una deuda; ponerle un número la convertiría en una.
+    El contador de la pestaña Pendientes filtra por `lista === 'pendientes'`.
+  - Una idea se puede **marcar como hecha** o **mover a Pendientes** (flecha →,
+    siempre visible salvo si ya está hecha). Al moverse vuelve a `hecha: false`.
+  - `limpiarHechas(lista)` recibe la lista: limpiar pendientes no toca ideas.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -214,8 +260,9 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v12` (arreglo del autofill). `v11` (sección de Pendientes)
-ya está publicada. Confirmar que la v12 quedó publicada.
+`VERSION` en el Mac: `v13` (pestaña Ideas). `v11` (Pendientes) está publicada;
+la `v12` (arreglo del autofill) quedó absorbida por la `v13` sin publicarse
+aparte. Confirmar que la v13 quedó publicada.
 
 **Probar en el iPhone exige publicar.** La vista de móvil del inspector del
 navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill

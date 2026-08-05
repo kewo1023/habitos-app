@@ -630,6 +630,76 @@ página al enviar el formulario.
       ¿el gesto de deslizar hace falta de verdad?
 - [ ] Ejercicios 1 y 4 de `COMO-EDITAR.md`, y la tanda 7–12 cuando quiera.
 
+## 2026-08-05 — Pestaña Ideas (Fase 2.6) y dos reglas nuevas de método
+
+Kev pidió una lista aparte para ideas de corto/mediano plazo, con una condición
+clara: **que no afecte el contador de Pendientes**. Esa condición era la pista de
+que son dos cosas distintas, no una variante de la otra.
+
+**Reglas nuevas en `CLAUDE.md`, a pedido de Kev**
+
+1. **Evaluar antes de construir.** Ante una función nueva, primero devolverle una
+   evaluación por cuatro ejes — utilidad, fricción, impacto en el código y
+   límites de plataforma — y **ser propositivo**: si su idea es cara o inviable,
+   ofrecer la alternativa que resuelve el mismo problema, no solo decir que no.
+2. **Un tip de buenas prácticas cuando quepa**, que salga de lo que se acabó de
+   tocar y explique el problema que evita. Uno por respuesta; ninguno si no hay
+   uno honesto.
+
+**La evaluación que salió de aplicar la regla 1**
+
+- Kev la pidió *dentro* de Pendientes (pestañas anidadas). Se propuso **tres
+  pestañas al mismo nivel**: un solo toque para cualquier sección y cero
+  navegación en dos niveles. Kev aceptó.
+- Se propuso que una idea pudiera **moverse a Pendientes**; Kev pidió eso **y**
+  poder marcarla como hecha. Ambas quedaron.
+
+**La decisión de fondo: una tabla, no dos**
+
+Un pendiente y una idea guardan exactamente los mismos campos. En vez de
+`datos.tareas` y `datos.ideas` en paralelo, hay **un solo array con una columna
+`lista`**. La analogía que se usó para explicarlo:
+
+```
+SELECT * FROM ideas                          -- dos tablas gemelas
+SELECT * FROM tareas WHERE lista = 'ideas'   -- una tabla y un WHERE
+```
+
+Lo que se ganó: `moverALista()` es un cambio de campo (un `UPDATE`), no un
+borrar-y-recrear; toda la lógica de D2 sirve para las dos listas pasándole cuál;
+y agregar una tercera lista mañana no duplica nada.
+
+**Hecho**
+
+- **D2 generalizada** — `LISTAS`, `tareasDe(lista)`, y `agregarTarea`,
+  `tareasOrdenadas`, `contarTareas` y `limpiarHechas` ahora reciben la lista.
+  `moverALista(id, lista)` es nueva; al mover una idea a Pendientes la deja en
+  `hecha: false`, porque acabas de decidir hacerla.
+- **Migración** en `cargar()`: a las tareas guardadas sin columna `lista` se les
+  pone `'pendientes'`. Es el `UPDATE ... WHERE lista IS NULL` que se corre una
+  vez al agregar una columna a una tabla con datos.
+- **Sección N reescrita** — `pintarTareas()` pasó a `pintarLista()`, que dibuja
+  la lista en la que estés. Las palabras de cada lista (placeholder, botón,
+  estado vacío) viven en una tabla `TEXTOS_LISTA`, no repartidas en ifs.
+- **Ideas no lleva contador ni barra de progreso.** Deliberado: medir "cuántas
+  ideas llevas hechas" convertiría la lista en algo que te reclama.
+- Pendientes e Ideas **comparten el mismo bloque de HTML**. Duplicarlo habría
+  sido la misma trampa que tener dos arrays.
+- `pruebas.js`: de 199 a **224 tests**, con los existentes adaptados a las firmas
+  nuevas. Cubren que las listas no se mezclen, que el contador de Pendientes
+  ignore las ideas, el movimiento entre listas y la migración de datos viejos.
+- `sw.js`: `VERSION` a `'v13'`. La `v12` (autofill) no llegó a publicarse sola:
+  queda absorbida aquí.
+
+**Pendiente / siguiente**
+
+- [ ] Publicar la **`v13`** y probar en el iPhone: que las tres pestañas quepan y
+      se lean bien, que Safari ya no ofrezca la contraseña en el campo de texto,
+      y que **entrar con correo y contraseña siga funcionando** tras meter el
+      login dentro de un `<form>`.
+- [ ] Usar Pendientes e Ideas unos días. Después decidir: ¿sincronizar con
+      Supabase? ¿prioridad en los pendientes? ¿hace falta el gesto de deslizar?
+
 ---
 
 <!-- Plantilla para la próxima entrada:

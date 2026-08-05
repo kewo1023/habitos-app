@@ -22,13 +22,13 @@ const store = {};
 global.localStorage = { getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=String(v) };
 global.crypto = require('crypto').webcrypto;
 global.pintar = () => {};        // en el test no dibujamos nada
-global.pintarTareas = () => {};  // lo mismo para la sección de pendientes
+global.pintarLista = () => {};   // lo mismo para pendientes e ideas
 let ultimaAlerta = null;
 global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -412,118 +412,175 @@ ok('el emoji nuevo se guardó en disco', ctx.cargar().habitos[0].emoji === '🧘
 
 
 // ============================================================
-// PENDIENTES (la segunda sección de la app) — sección D2
+// PENDIENTES E IDEAS (las dos listas de texto) — sección D2
 // ============================================================
 
+const P = 'pendientes', I = 'ideas';
 ctx.datos.tareas = [];
 
 // --- crear
-ok('agregar una tarea funciona', ctx.agregarTarea('Llamar al banco') === true);
+ok('agregar un pendiente funciona', ctx.agregarTarea('Llamar al banco', P) === true);
 ok('quedó una tarea', ctx.datos.tareas.length === 1);
 ok('el texto se guardó bien', ctx.datos.tareas[0].texto === 'Llamar al banco');
 ok('nace sin marcar', ctx.datos.tareas[0].hecha === false);
 ok('guarda el día en que la escribiste', ctx.datos.tareas[0].creada === ctx.hoy());
+ok('guarda a qué lista pertenece', ctx.datos.tareas[0].lista === P);
+ok('sin decir la lista, cae en pendientes',
+   ctx.agregarTarea('Sin lista') && ctx.datos.tareas[1].lista === P);
+ok('una lista inventada cae en pendientes',
+   ctx.agregarTarea('Rara', 'inventada') && ctx.datos.tareas[2].lista === P);
 ok('quita los espacios de alrededor',
-   ctx.agregarTarea('   Pagar arriendo   ') && ctx.datos.tareas[1].texto === 'Pagar arriendo');
-ok('una tarea vacía no entra', ctx.agregarTarea('') === false);
-ok('solo espacios tampoco entra', ctx.agregarTarea('     ') === false);
-ok('null no rompe', ctx.agregarTarea(null) === false);
+   ctx.agregarTarea('   Pagar arriendo   ', P) && ctx.datos.tareas[3].texto === 'Pagar arriendo');
+ok('una tarea vacía no entra', ctx.agregarTarea('', P) === false);
+ok('solo espacios tampoco entra', ctx.agregarTarea('     ', P) === false);
+ok('null no rompe', ctx.agregarTarea(null, P) === false);
 ok('sin argumento no rompe', ctx.agregarTarea() === false);
-ok('siguen siendo 2 tareas', ctx.datos.tareas.length === 2);
+ok('siguen siendo 4 tareas', ctx.datos.tareas.length === 4);
 ok('los ids son distintos', ctx.datos.tareas[0].id !== ctx.datos.tareas[1].id);
 ok('el texto se corta a 120 caracteres',
-   ctx.agregarTarea('x'.repeat(200)) && ctx.datos.tareas[2].texto.length === 120);
+   ctx.agregarTarea('x'.repeat(200), P) && ctx.datos.tareas[4].texto.length === 120);
+
+// --- las dos listas no se mezclan
+ctx.datos.tareas = [];
+ctx.agregarTarea('Pendiente 1', P);
+ctx.agregarTarea('Pendiente 2', P);
+ctx.agregarTarea('Idea 1', I);
+ok('tareasDe separa las listas', ctx.tareasDe(P).length === 2 && ctx.tareasDe(I).length === 1);
+ok('la idea guardó su lista', ctx.tareasDe(I)[0].lista === I);
+ok('una lista que no existe devuelve vacío', ctx.tareasDe('nada').length === 0);
 
 // --- marcar y desmarcar
-ctx.datos.tareas = [];
-ctx.agregarTarea('Una');
-ctx.agregarTarea('Dos');
-const idT = ctx.datos.tareas[0].id;
-
-ok('marcar una tarea funciona',
-   ctx.alternarTarea(idT) === true && ctx.datos.tareas[0].hecha === true);
-ok('desmarcar funciona',
-   ctx.alternarTarea(idT) === true && ctx.datos.tareas[0].hecha === false);
+const idT = ctx.tareasDe(P)[0].id;
+ok('marcar funciona', ctx.alternarTarea(idT) === true && ctx.tareasDe(P)[0].hecha === true);
+ok('desmarcar funciona', ctx.alternarTarea(idT) === true && ctx.tareasDe(P)[0].hecha === false);
 ok('un id que no existe devuelve false', ctx.alternarTarea('no-existe') === false);
+ok('marcar un pendiente no toca las ideas', ctx.tareasDe(I)[0].hecha === false);
+
+// --- el contador de cada lista es independiente (lo que pidió Kev)
+ctx.datos.tareas = [];
+ctx.agregarTarea('A', P); ctx.agregarTarea('B', P);
+ctx.agregarTarea('Idea A', I); ctx.agregarTarea('Idea B', I); ctx.agregarTarea('Idea C', I);
+ok('cuenta solo los pendientes', ctx.contarTareas(P).total === 2);
+ok('cuenta solo las ideas', ctx.contarTareas(I).total === 3);
+ok('las ideas NO suman al contador de pendientes', ctx.contarTareas(P).faltan === 2);
+ctx.alternarTarea(ctx.tareasDe(I)[0].id);
+ok('marcar una idea no cambia el contador de pendientes', ctx.contarTareas(P).faltan === 2);
+ok('pero sí el suyo', ctx.contarTareas(I).hechas === 1 && ctx.contarTareas(I).faltan === 2);
+ok('una lista vacía cuenta cero', ctx.contarTareas('nada').total === 0);
 
 // --- el orden: primero lo que falta, al final lo hecho
 ctx.datos.tareas = [];
-ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
-ctx.alternarTarea(ctx.datos.tareas[0].id);   // marcamos la A
+ctx.agregarTarea('A', P); ctx.agregarTarea('B', P); ctx.agregarTarea('C', P);
+ctx.agregarTarea('Idea', I);
+ctx.alternarTarea(ctx.tareasDe(P)[0].id);   // marcamos la A
 
-const orden = ctx.tareasOrdenadas().map(t => t.texto);
+const orden = ctx.tareasOrdenadas(P).map(t => t.texto);
 ok('la hecha se va al final', orden.join('') === 'BCA');
-ok('las que faltan conservan su orden original',
-   orden[0] === 'B' && orden[1] === 'C');
-ok('ordenar no cambia la lista original',
-   ctx.datos.tareas.map(t => t.texto).join('') === 'ABC');
+ok('las que faltan conservan su orden original', orden[0] === 'B' && orden[1] === 'C');
+ok('ordenar una lista no incluye la otra', orden.includes('Idea') === false);
+ok('ordenar no cambia el array original',
+   ctx.datos.tareas.slice(0,3).map(t => t.texto).join('') === 'ABC');
 
-ctx.alternarTarea(ctx.datos.tareas[1].id);   // marcamos también la B
+ctx.alternarTarea(ctx.tareasDe(P)[1].id);   // marcamos también la B
 ok('dos hechas van al final en su orden',
-   ctx.tareasOrdenadas().map(t => t.texto).join('') === 'CAB');
-
+   ctx.tareasOrdenadas(P).map(t => t.texto).join('') === 'CAB');
 ok('todas hechas no rompe el orden',
-   (ctx.alternarTarea(ctx.datos.tareas[2].id),
-    ctx.tareasOrdenadas().map(t => t.texto).join('') === 'ABC'));
+   (ctx.alternarTarea(ctx.tareasDe(P)[2].id),
+    ctx.tareasOrdenadas(P).map(t => t.texto).join('') === 'ABC'));
+ok('una lista sin nada devuelve lista vacía', ctx.tareasOrdenadas('nada').length === 0);
 
-ok('lista vacía devuelve lista vacía', ctx.tareasOrdenadas([]).length === 0);
-
-// --- contar
+// --- mover entre listas (la razón de tener un solo array)
 ctx.datos.tareas = [];
-ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
-ctx.alternarTarea(ctx.datos.tareas[0].id);
-const cuenta = ctx.contarTareas();
-ok('cuenta el total', cuenta.total === 3);
-ok('cuenta las hechas', cuenta.hechas === 1);
-ok('cuenta las que faltan', cuenta.faltan === 2);
-ok('sin tareas cuenta cero', ctx.contarTareas([]).total === 0);
+ctx.agregarTarea('Pendiente viejo', P);
+ctx.agregarTarea('Se me ocurrió algo', I);
+const idIdea = ctx.tareasDe(I)[0].id;
+
+ok('mover una idea a pendientes funciona', ctx.moverALista(idIdea, P) === true);
+ok('ya no está en ideas', ctx.tareasDe(I).length === 0);
+ok('ahora está en pendientes', ctx.tareasDe(P).length === 2);
+ok('conserva el texto al moverse',
+   ctx.tareasDe(P).some(t => t.texto === 'Se me ocurrió algo'));
+ok('conserva el mismo id (no se recreó)',
+   ctx.datos.tareas.some(t => t.id === idIdea));
+ok('moverla a la lista en la que ya está devuelve false',
+   ctx.moverALista(idIdea, P) === false);
+ok('una lista inventada no mueve nada', ctx.moverALista(idIdea, 'inventada') === false);
+ok('un id inexistente no rompe', ctx.moverALista('no-existe', I) === false);
+
+// una idea marcada como hecha que se manda a pendientes vuelve a estar por hacer
+ctx.datos.tareas = [];
+ctx.agregarTarea('Idea hecha', I);
+const idIH = ctx.tareasDe(I)[0].id;
+ctx.alternarTarea(idIH);
+ok('la idea estaba marcada', ctx.tareasDe(I)[0].hecha === true);
+ctx.moverALista(idIH, P);
+ok('al pasar a pendientes vuelve a estar por hacer', ctx.tareasDe(P)[0].hecha === false);
 
 // --- cambiar el texto
+ctx.datos.tareas = [];
+ctx.agregarTarea('Original', P);
+const idTexto = ctx.tareasDe(P)[0].id;
 ok('renombrar funciona',
-   ctx.renombrarTarea(ctx.datos.tareas[1].id, 'B corregida') === true &&
-   ctx.datos.tareas[1].texto === 'B corregida');
+   ctx.renombrarTarea(idTexto, 'Corregido') === true && ctx.tareasDe(P)[0].texto === 'Corregido');
 ok('un texto vacío no cambia nada',
-   ctx.renombrarTarea(ctx.datos.tareas[1].id, '   ') === false &&
-   ctx.datos.tareas[1].texto === 'B corregida');
-ok('el mismo texto no cuenta como cambio',
-   ctx.renombrarTarea(ctx.datos.tareas[1].id, 'B corregida') === false);
-ok('renombrar un id inexistente no rompe',
-   ctx.renombrarTarea('no-existe', 'algo') === false);
-ok('renombrar no cambia si estaba marcada o no',
-   ctx.datos.tareas[0].hecha === true);
+   ctx.renombrarTarea(idTexto, '   ') === false && ctx.tareasDe(P)[0].texto === 'Corregido');
+ok('el mismo texto no cuenta como cambio', ctx.renombrarTarea(idTexto, 'Corregido') === false);
+ok('renombrar un id inexistente no rompe', ctx.renombrarTarea('no-existe', 'algo') === false);
+ok('renombrar no cambia de lista', ctx.tareasDe(P)[0].lista === P);
 
 // --- borrar
-const idBorrar = ctx.datos.tareas[2].id;
-ok('borrar funciona', ctx.borrarTarea(idBorrar) === true);
-ok('quedan 2 tareas', ctx.datos.tareas.length === 2);
-ok('borrar un id inexistente devuelve false', ctx.borrarTarea('no-existe') === false);
-ok('borrar no tocó a las demás', ctx.datos.tareas.every(t => t.id !== idBorrar));
-
-// --- limpiar las hechas
 ctx.datos.tareas = [];
-ctx.agregarTarea('A'); ctx.agregarTarea('B'); ctx.agregarTarea('C');
-ctx.alternarTarea(ctx.datos.tareas[0].id);
-ctx.alternarTarea(ctx.datos.tareas[2].id);
-ok('limpiar devuelve cuántas se llevó', ctx.limpiarHechas() === 2);
-ok('solo queda la que faltaba',
-   ctx.datos.tareas.length === 1 && ctx.datos.tareas[0].texto === 'B');
-ok('limpiar sin hechas devuelve 0', ctx.limpiarHechas() === 0);
-ok('y no borra las que faltan', ctx.datos.tareas.length === 1);
+ctx.agregarTarea('A', P); ctx.agregarTarea('B', P); ctx.agregarTarea('Idea', I);
+const idBorrar = ctx.tareasDe(P)[1].id;
+ok('borrar funciona', ctx.borrarTarea(idBorrar) === true);
+ok('queda 1 pendiente', ctx.tareasDe(P).length === 1);
+ok('la idea sigue intacta', ctx.tareasDe(I).length === 1);
+ok('borrar un id inexistente devuelve false', ctx.borrarTarea('no-existe') === false);
 
-// --- las tareas sobreviven al guardado
-ok('las tareas se guardan en disco', ctx.cargar().tareas.length === 1);
-ok('y conservan su texto', ctx.cargar().tareas[0].texto === 'B');
+// --- limpiar las hechas, lista por lista
+ctx.datos.tareas = [];
+ctx.agregarTarea('A', P); ctx.agregarTarea('B', P); ctx.agregarTarea('C', P);
+ctx.agregarTarea('Idea A', I); ctx.agregarTarea('Idea B', I);
+ctx.alternarTarea(ctx.tareasDe(P)[0].id);
+ctx.alternarTarea(ctx.tareasDe(P)[2].id);
+ctx.alternarTarea(ctx.tareasDe(I)[0].id);
+
+ok('limpiar devuelve cuántas se llevó', ctx.limpiarHechas(P) === 2);
+ok('solo queda el pendiente que faltaba',
+   ctx.tareasDe(P).length === 1 && ctx.tareasDe(P)[0].texto === 'B');
+ok('limpiar pendientes NO tocó las ideas hechas', ctx.tareasDe(I).length === 2);
+ok('limpiar la otra lista sí se lleva la suya', ctx.limpiarHechas(I) === 1);
+ok('y deja la idea que faltaba', ctx.tareasDe(I).length === 1);
+ok('limpiar sin hechas devuelve 0', ctx.limpiarHechas(P) === 0);
+ok('y no borra las que faltan', ctx.tareasDe(P).length === 1);
+
+// --- todo sobrevive al guardado
+ok('se guardan las dos listas en disco', ctx.cargar().tareas.length === 2);
+ok('y conservan su columna lista',
+   ctx.cargar().tareas.filter(t => t.lista === I).length === 1);
+
+// --- migración: tareas viejas sin la columna "lista"
+store['habitos-app-v1'] = JSON.stringify({
+  version: 1, habitos: [], registros: {}, pendientes: [],
+  tareas: [{ id:'a', texto:'De antes de las Ideas', hecha:false, creada:'2026-08-05' }]
+});
+const migrado = ctx.cargar();
+ok('a una tarea vieja se le pone lista = pendientes', migrado.tareas[0].lista === 'pendientes');
+ok('y no pierde su texto', migrado.tareas[0].texto === 'De antes de las Ideas');
 
 // --- los pendientes NO se encolan para la nube (viven solo aquí, por ahora)
+ctx.datos.tareas = [];
 ctx.datos.pendientes = [];
-ctx.agregarTarea('No debe subir a la nube');
-ctx.alternarTarea(ctx.datos.tareas[ctx.datos.tareas.length-1].id);
-ok('crear y marcar tareas no encola nada', ctx.datos.pendientes.length === 0);
+ctx.agregarTarea('No debe subir a la nube', P);
+ctx.agregarTarea('Una idea tampoco', I);
+ctx.alternarTarea(ctx.tareasDe(P)[0].id);
+ctx.moverALista(ctx.tareasDe(I)[0].id, P);
+ok('crear, marcar y mover no encola nada', ctx.datos.pendientes.length === 0);
 
-// --- copias de seguridad con tareas
+// --- copias de seguridad
 ok('una copia con tareas es válida',
    ctx.esCopiaValida({ habitos: [], registros: {},
-     tareas: [{ id:'1', texto:'algo', hecha:false }] }) === true);
+     tareas: [{ id:'1', texto:'algo', hecha:false, lista:'ideas' }] }) === true);
 ok('una copia vieja SIN tareas sigue siendo válida',
    ctx.esCopiaValida({ habitos: [], registros: {} }) === true);
 ok('una copia con tareas mal formadas se rechaza',
