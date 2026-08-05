@@ -369,13 +369,75 @@ usuario con dos dispositivos, no vale la pena resolverlo mejor.
 
 **Pendiente / siguiente**
 
-- [ ] Kev publica y prueba: (a) que sus hábitos aparezcan en el Table Editor de
-      Supabase, (b) modo avión → marcar → volver a conectar → que suba solo,
-      (c) abrir la app en el Mac y ver los mismos datos.
-- [ ] **Con esto se cierra la Fase 3.** El riesgo de perder el historial queda
-      resuelto: los datos viven en Postgres, no solo en el teléfono.
+- [x] Las tres pruebas pasaron: datos en el Table Editor, cola de pendientes
+      funcionando en modo avión, y los mismos datos en el Mac.
+- [x] **Fase 3 cerrada.** El riesgo de perder el historial queda resuelto: los
+      datos viven en Postgres, no solo en el teléfono.
+
+## 2026-08-04 — Ajuste de método (a partir de la fricción de la Fase 3)
+
+Kev señaló que lo que más lo frenó no fue la dificultad del proyecto sino los
+pasos a paso desactualizados sobre Supabase. Dos veces quedó atascado frente a
+una pantalla que no coincidía con la guía:
+
+1. El plan gratuito ya no permitía editar plantillas de correo y limitaba el
+   envío a 2 por hora. Obligó a **rehacer la decisión de login completa** a mitad
+   de camino.
+2. Supabase había cambiado el sistema de llaves; Kev veía `sb_publishable_...` y
+   la guía hablaba de `anon public`, así que no podía avanzar.
+
+Ambas se habrían evitado verificando la documentación antes de escribir. Se
+agregó a `CLAUDE.md` la sección **"Regla: pasos a paso sobre herramientas de
+terceros"** con seis puntos, arriba del todo para que se lea temprano en cada
+sesión.
+
+Lo que hay que recordar: el detalle de las guías no era el problema — Kev lo
+agradece. El problema era la **exactitud**. Una guía muy detallada y desfasada es
+peor que una corta, porque genera confianza justo donde no la hay.
 - [ ] Actualizar `GUIA.md`, que quedó describiendo el proyecto de la Fase 0.
 - [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+
+## 2026-08-04 — Pulir detalles y poner la documentación al día
+
+Sesión corta de mantenimiento. Nada nuevo en la app; se arregló lo que había
+quedado desfasado.
+
+**Hecho**
+
+- **Orden de las secciones del `<script>`.** El panel de cuenta (`M4`) había
+  quedado después de `M7`. Se movió a su sitio: ahora se lee M1 → M7 en orden.
+  Los tests siguen pasando (las marcas `M1` y `M5` que usa `pruebas.js` no
+  cambiaron).
+- **`GUIA.md` reescrita.** Describía el proyecto en la Fase 0: decía que los
+  datos no se sincronizaban y que la Fase 1 era "el próximo paso". Ahora refleja
+  el estado real, incluye el SQL de Supabase junto al modelo local para poder
+  compararlos, y una tabla de dónde vive cada cosa (Mac, GitHub, Pages,
+  Supabase).
+- **`COMO-EDITAR.md` actualizado.** Tenía el mismo problema que las guías de
+  Supabase, en pequeño: mandaba a buscar código que Kev ya había cambiado.
+  - El mapa de secciones va de A a M, sin números de línea (envejecían mal) y
+    con un aviso de fiarse del texto a buscar, no de la línea.
+  - Ejercicios 2, 5 y 6 marcados como hechos, con el código tal como quedó. El 2
+    explica el `flex: 0 1 11px` nuevo, porque el `width: 9px` que mencionaba ya
+    no existe.
+  - **Tres ejercicios nuevos**: cambiar la ventana de las estadísticas, agregar
+    una estadística nueva a la lista `ESTADISTICAS`, y correr `node pruebas.js`.
+    El 8 se verificó compilando el resultado: da 5 estadísticas y no rompe nada.
+  - Sección de publicar reescrita para git + VS Code, con el aviso de revisar la
+    cuenta del navegador si algo falla.
+  - "Qué hacer cuando rompas algo" ahora usa el diff de Source Control y
+    *Discard Changes*, que es mejor que copiar y pegar desde GitHub.
+- `sw.js`: `VERSION` a `'v9'`.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica (commit + Sync). El cambio de código es solo de orden, pero
+      conviene que lo publicado y lo local coincidan.
+- [ ] Ejercicios 1, 3 y 4 de `COMO-EDITAR.md` (colores, emojis, textos), y los
+      nuevos 7, 8 y 9 cuando quiera.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Fase 4 sin decidir y sin prisa. Kev va a usar la app un tiempo antes de
+      construir más.
 
 ---
 

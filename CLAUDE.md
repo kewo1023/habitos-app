@@ -21,6 +21,37 @@ Implicaciones para cómo trabajar con él:
   búsqueda (⌘F + el texto exacto a buscar), no solo el número de línea: las líneas
   se desplazan, el texto no.
 
+## Regla: pasos a paso sobre herramientas de terceros
+
+Esta regla salió de fricción real en la Fase 3. **Antes de escribir un solo paso**
+sobre una herramienta externa (Supabase, GitHub, Resend, lo que venga):
+
+1. **Buscar la documentación actual y el changelog. No escribir de memoria.** El
+   conocimiento previo sobre estas plataformas caduca rápido y en silencio.
+2. **Verificar específicamente las tres cosas que más cambian:**
+   - límites y restricciones del **plan gratuito**
+   - **nombres exactos** de menús, botones y secciones del panel
+   - **formatos de credenciales** (llaves, tokens, URLs)
+3. **Describir por lo que se ve, no por la ruta.** "Busca la sección que dice
+   *Publishable key*" envejece mejor que "el tercer ítem del menú".
+4. **Marcar los puntos frágiles en el propio documento.** Donde sea probable que
+   la interfaz haya cambiado, escribirlo: *"si en vez de esto ves aquello,
+   mándame una captura"*. Es más honesto que fingir certeza.
+5. **Al primer atasco, volver a la documentación antes de improvisar.** No
+   proponer un rodeo hasta confirmar qué cambió realmente.
+6. **Pedir captura de pantalla temprano**, no después de tres intentos fallidos.
+
+Lo que pasó y por qué importa: en la Fase 3 se perdió tiempo dos veces. Primero,
+Supabase había limitado el correo del plan gratuito a 2 envíos por hora y había
+bloqueado la edición de plantillas — eso obligó a **rehacer por completo la
+decisión de login**. Segundo, Supabase había cambiado el sistema de llaves y Kev
+veía un formato (`sb_publishable_...`) que la guía no mencionaba, así que no
+podía avanzar. Las dos se habrían evitado con una búsqueda de cinco minutos
+antes de escribir.
+
+El costo de verificar es bajo. El costo de un paso a paso equivocado lo paga Kev
+atascado frente a una pantalla que no coincide con lo que le dijeron.
+
 ## Qué es la app
 
 Seguimiento diario de hábitos. Uso estrictamente personal (no se publica, no hay
@@ -130,7 +161,8 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v8` (sincronización). Confirmar que quedó publicada.
+`VERSION` en el Mac: `v9` (orden de secciones + documentación). Confirmar que
+quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué

@@ -43,24 +43,40 @@ Ten VS Code y el navegador uno al lado del otro. Para ver la app: doble clic en
 
 ## 4. Orientarte dentro del archivo
 
-`index.html` tiene unas 600 líneas, pero está organizado. La forma de moverte
+`index.html` pasa de las 1.700 líneas, pero está organizado. La forma de moverte
 **no** es bajar con la rueda del mouse, es **buscar**:
 
 **⌘F** abre el buscador. Escribe un pedazo del texto que buscas y VS Code te lleva.
 
+> **No te fíes de los números de línea de este manual.** Cada cambio los mueve.
+> Fíate del texto a buscar: ese no cambia.
+
 El mapa general:
 
-| Zona | Líneas aprox. | Qué hay |
-|---|---|---|
-| `<style>` | 30 – 300 | Todo lo visual: colores, tamaños, espacios |
-| `<body>` | 315 – 400 | La estructura: cabecera, botones, ventana de nuevo hábito |
-| `<script>` | 405 – 620 | La lógica, en secciones **A** a **K** |
+| Zona | Qué hay |
+|---|---|
+| `<style>` | Todo lo visual: colores, tamaños, espacios |
+| `<body>` | La estructura: cabecera, botones, y las dos ventanas emergentes |
+| `<script>` | La lógica, en secciones **A** a **M** |
+| `<script type="module">` | Tres líneas al final: la librería de Supabase |
 
 Dentro del `<script>`, cada sección tiene un título en un comentario:
 
-- **A** guardar y leer datos · **B** fechas · **C** consultas · **D** acciones
-- **E** pintar la pantalla · **F** ventana de nuevo hábito · **G** modo edición
-- **H** copia de seguridad · **I** sin internet · **J** botones de copia · **K** arrancar
+| | |
+|---|---|
+| **A** | guardar y leer datos, y la cola de pendientes |
+| **B** | fechas |
+| **C** | consultas: rachas, estadísticas, conteos |
+| **D** | acciones: marcar, crear, borrar, renombrar, mover |
+| **E** | pintar la pantalla |
+| **F** | ventana de nuevo hábito |
+| **G** | modo edición |
+| **H** | copia de seguridad |
+| **I** | funcionar sin internet |
+| **J** | botones de copia |
+| **L** | el calendario en pantalla |
+| **M1–M7** | la nube: errores, entrar/salir, arrancar, panel, traductores, subir/bajar, el ciclo |
+| **K** | arrancar (va de último a propósito: es la línea que enciende todo) |
 
 Busca `---------- E.` con ⌘F y caes justo en la sección E.
 
@@ -69,9 +85,14 @@ de `//`, es texto para humanos. Puedes escribir los tuyos sin miedo.
 
 ---
 
-## 5. Los seis ejercicios
+## 5. Los ejercicios
 
 Haz uno, guarda, recarga, míralo. Luego el siguiente.
+
+> **Ya hiciste tres.** Los ejercicios 2, 5 y 6 están marcados como hechos, con lo
+> que quedó en el código. Te faltan el 1, el 3 y el 4 — los tres son de edición
+> directa, sin lógica. Y al final hay tres nuevos, más difíciles, sobre el código
+> que construimos después.
 
 ### Ejercicio 1 — Cambiar el color principal 🟢 fácil
 
@@ -90,21 +111,22 @@ vez en `:root` y el resto del archivo lo usa como `var(--acento)`. Es exactament
 como una celda de Excel a la que apuntan cien fórmulas: cambias la celda y cambia
 todo. Lo mismo aplica para `--exito` (el verde de los días cumplidos) y `--fondo`.
 
-### Ejercicio 2 — Mostrar 14 días en vez de 7 🟢 fácil
+### Ejercicio 2 — Mostrar 14 días en vez de 7 ✅ hecho
 
-⌘F → busca `for (let i = 6`
+⌘F → busca `for (let i = 13`
 
 ```js
-for (let i = 6; i >= 0; i--) {
+for (let i = 13; i >= 0; i--) {
 ```
 
-Cámbialo a `13`. Guarda, recarga: ahora hay 14 puntitos.
+Lo cambiaste de `6` a `13`. Ese bucle cuenta hacia atrás desde *hace i días*
+hasta hoy (`i = 0`), así que con 13 son 14 días contando el cero.
 
-**Por qué:** ese bucle cuenta hacia atrás desde *hace i días* hasta hoy (`i = 0`).
-Con 6 son 7 días contando el cero. Con 13, son 14.
-
-Si se ven apretados, busca `.dia {` en el `<style>` y baja `width` y `height` de
-`9px` a `7px`.
+**Ojo si quieres subirlo más.** También cambiaste el tamaño de los puntos a
+`11px`, y con 14 ya van justos. Busca `.dia {`: ahora dice `flex: 0 1 11px`, que
+significa *"mide 11px, pero encoge si no cabes"*. Si pones 20 días, los puntos se
+van a encoger solos hasta el `min-width: 6px`. Si necesitas más, baja ese `11px`
+— es el tamaño ideal, no un límite.
 
 ### Ejercicio 3 — Poner tus propios emojis 🟢 fácil
 
@@ -129,30 +151,28 @@ Busca también `Mis Hábitos` (el título) y `+ Nuevo hábito` (el botón).
 
 El `<br>` que ves en medio del texto es un salto de línea. Puedes moverlo o quitarlo.
 
-### Ejercicio 5 — Que la racha aparezca solo desde 3 días 🟡 medio
+### Ejercicio 5 — Que la racha aparezca solo desde 3 días ✅ hecho
 
 ⌘F → busca `🔥`
 
 ```js
-<span class="racha">${racha > 0 ? '🔥 ' + racha : ''}</span>
+<span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>
 ```
 
-Cámbialo a `racha > 2`.
+Cambiaste `racha > 0` por `racha > 2`.
 
 **Cómo se lee esa línea:** `condición ? esto : lo otro` es un "si… entonces…
-si no…" comprimido. Se lee *"¿la racha es mayor que 0? entonces muestra 🔥 y el
+si no…" comprimido. Se lee *"¿la racha es mayor que 2? entonces muestra 🔥 y el
 número; si no, no muestres nada (`''` es texto vacío)"*.
 
-Y ya que estás, cambia el 🔥 por el emoji que quieras.
+Si quieres cambiar el 🔥 por otro emoji, es ahí mismo.
 
-### Ejercicio 6 — Un mensaje distinto según la hora 🟡 medio
+### Ejercicio 6 — Un mensaje distinto según la hora ✅ hecho
 
-Este ya es escribir código nuevo. ⌘F → busca `getElementById('fecha')`. Esa
-instrucción ocupa **dos líneas** y termina en `);`. Agrega tu código justo
-**después de ese punto y coma**:
+Este era escribir código nuevo, y lo escribiste tú. ⌘F → busca `Saludo según la
+hora`:
 
 ```js
-  // Saludo según la hora del día
   const hora = new Date().getHours();
   let saludo = 'Buenas noches';
   if (hora < 12) saludo = 'Buenos días';
@@ -160,11 +180,61 @@ instrucción ocupa **dos líneas** y termina en `);`. Agrega tu código justo
   document.querySelector('.titulo').textContent = saludo + ', Kev';
 ```
 
-Guarda, recarga. El título ahora te saluda.
-
 **Qué aprendiste aquí:** declarar variables (`const`, `let`), condicionales
-(`if` / `else if`) y modificar un elemento de la pantalla desde JavaScript. Con
-eso ya puedes hacer bastante.
+(`if` / `else if`) y modificar un elemento de la pantalla desde JavaScript.
+
+---
+
+## 5b. Tres ejercicios nuevos
+
+Sobre el código que vino después. Ninguno toca la sincronización.
+
+### Ejercicio 7 — Cambiar cuántos días miden las estadísticas 🟡 medio
+
+⌘F → busca `Últimos 30 días`. Vas a caer en una lista llamada `ESTADISTICAS`,
+donde cada estadística es un objeto con tres cosas: su etiqueta, cómo se calcula
+y qué explica.
+
+Cambia el `30` por `7` en los **tres** sitios de ese bloque: la etiqueta, el
+cálculo `porcentajeUltimos(id, 30)` y el texto de ayuda.
+
+**Por qué está hecho así:** toda la definición vive en un solo sitio. El código
+que dibuja los recuadros no sabe cuántas estadísticas hay ni qué miden — solo
+recorre la lista. Por eso agregar una cuarta o una quinta no obliga a tocar el
+dibujado.
+
+### Ejercicio 8 — Agregar una estadística nueva 🔴 difícil
+
+En esa misma lista `ESTADISTICAS`, agrega un objeto más antes del `]` final:
+
+```js
+  ,{
+    etiqueta: 'Días fallados',
+    calcular: id => diasDeVida(id) - totalDias(id),
+    ayuda: 'Días que existió el hábito y no lo marcaste.'
+  }
+```
+
+Guarda, recarga, abre el calendario de un hábito: aparece un quinto recuadro y se
+acomoda solo.
+
+**Lo que estás usando:** `diasDeVida` y `totalDias` ya existen en la sección C.
+No escribiste lógica nueva, combinaste dos piezas que ya estaban. Eso es lo que
+hace que valga la pena tener funciones pequeñas y con nombre claro.
+
+### Ejercicio 9 — Correr las pruebas 🟢 fácil pero importante
+
+Este no es de editar, es de comprobar. Terminal, y dentro de la carpeta:
+
+```
+node pruebas.js
+```
+
+Deben salir 129 líneas en ✅. **Hazlo después de los ejercicios 7 y 8**: si
+rompiste algo de la lógica, aquí te enteras en dos segundos en vez de
+descubrirlo dentro de una semana con las rachas mal contadas.
+
+Si sale algún ❌, el texto de la línea te dice qué dejó de funcionar.
 
 ---
 
@@ -193,8 +263,11 @@ que no cuadra. Si ves rojo, ahí está.
 **Para deshacer:**
 
 - **⌘Z** cuantas veces necesites — funciona incluso después de guardar
-- Si ya no sabes qué tocaste: en GitHub, entra a `index.html` → botón **History**
-  → elige una versión anterior → copia el contenido y pégalo encima
+- Si ya no sabes qué tocaste: **Source Control** (`⌃⇧G`) → clic en `index.html`
+  → ahí ves exactamente qué cambiaste, en verde y rojo, contra la última versión
+  publicada. Y con el botón **↩︎ Discard Changes** vuelves a esa versión
+- Si ya hiciste commit: en la vista **Graph** del mismo panel, clic en cualquier
+  punto del historial te muestra los archivos de ese momento
 
 **Regla de oro:** un cambio, guarda, recarga. Si haces cinco cambios de una y algo
 se rompe, no sabes cuál fue.
@@ -205,15 +278,18 @@ se rompe, no sabes cuál fue.
 
 Lo que edites en el Escritorio **no** llega solo al teléfono. Para publicarlo:
 
-1. Abre `sw.js` y sube el número de `VERSION` (`'v2'` → `'v3'`). Sin esto el
-   iPhone puede seguir mostrando la versión vieja
-2. En GitHub, entra a tu repo → clic en `index.html` → ícono del **lápiz**
-3. En VS Code selecciona todo (**⌘A**) y copia (**⌘C**); en GitHub selecciona
-   todo y pega encima
-4. **Commit changes**. Repite con `sw.js`
-5. Espera ~1 minuto y abre la app en el iPhone
+1. Abre `sw.js` y **sube el número de `VERSION`** (`'v8'` → `'v9'`). Sin esto el
+   iPhone puede seguir mostrando la versión vieja. Es el paso que más se olvida
+2. **Source Control** (`⌃⇧G`) → escribe qué hiciste → **✓ Commit**
+3. **Sync Changes**
+4. Espera ~1 minuto y abre la app en el iPhone
 
-Cuando esto te canse, dime y montamos git: pasa a ser un comando de una línea.
+Los detalles están en `PASOS-GIT.md`.
+
+> **Si algo falla al publicar**, lo primero que hay que revisar es con qué cuenta
+> de GitHub está el navegador. Tienes una vieja (`kev1023`) y la buena
+> (`kewo1023`), y GitHub autoriza con la sesión del navegador, no con lo que diga
+> git. Eso ya nos costó un rato una vez.
 
 ---
 

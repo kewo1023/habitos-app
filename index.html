@@ -1463,6 +1463,70 @@ document.addEventListener('visibilitychange', () => {    // volviste a la app
   if (document.visibilityState === 'visible') sincronizar();
 });
 
+/* ---------- M4. EL PANEL DE CUENTA ---------- */
+
+function pintarSesion(mensaje, tipo) {
+  const fuera  = document.getElementById('sesionFuera');
+  const dentro = document.getElementById('sesionDentro');
+  const estado = document.getElementById('sesionEstado');
+
+  const conectado = Boolean(sesion);
+  fuera.hidden  = conectado;
+  dentro.hidden = !conectado;
+
+  estado.className = 'sesion-estado' + (tipo ? ' ' + tipo : '');
+
+  if (mensaje) {
+    estado.textContent = mensaje;
+  } else if (conectado) {
+    let detalle;
+    if (sincronizando)                  detalle = 'Sincronizando…';
+    else if (navigator.onLine === false) detalle = textoPendientes(datos.pendientes.length) +
+                                                   ' Sin señal por ahora.';
+    else                                 detalle = textoPendientes(datos.pendientes.length);
+
+    estado.textContent = `${sesion.user.email} — ${detalle}`;
+    if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
+  } else if (nube) {
+    estado.textContent = 'Entra para respaldar tus hábitos en la nube.';
+  } else {
+    estado.textContent = 'Sin conexión con la nube. La app funciona igual, ' +
+                         'con los datos del teléfono.';
+  }
+}
+
+document.getElementById('btnEntrar').onclick = async () => {
+  const correo = document.getElementById('correo').value.trim();
+  const clave  = document.getElementById('clave').value;
+
+  if (!correo || !clave) {
+    pintarSesion('Escribe tu correo y tu contraseña.', 'error');
+    return;
+  }
+
+  const boton = document.getElementById('btnEntrar');
+  boton.disabled = true;                       // que no lo toques dos veces
+  pintarSesion('Entrando…');
+
+  const error = await entrar(correo, clave);
+  boton.disabled = false;
+
+  if (error) {
+    pintarSesion(mensajeDeError(error), 'error');
+  } else {
+    document.getElementById('clave').value = '';   // no dejarla en pantalla
+    pintarSesion('Listo, entraste.', 'bien');
+  }
+};
+
+document.getElementById('btnSalir').onclick = async () => {
+  await salir();
+  pintarSesion('Sesión cerrada. Tus hábitos siguen aquí en el teléfono.');
+};
+
+// Estado inicial, mientras la librería baja (o si nunca baja)
+pintarSesion();
+
 /* ---------- M5. TRADUCIR ENTRE LA APP Y LA BASE (puro, se prueba) ----------
    La app y Postgres guardan lo mismo con formas distintas. Estas tres
    funciones son los traductores. No tocan la red ni la pantalla: solo
@@ -1632,70 +1696,6 @@ async function sincronizar() {
     pintarSesion();
   }
 }
-
-/* ---------- M4. EL PANEL DE CUENTA ---------- */
-
-function pintarSesion(mensaje, tipo) {
-  const fuera  = document.getElementById('sesionFuera');
-  const dentro = document.getElementById('sesionDentro');
-  const estado = document.getElementById('sesionEstado');
-
-  const conectado = Boolean(sesion);
-  fuera.hidden  = conectado;
-  dentro.hidden = !conectado;
-
-  estado.className = 'sesion-estado' + (tipo ? ' ' + tipo : '');
-
-  if (mensaje) {
-    estado.textContent = mensaje;
-  } else if (conectado) {
-    let detalle;
-    if (sincronizando)                  detalle = 'Sincronizando…';
-    else if (navigator.onLine === false) detalle = textoPendientes(datos.pendientes.length) +
-                                                   ' Sin señal por ahora.';
-    else                                 detalle = textoPendientes(datos.pendientes.length);
-
-    estado.textContent = `${sesion.user.email} — ${detalle}`;
-    if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
-  } else if (nube) {
-    estado.textContent = 'Entra para respaldar tus hábitos en la nube.';
-  } else {
-    estado.textContent = 'Sin conexión con la nube. La app funciona igual, ' +
-                         'con los datos del teléfono.';
-  }
-}
-
-document.getElementById('btnEntrar').onclick = async () => {
-  const correo = document.getElementById('correo').value.trim();
-  const clave  = document.getElementById('clave').value;
-
-  if (!correo || !clave) {
-    pintarSesion('Escribe tu correo y tu contraseña.', 'error');
-    return;
-  }
-
-  const boton = document.getElementById('btnEntrar');
-  boton.disabled = true;                       // que no lo toques dos veces
-  pintarSesion('Entrando…');
-
-  const error = await entrar(correo, clave);
-  boton.disabled = false;
-
-  if (error) {
-    pintarSesion(mensajeDeError(error), 'error');
-  } else {
-    document.getElementById('clave').value = '';   // no dejarla en pantalla
-    pintarSesion('Listo, entraste.', 'bien');
-  }
-};
-
-document.getElementById('btnSalir').onclick = async () => {
-  await salir();
-  pintarSesion('Sesión cerrada. Tus hábitos siguen aquí en el teléfono.');
-};
-
-// Estado inicial, mientras la librería baja (o si nunca baja)
-pintarSesion();
 
 /* ---------- K. ARRANCAR ---------- */
 pintar();
