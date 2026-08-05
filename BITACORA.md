@@ -316,6 +316,67 @@ código por correo con Resend si algún día se quiere.
       la nube, y la cola de pendientes para funcionar sin señal. Ahí sí hay
       lógica pura que probar (la mezcla de datos).
 
+## 2026-08-04 — Fase 3, etapa 3: sincronización
+
+Kev confirmó que el login funciona y que la sesión sobrevive a cerrar y reabrir
+la app. Con eso, se construyó la sincronización completa.
+
+**El diseño, en tres reglas**
+
+1. **`localStorage` sigue mandando en lo que se dibuja.** Marcar un hábito nunca
+   espera a la red. La nube va detrás.
+2. **Cada cambio se anota en una cola** (`datos.pendientes`) que se guarda en el
+   teléfono. Sin señal, la cola espera; al volver, se vacía sola.
+3. **Solo se baja cuando la cola está vacía.** Es la regla de oro: bajar con
+   cambios sin subir haría que la nube pisara lo local.
+
+**Hecho**
+
+- **Sección A:** `encolar()` y `pendientes` dentro del modelo de datos. `cargar()`
+  le agrega la cola a los datos viejos que no la tienen, para no obligar a
+  empezar de cero.
+- **Sección D:** las cinco acciones (marcar, crear, borrar, renombrar, mover)
+  encolan su cambio. Borrar encola una sola operación: el `on delete cascade` de
+  Postgres se lleva el historial solo.
+- **M5 (pura, se prueba):** `habitoAFila`, `filasAHabitos`, `filasARegistros`,
+  `textoPendientes`. `filasARegistros` es el traductor importante — en la base
+  hay una fila por marca y la app las quiere agrupadas por día; es un `GROUP BY`
+  hecho a mano.
+- **M6:** `enviarPendiente` (uno a la vez, devuelve false = "todavía no"),
+  `bajarTodo`, `subirTodo`.
+- **M7:** `sincronizar()` con el ciclo subir→bajar, `pedirSincronizar()` que
+  agrupa cambios seguidos con un temporizador de 1s para no llamar a la nube en
+  cada toque, y bandera `sincronizando` para que no corran dos a la vez.
+- **Disparadores:** al entrar, al volver la señal (`online`), al volver a la app
+  (`visibilitychange`) y al encolar un cambio.
+- **Primera subida:** `primeraSincronizacion()` empuja lo que ya había en el
+  teléfono la primera vez, con la bandera `subidaHecha`. En un dispositivo nuevo
+  no encola nada y simplemente baja.
+- **Red de seguridad:** si la nube llegara vacía teniendo hábitos locales, se
+  guarda una copia en `habitos-app-v1-respaldo` antes de reemplazar.
+- El panel de Cuenta muestra el estado real: `Sincronizando…`, `Todo
+  sincronizado.` o `N cambios esperando señal.`
+- `pruebas.js`: de 103 a **129 tests**, incluyendo la cola (que cada acción
+  encole lo que debe) y los traductores. Todos pasan.
+- `sw.js`: `VERSION` a `'v8'`.
+
+**Límite conocido y aceptado**
+
+Si se marca lo mismo en dos dispositivos sin señal, gana el último en subir. Como
+cada marca es una fila `(hábito, fecha)`, las marcas distintas no chocan entre
+sí; el único choque real sería marcar y desmarcar lo mismo a la vez. Para un solo
+usuario con dos dispositivos, no vale la pena resolverlo mejor.
+
+**Pendiente / siguiente**
+
+- [ ] Kev publica y prueba: (a) que sus hábitos aparezcan en el Table Editor de
+      Supabase, (b) modo avión → marcar → volver a conectar → que suba solo,
+      (c) abrir la app en el Mac y ver los mismos datos.
+- [ ] **Con esto se cierra la Fase 3.** El riesgo de perder el historial queda
+      resuelto: los datos viven en Postgres, no solo en el teléfono.
+- [ ] Actualizar `GUIA.md`, que quedó describiendo el proyecto de la Fase 0.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

@@ -13,7 +13,8 @@ const script = html.slice(inicio, html.indexOf('</script>', inicio));
 const trozo = (desde, hasta) => script.slice(script.indexOf(desde), script.indexOf(hasta));
 const logica = trozo('const CLAVE', '/* ---------- E.')
              + trozo('/* ---------- H. COPIA', '/* ---------- I.')
-             + trozo('/* ---------- M1.', '/* ---------- fin M1');
+             + trozo('/* ---------- M1.', '/* ---------- fin M1')
+             + trozo('/* ---------- M5.', '/* ---------- fin M5');
 
 // Shims mínimos
 const store = {};
@@ -25,7 +26,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -277,6 +278,96 @@ ok('un error desconocido se muestra tal cual',
    ctx.mensajeDeError({ message: 'Algo raro' }) === 'No se pudo entrar: Algo raro');
 ok('un error sin texto no rompe',
    ctx.mensajeDeError({}) === 'No se pudo entrar: error desconocido');
+
+// --- traducir entre la app y la base de datos
+ok('habitoAFila pone la posición como columna orden',
+   ctx.habitoAFila({id:'a1',nombre:'Leer',emoji:'📖',creado:'2026-01-02'}, 3, 'u1').orden === 3);
+ok('habitoAFila arrastra el usuario',
+   ctx.habitoAFila({id:'a1',nombre:'Leer',emoji:'📖',creado:'2026-01-02'}, 0, 'u1').usuario === 'u1');
+ok('habitoAFila inventa creado si falta',
+   ctx.habitoAFila({id:'a1',nombre:'Leer',emoji:'📖'}, 0, 'u1').creado === ctx.hoy());
+
+const filasH = [
+  { id:'a1', usuario:'u1', nombre:'Leer', emoji:'📖', creado:'2026-01-02', orden:0, actualizado:'x' },
+  { id:'a2', usuario:'u1', nombre:'Agua', emoji:'💧', creado:'2026-01-03', orden:1, actualizado:'x' }
+];
+ok('filasAHabitos respeta el orden recibido',
+   ctx.filasAHabitos(filasH).map(h=>h.nombre).join('') === 'LeerAgua');
+ok('filasAHabitos descarta las columnas que la app no usa',
+   Object.keys(ctx.filasAHabitos(filasH)[0]).join(',') === 'id,nombre,emoji,creado');
+ok('filasAHabitos con lista vacía', ctx.filasAHabitos([]).length === 0);
+ok('filasAHabitos sin argumento no rompe', ctx.filasAHabitos().length === 0);
+
+const filasR = [
+  { habito_id:'a1', fecha:'2026-03-01' },
+  { habito_id:'a2', fecha:'2026-03-01' },
+  { habito_id:'a1', fecha:'2026-03-02' }
+];
+const agrupado = ctx.filasARegistros(filasR);
+ok('filasARegistros agrupa por fecha', Object.keys(agrupado).length === 2);
+ok('un día con dos hábitos', agrupado['2026-03-01'].length === 2);
+ok('un día con uno solo',    agrupado['2026-03-02'].length === 1);
+ok('filasARegistros no duplica si la fila viene repetida',
+   ctx.filasARegistros([...filasR, {habito_id:'a1',fecha:'2026-03-01'}])['2026-03-01'].length === 2);
+ok('filasARegistros sin argumento no rompe',
+   Object.keys(ctx.filasARegistros()).length === 0);
+
+// ida y vuelta: app -> base -> app
+const idaVuelta = ctx.filasAHabitos(
+  [{id:'z9',nombre:'Correr',emoji:'🏃',creado:'2026-02-02'}]
+    .map((h,i) => ctx.habitoAFila(h, i, 'u1')));
+ok('un hábito sobrevive el viaje de ida y vuelta',
+   idaVuelta[0].id === 'z9' && idaVuelta[0].nombre === 'Correr' &&
+   idaVuelta[0].emoji === '🏃' && idaVuelta[0].creado === '2026-02-02');
+
+ok('textoPendientes en cero',  ctx.textoPendientes(0) === 'Todo sincronizado.');
+ok('textoPendientes en uno',   ctx.textoPendientes(1) === '1 cambio esperando señal.');
+ok('textoPendientes en varios', ctx.textoPendientes(5) === '5 cambios esperando señal.');
+
+// --- la cola de pendientes
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.datos.pendientes = [];
+
+ctx.agregarHabito('Nadar','🏊');
+const idN = ctx.datos.habitos[0].id;
+ok('crear un hábito encola su subida',
+   ctx.datos.pendientes.length === 1 && ctx.datos.pendientes[0].tipo === 'guardarHabito');
+
+ctx.alternarFecha(idN, '2026-05-05');
+ok('marcar encola "marcar"', ctx.datos.pendientes[1].tipo === 'marcar');
+ok('el pendiente lleva la fecha', ctx.datos.pendientes[1].fecha === '2026-05-05');
+
+ctx.alternarFecha(idN, '2026-05-05');
+ok('desmarcar encola "desmarcar"', ctx.datos.pendientes[2].tipo === 'desmarcar');
+
+ctx.renombrarHabito(idN, 'Nadar 30 min');
+ok('renombrar encola una subida del hábito',
+   ctx.datos.pendientes[3].tipo === 'guardarHabito' && ctx.datos.pendientes[3].id === idN);
+
+ctx.alternarFecha(idN, ctx.haceNDias(-5));
+ok('marcar el futuro no encola nada', ctx.datos.pendientes.length === 4);
+
+ctx.borrarHabito(idN);
+ok('borrar encola "borrarHabito"', ctx.datos.pendientes[4].tipo === 'borrarHabito');
+
+ok('la cola sobrevive al guardado', ctx.cargar().pendientes.length === 5);
+
+ctx.datos.habitos = [];
+ctx.datos.registros = {};
+ctx.datos.pendientes = [];
+ctx.agregarHabito('A','1️⃣');
+ctx.agregarHabito('B','2️⃣');
+ctx.datos.pendientes = [];
+ctx.moverHabito(ctx.datos.habitos[0].id, 1);
+ok('reordenar encola los dos hábitos que se movieron',
+   ctx.datos.pendientes.length === 2 &&
+   ctx.datos.pendientes.every(p => p.tipo === 'guardarHabito'));
+
+// una copia vieja, sin el campo pendientes, no debe romper nada
+global.localStorage.setItem('habitos-app-v1',
+  JSON.stringify({ version:1, habitos:[], registros:{} }));
+ok('los datos viejos reciben una cola vacía', Array.isArray(ctx.cargar().pendientes));
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

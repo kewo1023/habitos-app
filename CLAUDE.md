@@ -90,7 +90,10 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
     `index.html`. Proyecto `wfqhtnxhxjtdsvjzxaks`. La librería entra por un
     `<script type="module">` aparte desde `esm.sh`; si el CDN falla, la app
     sigue funcionando solo con `localStorage`.
-  - Etapa 3 — Sincronizar con cola de pendientes para funcionar sin internet.
+  - Etapa 3 — Sincronizar con cola de pendientes. ✅ Secciones M5, M6 y M7.
+    Regla de oro: **solo se baja de la nube cuando la cola de pendientes está
+    vacía**; si se bajara con cambios sin subir, la nube pisaría lo local.
+  - **Fase 3 cerrada.** El riesgo de perder el historial queda resuelto.
   - **Decisión clave:** login con **correo y contraseña**, no con enlace mágico
     ni código por correo. Tres razones: (1) en iOS una PWA de la pantalla de
     inicio tiene almacenamiento separado de Safari, así que un enlace mágico
@@ -111,12 +114,15 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
-## Riesgo conocido
+## Riesgo conocido — resuelto en la Fase 3
 
-Los datos viven solo en el navegador del teléfono. Borrar la app o una limpieza
-de almacenamiento de iOS = historial perdido. Ya existe exportar/importar como
-mitigación (panel visible en modo edición), pero es manual: Kev tiene que
-acordarse de hacerlo. La solución de fondo sigue siendo la Fase 3.
+Antes los datos vivían solo en el navegador del teléfono: borrar la app o una
+limpieza de almacenamiento de iOS significaba perder el historial. Hoy todo se
+sincroniza a Postgres, y exportar/importar sigue ahí como respaldo manual.
+
+Lo que queda como límite aceptado: si se marca lo mismo en dos dispositivos sin
+señal, gana el último en subir. No vale la pena resolverlo mejor para un solo
+usuario.
 
 ## Publicar cambios
 
@@ -124,7 +130,7 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v7` (login de Supabase). Confirmar que quedó publicada.
+`VERSION` en el Mac: `v8` (sincronización). Confirmar que quedó publicada.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
 cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué

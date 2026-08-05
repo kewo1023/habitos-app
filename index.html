@@ -624,12 +624,19 @@ const CLAVE = 'habitos-app-v1';
 // Esta es la "forma" de nuestros datos. Piénsalo como dos tablas:
 //   habitos  -> una fila por hábito
 //   registros-> qué hábitos se marcaron en cada fecha
-const datosPorDefecto = { version: 1, habitos: [], registros: {} };
+// "pendientes" es la cola de cambios que faltan por subir a la nube.
+const datosPorDefecto = { version: 1, habitos: [], registros: {}, pendientes: [] };
 
 function cargar() {
   try {
     const texto = localStorage.getItem(CLAVE);
-    return texto ? JSON.parse(texto) : structuredClone(datosPorDefecto);
+    const leidos = texto ? JSON.parse(texto) : structuredClone(datosPorDefecto);
+
+    // Los datos guardados antes de la Fase 3 no traen cola. Se la ponemos
+    // al vuelo en vez de obligarte a borrar y empezar de cero.
+    if (!Array.isArray(leidos.pendientes)) leidos.pendientes = [];
+
+    return leidos;
   } catch (e) {
     // Si algo se corrompe, mejor arrancar limpio que romperse
     console.error('No se pudieron leer los datos:', e);
@@ -639,6 +646,20 @@ function cargar() {
 
 function guardar() {
   localStorage.setItem(CLAVE, JSON.stringify(datos));
+}
+
+/* La idea central de la sincronización, en una función.
+   Cada cambio se guarda en el teléfono Y se anota en una cola de "esto
+   falta subirlo". Si hay señal, la cola se vacía enseguida. Si no, la
+   nota espera ahí, guardada, hasta que vuelva. Por eso la app se siente
+   igual de rápida sin internet: nunca espera a la nube para nada.
+
+   El "if" del final es lo que mantiene esta sección independiente: la
+   cola existe aunque la nube no haya cargado o ni siquiera exista. */
+function encolar(pendiente) {
+  datos.pendientes.push(pendiente);
+  guardar();
+  if (typeof pedirSincronizar === 'function') pedirSincronizar();
 }
 
 let datos = cargar();
@@ -812,8 +833,13 @@ function alternarFecha(idHabito, fecha) {
   if (!datos.registros[fecha]) datos.registros[fecha] = [];
 
   const posicion = datos.registros[fecha].indexOf(idHabito);
-  if (posicion === -1) datos.registros[fecha].push(idHabito);   // marcar
-  else datos.registros[fecha].splice(posicion, 1);              // desmarcar
+  if (posicion === -1) {
+    datos.registros[fecha].push(idHabito);                      // marcar
+    encolar({ tipo: 'marcar', id: idHabito, fecha: fecha });
+  } else {
+    datos.registros[fecha].splice(posicion, 1);                 // desmarcar
+    encolar({ tipo: 'desmarcar', id: idHabito, fecha: fecha });
+  }
 
   // Si el día quedó sin nada, borramos la clave entera: no vale la pena
   // guardar filas vacías. Mantiene la copia de seguridad limpia.
@@ -830,12 +856,10 @@ function alternarHoy(idHabito) {
 }
 
 function agregarHabito(nombre, emoji) {
-  datos.habitos.push({
-    id: crypto.randomUUID(),   // un identificador único, como una PRIMARY KEY
-    nombre: nombre,
-    emoji: emoji,
-    creado: hoy()
-  });
+  const id = crypto.randomUUID();   // un identificador único, como una PRIMARY KEY
+  datos.habitos.push({ id: id, nombre: nombre, emoji: emoji, creado: hoy() });
+
+  encolar({ tipo: 'guardarHabito', id: id });
   guardar();
   pintar();
 }
@@ -852,6 +876,8 @@ function renombrarHabito(idHabito, nombreNuevo) {
   if (h.nombre === limpio) return false;     // no cambió nada, no guardamos
 
   h.nombre = limpio.slice(0, 40);            // el mismo tope que el formulario
+
+  encolar({ tipo: 'guardarHabito', id: idHabito });
   guardar();
   pintar();
   return true;
@@ -871,6 +897,11 @@ function moverHabito(idHabito, direccion) {
   // "que el de la izquierda pase a valer lo de la derecha, y viceversa".
   [datos.habitos[i], datos.habitos[j]] = [datos.habitos[j], datos.habitos[i]];
 
+  // Los dos que se intercambiaron cambiaron de posición, así que hay que
+  // subir los dos. La posición se lee al momento de enviar, no ahora.
+  encolar({ tipo: 'guardarHabito', id: datos.habitos[i].id });
+  encolar({ tipo: 'guardarHabito', id: datos.habitos[j].id });
+
   guardar();
   pintar();
   return true;
@@ -885,6 +916,12 @@ function borrarHabito(idHabito) {
   for (const fecha in datos.registros) {
     datos.registros[fecha] = datos.registros[fecha].filter(x => x !== idHabito);
   }
+
+  // En la nube basta con borrar el hábito: el "on delete cascade" de la
+  // tabla registros se lleva su historial solo. Ese bucle de arriba existe
+  // porque localStorage no sabe hacer eso.
+  encolar({ tipo: 'borrarHabito', id: idHabito });
+
   guardar();
   pintar();
 }
@@ -1114,9 +1151,19 @@ function importar(texto) {
     `La copia tiene ${cuantosHabitos} hábito(s) y ${cuantosDias} día(s) de historial.\n\n` +
     `Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?`)) return false;
 
-  datos = { version: 1, habitos: copia.habitos, registros: copia.registros };
+  datos = {
+    version: 1,
+    habitos: copia.habitos,
+    registros: copia.registros,
+    pendientes: Array.isArray(copia.pendientes) ? copia.pendientes : []
+  };
   guardar();
   pintar();
+
+  // Restaurar una copia cambia todo de golpe, así que hay que volver a
+  // subirlo entero. Si la nube no está cargada, esto simplemente no pasa.
+  if (typeof subirTodo === 'function') subirTodo();
+
   return true;
 }
 
@@ -1386,11 +1433,204 @@ async function iniciarNube(createClient) {
   // Un solo sitio que reacciona a cualquier cambio de sesión: entrar,
   // salir, o la renovación automática del token cada hora.
   nube.auth.onAuthStateChange((evento, nuevaSesion) => {
+    const antesHabiaSesion = Boolean(sesion);
     sesion = nuevaSesion;
     pintarSesion();
+
+    // Acabas de entrar: es el momento de sincronizar
+    if (!antesHabiaSesion && sesion) primeraSincronizacion();
   });
 
+  if (sesion) primeraSincronizacion();
   pintarSesion();
+}
+
+// La primera vez que entras en un dispositivo hay que empujar hacia arriba
+// lo que ya tenías guardado aquí — tu historial de antes de la Fase 3, que
+// la nube todavía no conoce. Después de esa vez, la cola normal se encarga.
+function primeraSincronizacion() {
+  if (!datos.subidaHecha) {
+    subirTodo();               // en un teléfono nuevo esto no encola nada
+    datos.subidaHecha = true;
+    guardar();
+  }
+  sincronizar();
+}
+
+// Tres momentos en que vale la pena mirar la nube, además de al cambiar algo:
+window.addEventListener('online', sincronizar);          // volvió la señal
+document.addEventListener('visibilitychange', () => {    // volviste a la app
+  if (document.visibilityState === 'visible') sincronizar();
+});
+
+/* ---------- M5. TRADUCIR ENTRE LA APP Y LA BASE (puro, se prueba) ----------
+   La app y Postgres guardan lo mismo con formas distintas. Estas tres
+   funciones son los traductores. No tocan la red ni la pantalla: solo
+   reciben datos y devuelven datos, así que se pueden probar. */
+
+// De un hábito de la app a una fila de la tabla "habitos".
+// El "orden" no está en el objeto: es su posición en la lista. Un array
+// tiene orden por sí mismo; una tabla no, hay que escribirlo en una columna.
+function habitoAFila(habito, indice, usuarioId) {
+  return {
+    id:      habito.id,
+    usuario: usuarioId,
+    nombre:  habito.nombre,
+    emoji:   habito.emoji,
+    creado:  habito.creado || hoy(),
+    orden:   indice
+  };
+}
+
+// De las filas de la tabla a la lista que usa la app.
+// Nos quedamos solo con las columnas que la app necesita.
+function filasAHabitos(filas) {
+  return (filas || []).map(f => ({
+    id: f.id, nombre: f.nombre, emoji: f.emoji, creado: f.creado
+  }));
+}
+
+// De las filas de "registros" al objeto { fecha: [ids] }.
+// Aquí se ve el cambio de forma más grande: en la base hay UNA FILA POR
+// MARCA, y la app quiere las marcas agrupadas por día. Es lo mismo que
+// haría un GROUP BY fecha en SQL.
+function filasARegistros(filas) {
+  const registros = {};
+  (filas || []).forEach(f => {
+    if (!registros[f.fecha]) registros[f.fecha] = [];
+    if (!registros[f.fecha].includes(f.habito_id)) registros[f.fecha].push(f.habito_id);
+  });
+  return registros;
+}
+
+// Cuenta cuántos cambios distintos hay esperando, para el mensaje del panel.
+function textoPendientes(cuantos) {
+  if (cuantos === 0) return 'Todo sincronizado.';
+  if (cuantos === 1) return '1 cambio esperando señal.';
+  return `${cuantos} cambios esperando señal.`;
+}
+/* ---------- fin M5 ---------- */
+
+/* ---------- M6. SUBIR Y BAJAR ---------- */
+
+// Envía UN pendiente. Devuelve true si se pudo, false si no.
+// Devolver false no es un fracaso definitivo: significa "todavía no",
+// y el pendiente se queda en la cola para el próximo intento.
+async function enviarPendiente(p) {
+  const usuarioId = sesion.user.id;
+
+  if (p.tipo === 'guardarHabito') {
+    const i = datos.habitos.findIndex(h => h.id === p.id);
+    if (i === -1) return true;   // lo borraste después; ya no hay nada que subir
+
+    const { error } = await nube.from('habitos')
+      .upsert(habitoAFila(datos.habitos[i], i, usuarioId));
+    return !error;
+  }
+
+  if (p.tipo === 'borrarHabito') {
+    const { error } = await nube.from('habitos').delete().eq('id', p.id);
+    return !error;
+  }
+
+  if (p.tipo === 'marcar') {
+    // upsert = "insertar, y si ya existe no te quejes". Como la llave
+    // primaria es (habito_id, fecha), marcar dos veces el mismo día no
+    // duplica nada: la base de datos no lo permite.
+    const { error } = await nube.from('registros')
+      .upsert({ usuario: usuarioId, habito_id: p.id, fecha: p.fecha });
+    return !error;
+  }
+
+  if (p.tipo === 'desmarcar') {
+    const { error } = await nube.from('registros').delete()
+      .eq('habito_id', p.id).eq('fecha', p.fecha);
+    return !error;
+  }
+
+  return true;   // un tipo desconocido no debe atascar la cola para siempre
+}
+
+// Baja el estado completo de la nube y reemplaza el local.
+// Solo se llama cuando la cola quedó vacía, o sea cuando la nube ya tiene
+// todo lo tuyo. Así "reemplazar" nunca pierde nada.
+async function bajarTodo() {
+  const { data: filasHabitos, error: e1 } =
+    await nube.from('habitos').select('*').order('orden');
+  if (e1) return false;
+
+  const { data: filasRegistros, error: e2 } =
+    await nube.from('registros').select('*');
+  if (e2) return false;
+
+  // Red de seguridad. Si la nube llega vacía pero aquí sí hay hábitos,
+  // guardamos una copia aparte antes de reemplazar. No debería pasar nunca
+  // — solo bajamos con la cola vacía — pero perder el historial es justo
+  // lo que la Fase 3 vino a evitar, así que vale el par de líneas.
+  if (filasHabitos.length === 0 && datos.habitos.length > 0) {
+    localStorage.setItem(CLAVE + '-respaldo', JSON.stringify(datos));
+    console.warn('La nube vino vacía. Copia de emergencia guardada.');
+  }
+
+  datos.habitos   = filasAHabitos(filasHabitos);
+  datos.registros = filasARegistros(filasRegistros);
+
+  guardar();
+  pintar();
+  return true;
+}
+
+// Encola TODO lo que hay en el teléfono. Se usa dos veces: la primera vez
+// que entras (para que tu historial de antes de la Fase 3 llegue a la nube)
+// y al restaurar una copia de seguridad.
+function subirTodo() {
+  datos.habitos.forEach(h => encolar({ tipo: 'guardarHabito', id: h.id }));
+  for (const fecha in datos.registros) {
+    datos.registros[fecha].forEach(id => encolar({ tipo: 'marcar', id: id, fecha: fecha }));
+  }
+}
+
+/* ---------- M7. EL CICLO DE SINCRONIZACIÓN ---------- */
+
+let sincronizando = false;   // para que no corran dos a la vez
+let reloj = null;            // el temporizador que agrupa cambios seguidos
+
+// No sincronizamos en cada toque. Si marcas cuatro hábitos seguidos,
+// esperamos un segundo desde el último y mandamos todo junto.
+function pedirSincronizar() {
+  clearTimeout(reloj);
+  reloj = setTimeout(sincronizar, 1000);
+}
+
+async function sincronizar() {
+  if (!nube || !sesion || sincronizando) return;
+  if (navigator.onLine === false) { pintarSesion(); return; }
+
+  sincronizando = true;
+  pintarSesion();
+
+  try {
+    // 1) Primero SUBIR, en orden y de a uno. El orden importa: crear un
+    //    hábito tiene que llegar antes que marcarlo.
+    while (datos.pendientes.length > 0) {
+      const pudo = await enviarPendiente(datos.pendientes[0]);
+
+      // Si uno falla, paramos. No seguimos con los de atrás, porque
+      // podrían depender de este. Se reintenta en la próxima ronda.
+      if (!pudo) return;
+
+      datos.pendientes.shift();
+      guardar();
+    }
+
+    // 2) Y solo con la cola vacía, BAJAR. Este orden es la regla de oro:
+    //    si bajáramos con cambios sin subir, la nube pisaría lo tuyo.
+    await bajarTodo();
+
+  } finally {
+    sincronizando = false;
+    pintarSesion();
+  }
 }
 
 /* ---------- M4. EL PANEL DE CUENTA ---------- */
@@ -1409,8 +1649,14 @@ function pintarSesion(mensaje, tipo) {
   if (mensaje) {
     estado.textContent = mensaje;
   } else if (conectado) {
-    estado.textContent = `Conectado como ${sesion.user.email}. Todavía no se ` +
-                         `sincroniza nada: eso llega en el siguiente paso.`;
+    let detalle;
+    if (sincronizando)                  detalle = 'Sincronizando…';
+    else if (navigator.onLine === false) detalle = textoPendientes(datos.pendientes.length) +
+                                                   ' Sin señal por ahora.';
+    else                                 detalle = textoPendientes(datos.pendientes.length);
+
+    estado.textContent = `${sesion.user.email} — ${detalle}`;
+    if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
   } else if (nube) {
     estado.textContent = 'Entra para respaldar tus hábitos en la nube.';
   } else {
