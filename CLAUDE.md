@@ -13,7 +13,7 @@ Implicaciones para cómo trabajar con él:
 
 - Explicar el *por qué* de cada decisión, no solo el *qué*
 - Comentarios en el código en español, orientados a enseñar
-- Analogías con SQL cuando aplique: es su punto de anclaje
+- Analogías con Excel cuando aplique: es su punto de anclaje
 - Un cambio grande a la vez, no diez cosas simultáneas
 - Nunca dar por hecho que sabe usar la Terminal, git, npm, etc.
 - Responder en español
