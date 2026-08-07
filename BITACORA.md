@@ -767,6 +767,102 @@ dos azules fuertes compiten entre sí.
 - [ ] Usar las tres secciones unos días. Después decidir: ¿sincronizar
       pendientes e ideas con Supabase? ¿prioridad en los pendientes?
 
+## 2026-08-07 — Tema claro, la app en inglés y panel de Ajustes (v15)
+
+Tres cosas a la vez, pero las tres son la misma: **sacar del código lo que
+estaba escrito a mano**. Los colores estaban escritos en el CSS, los textos en
+el JavaScript y el nombre "Kev" dentro de `pintar()`. Ahora los tres salen de
+una tabla o de un ajuste.
+
+**1. Tema claro (Auto / Claro / Oscuro)**
+
+- Los colores pasaron de un `:root` a dos: `:root[data-tema="oscuro"]` y
+  `:root[data-tema="claro"]`. Quién manda lo decide `aplicarTema()` poniendo
+  `data-tema` en la etiqueta `<html>`.
+- **"Automático" no es un tercer juego de colores.** Se resuelve a claro u
+  oscuro preguntándole al teléfono *antes* de dibujar. Así el CSS solo conoce
+  dos temas, que es la mitad de colores que mantener.
+- **Un trocito de JavaScript en el `<head>`**, duplicado a propósito, aplica el
+  tema antes de que se pinte nada. Sin él la app abriría un instante en oscuro
+  y saltaría a claro en cada apertura.
+- Se sacaron a variables los nueve colores que estaban escritos a mano
+  (`#fff`, `#0f1115`, `rgba(0,0,0,.65)`…). Cada uno estaba pensado para fondo
+  oscuro y en claro había que darle la vuelta: `--sobre-exito` es negro en
+  oscuro y blanco en claro, y así con los demás.
+- El `<meta name="theme-color">` se actualiza al cambiar de tema, o en claro
+  queda una franja negra arriba en la PWA instalada.
+
+**2. La app en inglés, con el mismo patrón que Tips Control**
+
+- **Sección A0 nueva**: una tabla `TEXTOS` con `es` y `en`, y la función
+  `t('clave')`. ~120 claves. Ningún texto que ve el usuario queda escrito
+  suelto en el código.
+- En el HTML, `data-t` (texto), `data-ph` (placeholder) y `data-aria`
+  (etiqueta para VoiceOver). `traducirEstaticos()` los recorre de golpe: para
+  traducir un elemento nuevo basta con marcarlo, sin volver a esa función.
+- `ESTADISTICAS` y `TEXTOS_LISTA` guardan ahora **claves, no frases**. Las dos
+  listas se crean una sola vez al abrir la app; si guardaran el texto, se
+  quedarían congeladas en el idioma con el que arrancaste.
+- Las fechas salen de `localeFechas()` (`es-CO` / `en-US`). El calendario
+  **sigue empezando en lunes en los dos idiomas**: cambiar el primer día tocaría
+  `columnaInicio()` y sus pruebas, y no era lo que estábamos haciendo.
+- Los avisos con números usan huecos (`%h`, `%d`, `%n`) en vez de pegar trozos
+  de frase. El orden de las palabras cambia entre idiomas; pegando trozos
+  acabas con frases imposibles de traducir sin tocar el código.
+- **Renombrada toda variable local llamada `t`** (había once) a `tarea`, `idea`
+  o `palabras`. Con `t()` como función global, una variable `t` la tapaba
+  dentro de su función y el fallo habría salido en runtime, no al guardar.
+
+**3. Panel de Ajustes, y "Kev" fuera del código**
+
+- Panel nuevo en modo edición, junto a Copia de seguridad y Cuenta. Se
+  descartó una cuarta pestaña: son ajustes que se tocan una vez, y un cuarto
+  botón permanente arriba habría apretado el ancho en iPhone para nada.
+- Tres ajustes: **Tu nombre**, **Idioma** y **Apariencia**. Viven en
+  `datos.prefs`.
+- El nombre se guarda con `input` (en cada tecla) y no con `blur`: en el
+  teléfono cerrar el teclado no siempre dispara `blur`. Solo repinta la
+  cabecera, porque repintar la lista entera en cada tecla cerraría el teclado.
+- Si el nombre está vacío el saludo queda solo ("Buenos días"), no con una
+  coma huérfana.
+- **`prefs` no viaja.** Ni se importa de una copia ni se baja de la nube:
+  restaurar un respaldo hecho en el Mac no debería cambiarte el idioma del
+  teléfono. Hay tres pruebas que lo vigilan.
+- De paso, esto cierra el **bloqueador nº 1** de la lista de "¿está lista para
+  compartirla?" del 4 de agosto.
+
+**Verificación: dos capas ahora, no una**
+
+- `pruebas.js`: de 239 a **270 tests**. Los nuevos más útiles no comprueban una
+  traducción concreta sino que **no falte ninguna**: comparan las claves de las
+  dos tablas, que ningún texto esté vacío, que los huecos `%h`/`%n` existan en
+  las dos versiones, y que cada `data-t` del HTML tenga su clave.
+- **`pruebas-app.js` + `mini-dom.js` — capa nueva, copiada de Tips Control.**
+  Carga la app entera en un navegador de mentira y comprueba el comportamiento:
+  53 verificaciones. Encontró lo que `pruebas.js` no puede ver por diseño —
+  errores de conexión entre piezas, no de cálculo.
+- `sw.js`: `VERSION` a `'v15'`.
+
+**Límite conocido y aceptado**
+
+El nombre bajo el ícono de la pantalla de inicio sigue diciendo "Hábitos" en
+los dos idiomas. Sale de `manifest.json`, que el teléfono lee una sola vez al
+instalar la app y no se puede cambiar desde JavaScript. Para arreglarlo habría
+que reinstalar la app con otro manifiesto. No vale la pena.
+
+**Pendiente / siguiente**
+
+- [ ] Publicar la **`v15`** y probar en el iPhone:
+      - que al abrir con el teléfono en modo claro **no parpadee** en oscuro
+      - que el tema claro se lea bien **a plena luz**, sobre todo los puntitos
+        del historial y los días del calendario
+      - que el panel de Ajustes quepa sin apretar en modo edición
+      - que **entrar con correo y contraseña siga funcionando**
+- [ ] Elegir el logo entre los cuatro conceptos y generar los PNG
+      (180 / 192 / 512) con un script de Python, como se hizo la primera vez.
+- [ ] Usar las tres secciones unos días. Después decidir: ¿sincronizar
+      pendientes e ideas con Supabase? ¿prioridad en los pendientes?
+
 ---
 
 <!-- Plantilla para la próxima entrada:

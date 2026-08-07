@@ -153,6 +153,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 | `manifest.json` | Metadatos para instalarla en el teléfono |
 | `icono-*.png` | Íconos generados con PIL (script en la bitácora) |
 | `pruebas.js` | Tests de la lógica pura. Correr con `node pruebas.js` |
+| `pruebas-app.js` | Tests de la app entera. Correr con `node pruebas-app.js` |
+| `mini-dom.js` | Navegador de mentira que usa `pruebas-app.js`. No tocar |
 | `GUIA.md` | Explicación del proyecto y hoja de ruta |
 | `PASOS-FASE-1.md` | Instrucciones para publicar en GitHub Pages |
 | `PASOS-GIT.md` | Montar git en VS Code y el ciclo commit/sync |
@@ -160,8 +162,16 @@ Plataforma: iPhone. Kev tiene un Mac.
 | `COMO-EDITAR.md` | Manual de VS Code y ejercicios para que Kev edite solo |
 | `BITACORA.md` | Registro de qué se hizo en cada sesión |
 
-**Correr `node pruebas.js` después de cualquier cambio en la lógica.** Si se
-agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
+**Hay dos capas de pruebas y las dos se corren después de tocar el código:**
+
+1. `node pruebas.js` — 270 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 53 verificaciones de la app entera cargada en un
+   navegador de mentira. Ve lo que la primera no puede: que una función llame a
+   otra con el nombre correcto, que un id del HTML exista, que cambiar de
+   idioma repinte lo que toca.
+
+Si se agrega lógica nueva, agregar sus tests. Si se agrega algo que se ve en
+pantalla, agregarlo a `pruebas-app.js`.
 
 ## Hoja de ruta
 
@@ -251,6 +261,47 @@ agrega lógica nueva (metas semanales, estadísticas), agregar sus tests ahí.
     marcando**, porque ahí ese es el gesto de cada día y obligar a apuntarle al
     círculo lo haría más lento. Son dos comportamientos a propósito, no un
     descuido: la tarjeta de idea lleva subrayado punteado como pista.
+- **Fase 3.5 — Tema claro, inglés y Ajustes ✅ (v15)** Tres cosas con la misma
+  idea de fondo: sacar del código lo que estaba escrito a mano.
+  - **Decisión clave:** dos juegos de colores (`:root[data-tema="claro"]` y
+    `"oscuro"`) y un tercer *modo* llamado Automático que **no tiene colores
+    propios**: se resuelve a uno de los dos preguntándole al sistema antes de
+    dibujar. El CSS solo conoce dos temas.
+  - **Decisión clave:** un trocito de JavaScript en el `<head>`, duplicado a
+    propósito, aplica el tema antes de que se pinte nada. Sin él la app
+    parpadea en cada apertura. Es el único código duplicado del proyecto y
+    está comentado como tal.
+  - **Regla nueva y firme:** **ningún color se escribe suelto en el CSS.** Todo
+    color vive en las variables de `:root`, en los dos bloques. Un `#fff`
+    suelto funciona en un tema y desaparece en el otro. Hay un test que lo
+    vigila.
+  - **Regla nueva y firme:** **ningún texto que vea el usuario se escribe
+    suelto en el código.** Se le pone una clave en la sección A0 y se llama con
+    `t('clave')`. Si un texto se cuela, la app queda mitad en español y mitad
+    en inglés, que se ve peor que estar entera en el idioma equivocado. Hay
+    tests que comparan las dos tablas y que revisan los `data-t` del HTML.
+  - **Decisión clave:** las listas que se crean una sola vez (`ESTADISTICAS`,
+    `TEXTOS_LISTA`) guardan **claves, no frases**. Si guardaran el texto se
+    quedarían congeladas en el idioma con el que arrancó la app.
+  - **Decisión clave:** el calendario sigue empezando en **lunes** en los dos
+    idiomas. Solo cambian las letras. Cambiar el primer día tocaría
+    `columnaInicio()` y sus pruebas.
+  - **Decisión clave:** `datos.prefs` (idioma, tema, nombre) **no viaja**: ni
+    entra en las copias de seguridad ni se baja de la nube. Son ajustes de este
+    dispositivo. Restaurar un respaldo del Mac no debe cambiar el idioma del
+    teléfono.
+  - **Decisión clave:** los ajustes van en un panel de **modo edición**, no en
+    una cuarta pestaña. Se tocan una vez; un cuarto botón permanente arriba
+    habría apretado el ancho en iPhone para algo que casi no se usa.
+  - Los nombres de los idiomas se escriben **siempre en su propio idioma**
+    ("Español", "English"). Quien abre la app en un idioma que no entiende
+    necesita reconocer el suyo para volver.
+  - Ojo al leer el código: `t` es ahora la función que traduce. Ninguna
+    variable local puede llamarse `t` — se renombraron once a `tarea`, `idea`
+    o `palabras`.
+  - **Límite aceptado:** el nombre bajo el ícono de la pantalla de inicio sigue
+    en español. Sale de `manifest.json`, que el teléfono lee una sola vez al
+    instalar y no se puede cambiar desde JavaScript.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -270,9 +321,8 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v14` (ficha de la idea + pestaña activa más visible).
-`v13` (pestaña Ideas) está publicada y probada. Confirmar que la v14 quedó
-publicada.
+`VERSION` en el Mac: `v15` (tema claro + inglés + panel de Ajustes).
+Confirmar que la `v14` y la `v15` quedaron publicadas.
 
 **Probar en el iPhone exige publicar.** La vista de móvil del inspector del
 navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill
@@ -297,4 +347,5 @@ al tocar `index.html`:
 - La racha 🔥 solo aparece **desde 3 días** (`racha > 2`).
 - `pintar()` incluye un **saludo según la hora** que reemplaza el título
   ("Buenos días, Kev"). Ojo: si se toca el título en el HTML, ese texto se
-  sobrescribe en cada repintado.
+  sobrescribe en cada repintado. Desde la v15 el nombre ya no está escrito en
+  el código: sale de `datos.prefs.nombre`, el campo "Tu nombre" de Ajustes.

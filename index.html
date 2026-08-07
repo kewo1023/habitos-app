@@ -30,9 +30,43 @@
   <link rel="icon" href="icono-192.png">
   <link rel="manifest" href="manifest.json">
 
+<script>
+/* Este trocito va aquí arriba a propósito, ANTES de que se dibuje nada.
+   Si el tema se aplicara al final (junto con el resto del JavaScript), la app
+   abriría un instante en oscuro y saltaría a claro: ese parpadeo se ve feo y
+   pasa en cada apertura.
+
+   Es una copia reducida de aplicarTema(), que vive abajo con todo lo demás.
+   Está duplicado a propósito: aquí solo puede correr lo mínimo, porque en
+   este momento todavía no existe ni `datos` ni ninguna de nuestras funciones. */
+(function () {
+  try {
+    const guardado = JSON.parse(localStorage.getItem('habitos-app-v1') || '{}');
+    const elegido = (guardado.prefs && guardado.prefs.tema) || 'auto';
+    const oscuro = elegido === 'oscuro' || (elegido === 'auto' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+  } catch (e) {
+    // Si los datos no se pueden leer, oscuro: es como nació la app.
+    document.documentElement.dataset.tema = 'oscuro';
+  }
+})();
+</script>
+
 <style>
-/* ---------- 1. VARIABLES: los colores en un solo sitio ---------- */
-:root {
+/* ---------- 1. VARIABLES: los colores en un solo sitio ----------
+   Hasta la v14 aquí había UN solo juego de colores. Ahora hay dos, y el que
+   manda lo decide el atributo `data-tema` de la etiqueta <html>, que pone la
+   función aplicarTema().
+
+   Fíjate en que "Automático" NO es un tercer juego de colores: se traduce a
+   claro u oscuro preguntándole al teléfono antes de dibujar. Así el CSS solo
+   tiene que conocer dos temas, que es la mitad de colores que mantener.
+
+   Regla para el futuro: si necesitas un color nuevo, ponlo aquí en los dos
+   bloques. Un color escrito suelto abajo funciona en un tema y se rompe en el
+   otro, y no te enteras hasta que alguien cambia el modo del teléfono.       */
+:root, :root[data-tema="oscuro"] {
   --fondo:        #0f1115;
   --tarjeta:      #191c23;
   --tarjeta-alta: #22262f;
@@ -42,6 +76,44 @@
   --texto-suave:  #8b919d;
   --acento:       #5b8def;
   --exito:        #3ecf8e;
+
+  /* Los que antes estaban escritos a mano abajo. Cada uno tenía un valor
+     pensado para fondo oscuro, así que en claro había que darle la vuelta. */
+  --texto-fuerte:  #ffffff;              /* la pestaña activa: blanco puro contra el gris */
+  --sobre-acento:  #ffffff;              /* texto encima del azul */
+  --sobre-exito:   #0f1115;              /* texto encima del verde */
+  --peligro:       #ff8a80;
+  --peligro-borde: rgba(255,138,128,.35);
+  --exito-borde:   rgba(62,207,142,.30);
+  --velo:          rgba(0,0,0,.65);      /* el fondo oscuro detrás de las ventanas */
+}
+
+/* El tema claro. No es "el oscuro con los números al revés": el fondo no es
+   blanco puro sino un gris muy claro, para que las tarjetas (esas sí blancas)
+   se despeguen del fondo. Con fondo blanco y tarjeta blanca no se distingue
+   nada sin meter sombras por todas partes.
+
+   El azul y el verde también cambian: los del tema oscuro son claros a
+   propósito para brillar sobre negro, y sobre blanco quedan lavados y sin
+   contraste suficiente para leer. */
+:root[data-tema="claro"] {
+  --fondo:        #f4f5f7;
+  --tarjeta:      #ffffff;
+  --tarjeta-alta: #e8eaee;
+  --tarjeta-hecha:#eef3ef;   /* en claro "hundirse" es tomar un tinte verdoso, no oscurecerse */
+  --borde:        #dde0e6;
+  --texto:        #14161a;
+  --texto-suave:  #6a707c;
+  --acento:       #2563eb;
+  --exito:        #15803d;
+
+  --texto-fuerte:  #000000;
+  --sobre-acento:  #ffffff;
+  --sobre-exito:   #ffffff;
+  --peligro:       #b42318;
+  --peligro-borde: rgba(180,35,24,.30);
+  --exito-borde:   rgba(21,128,61,.28);
+  --velo:          rgba(15,17,21,.42);
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -128,7 +200,7 @@ header { margin-bottom: 22px; }
      4. toda la tarjeta un poco desvanecida */
 .habito.hecho {
   background: var(--tarjeta-hecha);
-  border-color: rgba(62, 207, 142, .30);
+  border-color: var(--exito-borde);
   box-shadow: inset 3px 0 0 var(--exito);
   opacity: .72;
 }
@@ -197,7 +269,7 @@ header { margin-bottom: 22px; }
 .habito.hecho .check {
   background: var(--exito);
   border-color: var(--exito);
-  color: #0f1115;
+  color: var(--sobre-exito);
 }
 
 /* Botones de mover y borrar. Solo aparecen en modo edición, donde
@@ -269,6 +341,58 @@ body.editando .panel-datos { display: block; }
   line-height: 1.5;
 }
 
+/* --- El control segmentado de Ajustes (idioma y tema) ---
+   Son opciones que se excluyen entre sí: solo una puede estar activa. Por eso
+   van como una fila de botones pegados y no como una lista con palomitas.
+   `grid` con `1fr` reparte el ancho por igual: si mañana agregas un idioma,
+   los tres siguen midiendo lo mismo sin tocar nada aquí.
+
+   `minmax(0, 1fr)` en vez de `1fr` a secas: sin el 0, una palabra larga
+   ("Automático") obliga a su columna a crecer y desequilibra la fila.        */
+.segmentado {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.segmentado.dos  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.segmentado.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.segmentado button {
+  padding: 11px 6px;
+  border: 1px solid var(--borde);
+  border-radius: 11px;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-family: inherit;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+
+/* La opción elegida no se rellena de azul: solo se le pinta el borde y la
+   letra. Un bloque azul sólido aquí competiría con el botón grande de abajo,
+   que ya usa ese mismo azul y es la acción principal de la pantalla. */
+.segmentado button.activo {
+  border-color: var(--acento);
+  color: var(--acento);
+  font-weight: 700;
+}
+
+/* La etiqueta de cada grupo dentro del panel de Ajustes. Va más pequeña que
+   el título del panel: son subtítulos, no secciones nuevas. */
+.sub-etiqueta {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  margin-top: 18px;
+}
+
+/* El primero no lleva el margen de arriba: ya lo pone el propio panel. */
+.panel-datos .sub-etiqueta:first-of-type { margin-top: 12px; }
+
 /* ---------- 4c. LA SECCIÓN DE PENDIENTES ----------
    La app ahora tiene dos secciones. Piénsalo como dos hojas del mismo
    libro de Excel: los datos viven en el mismo archivo, pero miras una
@@ -308,7 +432,7 @@ body.editando .panel-datos { display: block; }
    señales suaves se leen mejor y más rápido que una sola señal fuerte. */
 .pestana.activa {
   background: var(--tarjeta-alta);
-  color: #fff;
+  color: var(--texto-fuerte);
   font-weight: 700;
 }
 
@@ -373,7 +497,7 @@ body.vista-tareas .panel-datos { display: none; }
   border-radius: 13px;
   border: none;
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
   font-size: 22px; font-family: inherit;
   cursor: pointer;
 }
@@ -399,7 +523,7 @@ body.vista-tareas .panel-datos { display: none; }
    visuales en las dos secciones = una sola regla que aprender. */
 .tarea.hecha {
   background: var(--tarjeta-hecha);
-  border-color: rgba(62, 207, 142, .30);
+  border-color: var(--exito-borde);
   box-shadow: inset 3px 0 0 var(--exito);
   opacity: .62;
 }
@@ -486,7 +610,7 @@ body.editando .tarea-texto {
 
 .ficha-acciones .btn-mini { flex: 1; }
 
-.btn-peligro { color: #ff8a80; border-color: rgba(255,138,128,.35); }
+.btn-peligro { color: var(--peligro); border-color: var(--peligro-borde); }
 
 /* La flecha que manda una idea a Pendientes. Va siempre visible (no solo en
    modo edición) porque es LA acción de una idea: dejar de serlo. */
@@ -549,14 +673,14 @@ body.editando .tarea-texto {
   cursor: pointer;
 }
 
-.btn-principal  { background: var(--acento); color: #fff; }
+.btn-principal  { background: var(--acento); color: var(--sobre-acento); }
 .btn-secundario { background: var(--tarjeta); color: var(--texto-suave);
                   border: 1px solid var(--borde); flex: 0 0 90px; }
 
 /* ---------- 7. VENTANA PARA AGREGAR HÁBITO ---------- */
 .fondo-modal {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.65);
+  background: var(--velo);
   display: none;
   align-items: flex-end;
   z-index: 10;
@@ -604,7 +728,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 .panel-datos input { margin-bottom: 8px; }
 
 .sesion-estado { font-size: 12px; margin-top: 10px; line-height: 1.5; }
-.sesion-estado.error { color: #ff8a80; }
+.sesion-estado.error { color: var(--peligro); }
 .sesion-estado.bien  { color: var(--exito); }
 
 .emojis { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
@@ -688,7 +812,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   display: grid; place-items: center;
 }
 
-.cal-dia.hecho   { background: var(--exito); color: #0f1115; }
+.cal-dia.hecho   { background: var(--exito); color: var(--sobre-exito); }
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
 
@@ -767,9 +891,9 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
          llegar a cualquiera. Solo Pendientes lleva contador — una idea sin
          hacer no es una deuda, así que no debe pesarte con un número. -->
     <div class="pestanas">
-      <button class="pestana activa" id="pestanaHabitos">Hábitos</button>
-      <button class="pestana" id="pestanaTareas">Pendientes <span class="cuantas" id="contadorTareas"></span></button>
-      <button class="pestana" id="pestanaIdeas">Ideas</button>
+      <button class="pestana activa" id="pestanaHabitos" data-t="habitos">Hábitos</button>
+      <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span> <span class="cuantas" id="contadorTareas"></span></button>
+      <button class="pestana" id="pestanaIdeas" data-t="ideas">Ideas</button>
     </div>
   </header>
 
@@ -792,7 +916,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
              placeholder="¿Qué tienes pendiente?"
              maxlength="120" autocomplete="off" enterkeyhint="done"
              autocorrect="off" data-lpignore="true">
-      <button type="submit" id="btnAgregarTarea" aria-label="Agregar pendiente">+</button>
+      <button type="submit" id="btnAgregarTarea" data-aria="agregar">+</button>
     </form>
 
     <!-- Aquí JavaScript inserta las tarjetas de pendientes -->
@@ -801,22 +925,40 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
   <!-- Copia de seguridad. Solo se ve al tocar "Editar" -->
   <section class="panel-datos">
-    <span class="etiqueta">Copia de seguridad</span>
+    <span class="etiqueta" data-t="copiaSeguridad">Copia de seguridad</span>
     <div class="panel-botones">
-      <button class="btn-mini" id="btnExportar">↓ Guardar copia</button>
-      <button class="btn-mini" id="btnImportar">↑ Restaurar copia</button>
+      <button class="btn-mini" id="btnExportar" data-t="guardarCopia">↓ Guardar copia</button>
+      <button class="btn-mini" id="btnImportar" data-t="restaurarCopia">↑ Restaurar copia</button>
     </div>
     <!-- Este input abre el selector de archivos. Va oculto porque el
          botón de arriba es más bonito; al tocarlo, lo activamos desde JS -->
     <input type="file" id="archivoEntrada" accept=".json,application/json" hidden>
-    <p class="nota">Tus hábitos viven solo en este dispositivo. Guarda una copia
+    <p class="nota" data-t="notaCopia">Tus hábitos viven solo en este dispositivo. Guarda una copia
       de vez en cuando: si borras la app, se pierde el historial.</p>
+  </section>
+
+  <!-- Ajustes. Va en modo edición igual que los otros dos paneles, y por la
+       misma razón: el idioma, el tema y tu nombre se tocan una vez y no se
+       vuelven a mirar. Meterlos en una pestaña propia habría agregado un
+       cuarto botón permanente arriba para algo que casi nunca se usa. -->
+  <section class="panel-datos">
+    <span class="etiqueta" data-t="ajustes">Ajustes</span>
+
+    <span class="sub-etiqueta" data-t="tuNombre">Tu nombre</span>
+    <input type="text" id="ajusteNombre" maxlength="20" autocomplete="off"
+           data-ph="phNombre" placeholder="Para el saludo de arriba">
+
+    <span class="sub-etiqueta" data-t="idioma">Idioma</span>
+    <div class="segmentado dos" id="idiomas"></div>
+
+    <span class="sub-etiqueta" data-t="apariencia">Apariencia</span>
+    <div class="segmentado tres" id="temas"></div>
   </section>
 
   <!-- Cuenta. También solo en modo edición: entrar es algo que se hace
        una vez por dispositivo, no todos los días. -->
   <section class="panel-datos">
-    <span class="etiqueta">Cuenta</span>
+    <span class="etiqueta" data-t="cuenta">Cuenta</span>
 
     <!-- Lo que se ve cuando NO has entrado.
          Los dos campos van dentro de un <form> a propósito. Sin él, Safari
@@ -825,12 +967,12 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
          pendiente. El <form> le pone una cerca a las credenciales. -->
     <div id="sesionFuera" hidden>
       <form id="formEntrar">
-        <input type="email" id="correo" name="correo" placeholder="tu@correo.com"
+        <input type="email" id="correo" name="correo" data-ph="phCorreo" placeholder="tu@correo.com"
                autocomplete="username" autocapitalize="none" spellcheck="false">
-        <input type="password" id="clave" name="clave" placeholder="Contraseña"
+        <input type="password" id="clave" name="clave" data-ph="phClave" placeholder="Contraseña"
                autocomplete="current-password">
         <div class="panel-botones">
-          <button class="btn-mini" id="btnEntrar" type="submit">Entrar</button>
+          <button class="btn-mini" id="btnEntrar" type="submit" data-t="entrar">Entrar</button>
         </div>
       </form>
     </div>
@@ -838,7 +980,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <!-- Lo que se ve cuando SÍ has entrado -->
     <div id="sesionDentro" hidden>
       <div class="panel-botones">
-        <button class="btn-mini" id="btnSalir">Cerrar sesión</button>
+        <button class="btn-mini" id="btnSalir" data-t="cerrarSesion">Cerrar sesión</button>
       </div>
     </div>
 
@@ -847,29 +989,29 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
   <div class="barra-inferior">
     <button class="btn btn-principal"  id="btnAgregar">+ Nuevo hábito</button>
-    <button class="btn btn-secundario" id="btnEditar">Editar</button>
+    <button class="btn btn-secundario" id="btnEditar" data-t="editar">Editar</button>
   </div>
 
   <!-- Ventana emergente para crear un hábito -->
   <div class="fondo-modal" id="modal">
     <div class="modal">
-      <h2>Nuevo hábito</h2>
+      <h2 data-t="nuevoHabito">Nuevo hábito</h2>
 
-      <label class="etiqueta" for="nombre">Nombre</label>
-      <input type="text" id="nombre" placeholder="Ej: Leer 20 minutos" maxlength="40" autocomplete="off">
+      <label class="etiqueta" for="nombre" data-t="nombre">Nombre</label>
+      <input type="text" id="nombre" data-ph="phNombreHabito" placeholder="Ej: Leer 20 minutos" maxlength="40" autocomplete="off">
 
-      <label class="etiqueta">Ícono</label>
+      <label class="etiqueta" data-t="icono">Ícono</label>
       <div class="emojis" id="emojis"></div>
 
       <!-- La escotilla de escape: si ninguno de arriba sirve, escribe el
            tuyo con el teclado de emojis del teléfono. Lo que escribas aquí
            tiene prioridad sobre el que esté seleccionado. -->
       <input type="text" id="emojiLibre" maxlength="8" autocomplete="off"
-             placeholder="…o escribe el tuyo 😀">
+             data-ph="phEmojiLibre" placeholder="…o escribe el tuyo 😀">
 
       <div style="display:flex; gap:10px">
-        <button class="btn btn-secundario" id="btnCancelar" style="flex:1">Cancelar</button>
-        <button class="btn btn-principal"  id="btnGuardar">Guardar</button>
+        <button class="btn btn-secundario" id="btnCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
+        <button class="btn btn-principal"  id="btnGuardar" data-t="guardar">Guardar</button>
       </div>
     </div>
   </div>
@@ -887,10 +1029,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
         <button class="cal-flecha" id="calAdelante">›</button>
       </div>
 
-      <div class="cal-nombres">
-        <span>L</span><span>M</span><span>M</span><span>J</span>
-        <span>V</span><span>S</span><span>D</span>
-      </div>
+      <!-- Las letras de los días las pone JavaScript: cambian con el idioma.
+           La semana sigue empezando en lunes en los dos idiomas — cambiar el
+           primer día tocaría columnaInicio() y sus pruebas, y no es lo que
+           estamos haciendo hoy. -->
+      <div class="cal-nombres" id="calNombres"></div>
 
       <div class="cal-grid" id="calGrid"></div>
 
@@ -900,7 +1043,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <div class="stats" id="calStats"></div>
       <p class="cal-ayuda" id="calAyuda"></p>
 
-      <button class="btn btn-secundario" id="calCerrar"
+      <button class="btn btn-secundario" id="calCerrar" data-t="cerrar"
               style="width:100%; flex:none; margin-top:16px">Cerrar</button>
     </div>
   </div>
@@ -910,23 +1053,23 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
        escribirle el contexto, mandarla a Pendientes o borrarla. -->
   <div class="fondo-modal" id="modalIdea">
     <div class="modal">
-      <h2>Idea</h2>
+      <h2 data-t="idea">Idea</h2>
 
-      <label class="etiqueta" for="ideaTexto">Idea</label>
+      <label class="etiqueta" for="ideaTexto" data-t="idea">Idea</label>
       <input type="text" id="ideaTexto" maxlength="120" autocomplete="off">
 
-      <label class="etiqueta" for="ideaNota">Contexto</label>
-      <textarea id="ideaNota" maxlength="500"
+      <label class="etiqueta" for="ideaNota" data-t="contexto">Contexto</label>
+      <textarea id="ideaNota" maxlength="500" data-ph="phContexto"
                 placeholder="¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes."></textarea>
 
       <div class="ficha-acciones">
-        <button class="btn-mini" id="ideaMover">→ A Pendientes</button>
-        <button class="btn-mini btn-peligro" id="ideaBorrar">Borrar</button>
+        <button class="btn-mini" id="ideaMover" data-t="aPendientes">→ A Pendientes</button>
+        <button class="btn-mini btn-peligro" id="ideaBorrar" data-t="borrar">Borrar</button>
       </div>
 
       <div style="display:flex; gap:10px">
-        <button class="btn btn-secundario" id="ideaCancelar" style="flex:1">Cancelar</button>
-        <button class="btn btn-principal"  id="ideaGuardar">Guardar</button>
+        <button class="btn btn-secundario" id="ideaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
+        <button class="btn btn-principal"  id="ideaGuardar" data-t="guardar">Guardar</button>
       </div>
     </div>
   </div>
@@ -936,6 +1079,237 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
    JAVASCRIPT — la lógica de la app
    Leelo de arriba a abajo, está en orden de importancia.
    ============================================================ */
+
+/* ---------- A0. LOS TEXTOS EN LOS DOS IDIOMAS ----------
+   Aquí no hay ningún traductor automático: cada frase está escrita a mano en
+   español y en inglés. Es más trabajo una vez y sale bien; un traductor
+   convertiría "racha" en cualquier cosa menos en "streak".
+
+   Piénsalo como una hoja de Excel con tres columnas: clave, español, inglés.
+   El código nunca pide "Buenos días": pide la fila `saludoManana` y esta tabla
+   decide qué palabra sale según el idioma activo.
+
+   REGLA PARA EL FUTURO, y es la importante: **ningún texto que vea el usuario
+   se escribe suelto en el código.** Se le pone una clave aquí y se llama con
+   t('clave'). Si un texto se cuela sin traducir, la app queda mitad en español
+   y mitad en inglés, que se ve peor que estar entera en el idioma equivocado.
+
+   Los emojis no se traducen: 🌱 significa lo mismo en los dos idiomas.        */
+
+const TEXTOS = {
+  es: {
+    // --- Cabecera y navegación ---
+    tituloApp: 'Mis Hábitos',
+    saludoManana: 'Buenos días', saludoTarde: 'Buenas tardes', saludoNoche: 'Buenas noches',
+    hoy: 'Hoy', de: 'de',
+    habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas',
+
+    // --- Hábitos ---
+    nuevoHabito: '+ Nuevo hábito', tituloNuevoHabito: 'Nuevo hábito',
+    nombre: 'Nombre', icono: 'Ícono',
+    phNombreHabito: 'Ej: Leer 20 minutos',
+    phEmojiLibre: '…o escribe el tuyo 😀',
+    editar: 'Editar', listo: 'Listo',
+    guardar: 'Guardar', cancelar: 'Cancelar', cerrar: 'Cerrar', borrar: 'Borrar',
+    vacioHabitos: 'Aún no tienes hábitos.<br>Empieza con uno o dos, no más.',
+    promptNombre: 'Nuevo nombre para el hábito:',
+    promptEmoji: 'Nuevo emoji para',
+    emojiInvalido: 'Eso no parece un emoji. Usa el teclado de emojis del teléfono.',
+
+    // --- Pendientes e ideas ---
+    agregar: 'Agregar',
+    phPendiente: '¿Qué tienes pendiente?', phIdea: '¿Qué se te ocurrió?',
+    nuevoPendiente: '+ Nuevo pendiente', nuevaIdea: '+ Nueva idea',
+    vacioPendientes: 'Nada pendiente.<br>Escribe algo arriba cuando aparezca.',
+    vacioIdeas: 'Sin ideas guardadas.<br>Apunta lo que se te ocurra, sin compromiso.',
+    promptPendiente: 'Cambiar el pendiente:',
+    limpiarHechas: 'Limpiar', hechas: 'hechas',
+    confirmLimpiar: '¿Borrar las cosas ya hechas de esta lista?',
+    idea: 'Idea', contexto: 'Contexto', aPendientes: '→ A Pendientes',
+    aPendientesTitulo: 'Mover a Pendientes',
+    phContexto: '¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes.',
+    confirmBorrarIdea: '¿Borrar esta idea?',
+    confirmBorrarIdeaNota: '¿Borrar esta idea? También se pierde el contexto que escribiste.',
+
+    // --- Calendario y estadísticas ---
+    letrasDias: ['L','M','M','J','V','S','D'],
+    diasCorrige: 'días. Toca un día para corregirlo.',
+    eRacha: 'Racha actual',
+    aRacha: 'Días seguidos cumpliendo, contando hasta hoy. Si todavía no has ' +
+            'marcado hoy, la racha de ayer sigue en pie: no se rompe hasta que ' +
+            'el día termine sin marcarlo.',
+    eMejorRacha: 'Mejor racha',
+    aMejorRacha: 'La racha más larga que has logrado en toda la historia del hábito. ' +
+                 'Es tu récord: no se pierde aunque hoy vayas en cero.',
+    eUltimos30: 'Últimos 30 días',
+    aUltimos30: 'Porcentaje de días cumplidos en el último mes. Se mide desde que ' +
+                'creaste el hábito, no sobre 30 días fijos: si lo creaste hace 4 ' +
+                'días y los cumpliste todos, ves 100% y no 13%.',
+    eTotal: 'Días en total',
+    aTotal: 'Todas las veces que has marcado este hábito, sumando su historia ' +
+            'completa. Incluye los días que corrijas tocándolos en el calendario.',
+    ayudaPorDefecto: 'Toca una estadística para ver qué mide exactamente.',
+
+    // --- Copia de seguridad ---
+    copiaSeguridad: 'Copia de seguridad',
+    guardarCopia: '↓ Guardar copia', restaurarCopia: '↑ Restaurar copia',
+    notaCopia: 'Tus hábitos viven solo en este dispositivo. Guarda una copia ' +
+               'de vez en cuando: si borras la app, se pierde el historial.',
+    tituloCompartir: 'Copia de mis hábitos',
+    copiaIlegible: 'Ese archivo no se puede leer. ¿Seguro que es una copia de Mis Hábitos?',
+    copiaMalFormada: 'El archivo se lee, pero no tiene la forma de una copia de Mis Hábitos.',
+    copiaRestaurada: 'Listo, copia restaurada.',
+    confirmImportar1: 'La copia tiene %h hábito(s) y %d día(s) de historial.',
+    confirmImportar2: 'Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?',
+
+    // --- Ajustes ---
+    ajustes: 'Ajustes', tuNombre: 'Tu nombre', phNombre: 'Para el saludo de arriba',
+    idioma: 'Idioma', apariencia: 'Apariencia',
+    temaAuto: 'Automático', temaClaro: 'Claro', temaOscuro: 'Oscuro',
+
+    // --- Cuenta y nube ---
+    cuenta: 'Cuenta', entrar: 'Entrar', cerrarSesion: 'Cerrar sesión',
+    phCorreo: 'tu@correo.com', phClave: 'Contraseña',
+    faltanDatos: 'Escribe tu correo y tu contraseña.',
+    entrando: 'Entrando…', entraste: 'Listo, entraste.',
+    sesionCerrada: 'Sesión cerrada. Tus hábitos siguen aquí en el teléfono.',
+    invitaEntrar: 'Entra para respaldar tus hábitos en la nube.',
+    sinNube: 'Sin conexión con la nube. La app funciona igual, con los datos del teléfono.',
+    sincronizando: 'Sincronizando…', sinSenal: 'Sin señal por ahora.',
+    todoSincronizado: 'Todo sincronizado.',
+    unCambioEsperando: '1 cambio esperando señal.',
+    cambiosEsperando: '%n cambios esperando señal.',
+    errCredenciales: 'Correo o contraseña incorrectos.',
+    errSinConfirmar: 'La cuenta existe pero está sin confirmar. Actívala desde el panel de Supabase.',
+    errSinConexion: 'Sin conexión. Tus hábitos siguen guardados en el teléfono.',
+    errDemasiados: 'Demasiados intentos seguidos. Espera unos minutos.',
+    errGenerico: 'No se pudo entrar: ', errDesconocido: 'error desconocido',
+    nubeSinCargar: 'La nube todavía no ha cargado.'
+  },
+
+  en: {
+    tituloApp: 'My Habits',
+    saludoManana: 'Good morning', saludoTarde: 'Good afternoon', saludoNoche: 'Good evening',
+    hoy: 'Today', de: 'of',
+    habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas',
+
+    nuevoHabito: '+ New habit', tituloNuevoHabito: 'New habit',
+    nombre: 'Name', icono: 'Icon',
+    phNombreHabito: 'e.g. Read 20 minutes',
+    phEmojiLibre: '…or type your own 😀',
+    editar: 'Edit', listo: 'Done',
+    guardar: 'Save', cancelar: 'Cancel', cerrar: 'Close', borrar: 'Delete',
+    vacioHabitos: "You don't have any habits yet.<br>Start with one or two, no more.",
+    promptNombre: 'New name for this habit:',
+    promptEmoji: 'New emoji for',
+    emojiInvalido: "That doesn't look like an emoji. Use your phone's emoji keyboard.",
+
+    agregar: 'Add',
+    phPendiente: "What's on your list?", phIdea: 'What came to mind?',
+    nuevoPendiente: '+ New to-do', nuevaIdea: '+ New idea',
+    vacioPendientes: 'Nothing pending.<br>Type something above when it comes up.',
+    vacioIdeas: 'No ideas saved.<br>Jot down whatever comes to mind, no commitment.',
+    promptPendiente: 'Edit this to-do:',
+    limpiarHechas: 'Clear', hechas: 'done',
+    confirmLimpiar: 'Delete the finished items from this list?',
+    idea: 'Idea', contexto: 'Context', aPendientes: '→ To To-do',
+    aPendientesTitulo: 'Move to To-do',
+    phContexto: 'Why did it seem like a good one? What problem does it solve? Whatever you want to remember a month from now.',
+    confirmBorrarIdea: 'Delete this idea?',
+    confirmBorrarIdeaNota: 'Delete this idea? The context you wrote goes with it.',
+
+    // Lunes primero, igual que en español: la app no cambia de calendario,
+    // solo de letras.
+    letrasDias: ['M','T','W','T','F','S','S'],
+    diasCorrige: 'days. Tap a day to fix it.',
+    eRacha: 'Current streak',
+    aRacha: "Days in a row, counting up to today. If you haven't checked today " +
+            "off yet, yesterday's streak still stands: it doesn't break until " +
+            'the day ends unmarked.',
+    eMejorRacha: 'Best streak',
+    aMejorRacha: "The longest streak in this habit's whole history. It's your " +
+                 "record: you keep it even if today you're at zero.",
+    eUltimos30: 'Last 30 days',
+    aUltimos30: 'Percentage of days completed in the last month. It counts from ' +
+                'the day you created the habit, not over a fixed 30 days: create ' +
+                'it 4 days ago and do all 4, and you see 100%, not 13%.',
+    eTotal: 'Total days',
+    aTotal: "Every time you've checked this habit off, across its whole history. " +
+            'It includes days you fix by tapping them on the calendar.',
+    ayudaPorDefecto: 'Tap a stat to see exactly what it measures.',
+
+    copiaSeguridad: 'Backup',
+    guardarCopia: '↓ Save backup', restaurarCopia: '↑ Restore backup',
+    notaCopia: 'Your habits live only on this device. Save a backup now and ' +
+               'then: if you delete the app, the history goes with it.',
+    tituloCompartir: 'My habits backup',
+    copiaIlegible: "That file can't be read. Are you sure it's a My Habits backup?",
+    copiaMalFormada: "The file reads fine, but it isn't shaped like a My Habits backup.",
+    copiaRestaurada: 'Done, backup restored.',
+    confirmImportar1: 'The backup has %h habit(s) and %d day(s) of history.',
+    confirmImportar2: 'This REPLACES everything you have now. Continue?',
+
+    ajustes: 'Settings', tuNombre: 'Your name', phNombre: 'For the greeting above',
+    idioma: 'Language', apariencia: 'Appearance',
+    temaAuto: 'Automatic', temaClaro: 'Light', temaOscuro: 'Dark',
+
+    cuenta: 'Account', entrar: 'Sign in', cerrarSesion: 'Sign out',
+    phCorreo: 'you@email.com', phClave: 'Password',
+    faltanDatos: 'Enter your email and your password.',
+    entrando: 'Signing in…', entraste: "Done, you're in.",
+    sesionCerrada: 'Signed out. Your habits are still here on the phone.',
+    invitaEntrar: 'Sign in to back your habits up to the cloud.',
+    sinNube: 'No connection to the cloud. The app works the same, with the data on this phone.',
+    sincronizando: 'Syncing…', sinSenal: 'No signal right now.',
+    todoSincronizado: 'Everything synced.',
+    unCambioEsperando: '1 change waiting for signal.',
+    cambiosEsperando: '%n changes waiting for signal.',
+    errCredenciales: 'Wrong email or password.',
+    errSinConfirmar: 'The account exists but is unconfirmed. Activate it from the Supabase dashboard.',
+    errSinConexion: 'No connection. Your habits are still saved on the phone.',
+    errDemasiados: 'Too many tries in a row. Wait a few minutes.',
+    errGenerico: "Couldn't sign in: ", errDesconocido: 'unknown error',
+    nubeSinCargar: "The cloud hasn't loaded yet."
+  }
+};
+
+/* Devuelve el texto de una clave en el idioma activo.
+
+   El `!== undefined` del final es una red de seguridad: si algún día agregas
+   una clave al español y se te olvida en inglés, sale la palabra en español en
+   vez de la clave cruda. Ver "aUltimos30" en pantalla sería mucho peor.       */
+function t(clave) {
+  const idioma = (typeof datos !== 'undefined' && datos.prefs && datos.prefs.idioma) || 'es';
+  const tabla = TEXTOS[idioma] || TEXTOS.es;
+  return tabla[clave] !== undefined ? tabla[clave] : TEXTOS.es[clave];
+}
+
+/* Los idiomas se escriben SIEMPRE en su propio idioma. Si alguien abre la app
+   en inglés sin entenderlo, "Español" lo reconoce igual; "Spanish" no le sirve
+   de nada para volver. */
+const IDIOMAS = [
+  { id: 'es', nombre: 'Español' },
+  { id: 'en', nombre: 'English' }
+];
+
+const TEMAS = [
+  { id: 'auto',   clave: 'temaAuto' },
+  { id: 'claro',  clave: 'temaClaro' },
+  { id: 'oscuro', clave: 'temaOscuro' }
+];
+
+/* El idioma con el que el navegador escribe las fechas ("viernes, 7 de agosto"
+   contra "Friday, August 7"). Lleva país y no solo idioma a propósito: "es" a
+   secas deja al navegador elegir convenciones, y con "es-CO" / "en-US" sabes
+   exactamente qué vas a ver.
+
+   Esta función existe para no repetir ese condicional en los dos sitios donde
+   se formatean fechas (la cabecera y el título del calendario). El día que
+   agregues un tercer idioma, se cambia aquí y ya. */
+function localeFechas() {
+  return (datos.prefs && datos.prefs.idioma) === 'en' ? 'en-US' : 'es-CO';
+}
+/* ---------- fin A0 ---------- */
 
 /* ---------- A. GUARDAR Y LEER DATOS ----------
    localStorage solo guarda TEXTO. Por eso convertimos nuestro
@@ -953,7 +1327,17 @@ const CLAVE = 'habitos-app-v1';
 // OJO con los nombres, porque se parecen y no son lo mismo:
 //   datos.tareas     = tu lista de cosas por hacer (lo que ves en pantalla)
 //   datos.pendientes = cambios que faltan por subir a Supabase (interno)
-const datosPorDefecto = { version: 1, habitos: [], registros: {}, tareas: [], pendientes: [] };
+//
+// "prefs" son los ajustes de ESTE dispositivo: idioma, tema y tu nombre. No
+// son datos de hábitos, y por eso más abajo verás que ni se importan de una
+// copia ni se bajan de la nube: si entras desde el Mac en inglés y desde el
+// iPhone en español, cada uno se queda como lo dejaste.
+const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '' };
+
+const datosPorDefecto = {
+  version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
+  prefs: { ...PREFS_POR_DEFECTO }
+};
 
 function cargar() {
   try {
@@ -975,7 +1359,13 @@ function cargar() {
     // pendientes, así que ese es su valor. En SQL esto sería el
     // UPDATE tareas SET lista = 'pendientes' WHERE lista IS NULL
     // que corres una vez al agregar una columna a una tabla que ya tiene datos.
-    leidos.tareas.forEach(t => { if (!t.lista) t.lista = 'pendientes'; });
+    leidos.tareas.forEach(tarea => { if (!tarea.lista) tarea.lista = 'pendientes'; });
+
+    // Y otra vez el mismo patrón para los ajustes, que nacen en la v15. El
+    // orden del "spread" importa: primero los valores por defecto, encima lo
+    // que hubiera guardado. Así una preferencia nueva entra con su valor de
+    // fábrica sin borrar las que ya elegiste.
+    leidos.prefs = { ...PREFS_POR_DEFECTO, ...(leidos.prefs || {}) };
 
     return leidos;
   } catch (e) {
@@ -1320,7 +1710,7 @@ const LISTAS = { pendientes: 'pendientes', ideas: 'ideas' };
 
 // El WHERE de arriba, en JavaScript. Devuelve solo las filas de una lista.
 function tareasDe(lista) {
-  return datos.tareas.filter(t => t.lista === lista);
+  return datos.tareas.filter(tarea => tarea.lista === lista);
 }
 
 function agregarTarea(texto, lista) {
@@ -1346,10 +1736,10 @@ function agregarTarea(texto, lista) {
 // Marca o desmarca. Devuelve true si encontró la tarea y la cambió.
 // No necesita saber de qué lista es: el id ya la identifica sin ambigüedad.
 function alternarTarea(idTarea) {
-  const t = datos.tareas.find(x => x.id === idTarea);
-  if (!t) return false;
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea) return false;
 
-  t.hecha = !t.hecha;
+  tarea.hecha = !tarea.hecha;
   guardar();
   pintarLista();
   return true;
@@ -1362,13 +1752,13 @@ function alternarTarea(idTarea) {
 function moverALista(idTarea, lista) {
   if (lista !== LISTAS.pendientes && lista !== LISTAS.ideas) return false;
 
-  const t = datos.tareas.find(x => x.id === idTarea);
-  if (!t || t.lista === lista) return false;
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea || tarea.lista === lista) return false;
 
-  t.lista = lista;
+  tarea.lista = lista;
   // Una idea que pasa a ser pendiente arranca sin marcar: acabas de decidir
   // hacerla, así que todavía está por hacer.
-  t.hecha = false;
+  tarea.hecha = false;
 
   guardar();
   pintarLista();
@@ -1387,20 +1777,20 @@ function moverALista(idTarea, lista) {
 // ?? y no ||: con || un texto vacío se confundiría con "no lo mandaron", y
 // borrar una nota dejaría de funcionar.
 function editarTarea(idTarea, textoNuevo, notaNueva) {
-  const t = datos.tareas.find(x => x.id === idTarea);
-  if (!t) return false;
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea) return false;
 
-  const texto = (textoNuevo ?? t.texto ?? '').trim().slice(0, 120);
+  const texto = (textoNuevo ?? tarea.texto ?? '').trim().slice(0, 120);
   if (!texto) return false;                  // sin título no hay tarea
 
-  const nota = (notaNueva ?? t.nota ?? '').trim().slice(0, 500);
+  const nota = (notaNueva ?? tarea.nota ?? '').trim().slice(0, 500);
 
   // Si no cambió nada, no guardamos: escribir en disco por gusto es trabajo
   // que no hace falta, y hace más difícil saber qué cambió de verdad.
-  if (t.texto === texto && (t.nota || '') === nota) return false;
+  if (tarea.texto === texto && (tarea.nota || '') === nota) return false;
 
-  t.texto = texto;
-  if (nota) t.nota = nota; else delete t.nota;
+  tarea.texto = texto;
+  if (nota) tarea.nota = nota; else delete tarea.nota;
 
   guardar();
   pintarLista();
@@ -1432,10 +1822,10 @@ function borrarTarea(idTarea) {
 // Que reciba la lista importa: limpiar tus pendientes no debe tocar tus ideas.
 // En SQL: DELETE FROM tareas WHERE hecha = true AND lista = ?
 function limpiarHechas(lista) {
-  const cuantas = datos.tareas.filter(t => t.hecha && t.lista === lista).length;
+  const cuantas = datos.tareas.filter(tarea => tarea.hecha && tarea.lista === lista).length;
   if (cuantas === 0) return 0;
 
-  datos.tareas = datos.tareas.filter(t => !(t.hecha && t.lista === lista));
+  datos.tareas = datos.tareas.filter(tarea => !(tarea.hecha && tarea.lista === lista));
   guardar();
   pintarLista();
   return cuantas;
@@ -1453,7 +1843,7 @@ function limpiarHechas(lista) {
 // puede probar sin arrancar la app.
 function tareasOrdenadas(lista) {
   const todas = tareasDe(lista);
-  return todas.filter(t => !t.hecha).concat(todas.filter(t => t.hecha));
+  return todas.filter(tarea => !tarea.hecha).concat(todas.filter(tarea => tarea.hecha));
 }
 
 // Los números de UNA lista, para el contador y la barra de progreso. Aislado
@@ -1461,7 +1851,7 @@ function tareasOrdenadas(lista) {
 // porque una idea sin hacer no es una deuda.
 function contarTareas(lista) {
   const todas = tareasDe(lista);
-  const hechas = todas.filter(t => t.hecha).length;
+  const hechas = todas.filter(tarea => tarea.hecha).length;
   return { total: todas.length, hechas: hechas, faltan: todas.length - hechas };
 }
 /* ---------- fin D2 ---------- */
@@ -1473,24 +1863,70 @@ function contarTareas(lista) {
 
 const lista = document.getElementById('lista');
 
+/* Traduce todo lo que está escrito directamente en el HTML.
+
+   En vez de ir elemento por elemento desde el código ("el botón Guardar dice
+   esto, el título dice aquello"), se marca cada uno en el HTML con
+   data-t="clave" y esta función los recorre de golpe. Agregar un texto nuevo
+   traducible es agregarle el atributo, sin volver aquí.
+
+   data-t   -> el texto que se ve
+   data-ph  -> el texto guía de un campo (placeholder)
+   data-aria-> el nombre que lee VoiceOver de un botón que solo tiene un símbolo */
+function traducirEstaticos() {
+  document.querySelectorAll('[data-t]').forEach(el => {
+    el.textContent = t(el.dataset.t);
+  });
+  document.querySelectorAll('[data-ph]').forEach(el => {
+    el.setAttribute('placeholder', t(el.dataset.ph));
+  });
+  document.querySelectorAll('[data-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.aria));
+  });
+
+  document.title = t('tituloApp');
+
+  // Las letras de los días del calendario. Se rehacen aquí y no en el HTML
+  // porque son siete y cambian con el idioma.
+  const nombres = document.getElementById('calNombres');
+  nombres.innerHTML = '';
+  t('letrasDias').forEach(letra => {
+    const span = document.createElement('span');
+    span.textContent = letra;
+    nombres.appendChild(span);
+  });
+}
+
 function pintar() {
+  traducirEstaticos();
+
   // Fecha de arriba
   document.getElementById('fecha').textContent =
-    new Date().toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
+    new Date().toLocaleDateString(localeFechas(), { weekday:'long', day:'numeric', month:'long' });
 
-  // Saludo personalizado según la hora del día
+  // Saludo según la hora del día. El nombre ya no está escrito dentro del
+  // código: sale de Ajustes. Si está vacío, el saludo queda solo ("Buenos
+  // días") en vez de terminar en una coma huérfana.
   const hora = new Date().getHours();
-  let saludo = 'Buenas noches';
-  if (hora < 12) saludo = 'Buenos días';
-  else if (hora < 19) saludo = 'Buenas tardes';
-  document.querySelector('.titulo').textContent = saludo + ', Kev';
+  let saludo = t('saludoNoche');
+  if (hora < 12) saludo = t('saludoManana');
+  else if (hora < 19) saludo = t('saludoTarde');
+  const nombre = (datos.prefs.nombre || '').trim();
+  document.querySelector('.titulo').textContent = nombre ? `${saludo}, ${nombre}` : saludo;
+
+  // El botón grande de abajo depende de la sección; en Hábitos siempre dice
+  // lo mismo. Va aquí para que también se actualice al cambiar de idioma.
+  if (vista === 'habitos') {
+    document.getElementById('btnAgregar').textContent = t('nuevoHabito');
+    document.getElementById('progresoEtiqueta').textContent = t('hoy');
+  }
 
   // Caso: todavía no hay hábitos
   if (datos.habitos.length === 0) {
     lista.innerHTML = `
       <div class="vacio">
         <div class="vacio-emoji">🌱</div>
-        <div>Aún no tienes hábitos.<br>Empieza con uno o dos, no más.</div>
+        <div>${t('vacioHabitos')}</div>
       </div>`;
     document.getElementById('cajaProgreso').style.visibility = 'hidden';
     return;
@@ -1499,7 +1935,8 @@ function pintar() {
 
   // Barra de progreso del día
   const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
-  document.getElementById('progresoTexto').textContent = `${hechosHoy} de ${datos.habitos.length}`;
+  document.getElementById('progresoTexto').textContent =
+    `${hechosHoy} ${t('de')} ${datos.habitos.length}`;
   document.getElementById('barra').style.width = (hechosHoy / datos.habitos.length * 100) + '%';
 
   // Una tarjeta por hábito
@@ -1550,10 +1987,10 @@ function pintar() {
         abrirCalendario(h.id);
         return;
       }
-      const nuevo = prompt(`Nuevo emoji para "${h.nombre}":`, h.emoji);
+      const nuevo = prompt(`${t('promptEmoji')} "${h.nombre}":`, h.emoji);
       if (nuevo === null) return;                       // tocaste Cancelar
       if (!cambiarEmoji(h.id, nuevo) && primerEmoji(nuevo) === '') {
-        alert('Eso no parece un emoji. Usa el teclado de emojis del teléfono.');
+        alert(t('emojiInvalido'));
       }
     };
 
@@ -1567,7 +2004,7 @@ function pintar() {
     tarjeta.querySelector('.habito-nombre').onclick = (ev) => {
       if (!document.body.classList.contains('editando')) return;
       ev.stopPropagation();
-      const nuevo = prompt('Nuevo nombre para el hábito:', h.nombre);
+      const nuevo = prompt(t('promptNombre'), h.nombre);
       if (nuevo !== null) renombrarHabito(h.id, nuevo);   // null = tocaste Cancelar
     };
 
@@ -1676,7 +2113,7 @@ document.getElementById('nombre').addEventListener('keydown', ev => {
 /* ---------- G. MODO EDICIÓN ---------- */
 document.getElementById('btnEditar').onclick = (ev) => {
   document.body.classList.toggle('editando');
-  ev.target.textContent = document.body.classList.contains('editando') ? 'Listo' : 'Editar';
+  ev.target.textContent = document.body.classList.contains('editando') ? t('listo') : t('editar');
 };
 
 /* ---------- H. COPIA DE SEGURIDAD ----------
@@ -1698,7 +2135,7 @@ async function exportar() {
   // Archivos, mandártelo por correo, subirlo a iCloud...
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
     try {
-      await navigator.share({ files: [archivo], title: 'Copia de mis hábitos' });
+      await navigator.share({ files: [archivo], title: t('tituloCompartir') });
       return;
     } catch (e) {
       if (e.name === 'AbortError') return;   // cancelaste el menú, todo bien
@@ -1734,7 +2171,7 @@ function esCopiaValida(obj) {
   // tienen que tener la forma correcta.
   const tareasOk = !('tareas' in obj) || (
     Array.isArray(obj.tareas) &&
-    obj.tareas.every(t => t && typeof t.id === 'string' && typeof t.texto === 'string')
+    obj.tareas.every(tarea => tarea && typeof tarea.id === 'string' && typeof tarea.texto === 'string')
   );
 
   return habitosOk && registrosOk && tareasOk;
@@ -1746,21 +2183,27 @@ function importar(texto) {
   try {
     copia = JSON.parse(texto);
   } catch (e) {
-    alert('Ese archivo no se puede leer. ¿Seguro que es una copia de Mis Hábitos?');
+    alert(t('copiaIlegible'));
     return false;
   }
 
   if (!esCopiaValida(copia)) {
-    alert('El archivo se lee, pero no tiene la forma de una copia de Mis Hábitos.');
+    alert(t('copiaMalFormada'));
     return false;
   }
 
   const cuantosHabitos = copia.habitos.length;
   const cuantosDias = Object.keys(copia.registros).length;
 
-  if (!confirm(
-    `La copia tiene ${cuantosHabitos} hábito(s) y ${cuantosDias} día(s) de historial.\n\n` +
-    `Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?`)) return false;
+  // %h y %d son huecos que se rellenan con los números. Se hace así y no
+  // pegando trozos de frase ("La copia tiene " + n + " hábitos") porque el
+  // orden de las palabras cambia entre idiomas y pegando trozos acabas con
+  // frases que no se pueden traducir sin tocar el código.
+  const aviso = t('confirmImportar1')
+                  .replace('%h', cuantosHabitos)
+                  .replace('%d', cuantosDias)
+                + '\n\n' + t('confirmImportar2');
+  if (!confirm(aviso)) return false;
 
   datos = {
     version: 1,
@@ -1768,7 +2211,11 @@ function importar(texto) {
     registros: copia.registros,
     // Si la copia es vieja y no trae tareas, entra con la lista vacía.
     tareas: Array.isArray(copia.tareas) ? copia.tareas : [],
-    pendientes: Array.isArray(copia.pendientes) ? copia.pendientes : []
+    pendientes: Array.isArray(copia.pendientes) ? copia.pendientes : [],
+    // Los ajustes NO se importan: son de este dispositivo, no de la copia.
+    // Restaurar un respaldo hecho en el Mac no debería cambiarte el idioma
+    // del teléfono. Se conservan los que ya tenías.
+    prefs: { ...PREFS_POR_DEFECTO, ...(datos.prefs || {}) }
   };
   guardar();
   pintar();
@@ -1804,7 +2251,7 @@ document.getElementById('archivoEntrada').onchange = ev => {
   // Leer un archivo toma tiempo, por eso avisamos "cuando termines, haz esto"
   const lector = new FileReader();
   lector.onload = () => {
-    if (importar(lector.result)) alert('Listo, copia restaurada.');
+    if (importar(lector.result)) alert(t('copiaRestaurada'));
   };
   lector.readAsText(archivo);
 
@@ -1852,7 +2299,7 @@ function pintarCalendario() {
   document.getElementById('calTitulo').textContent = `${h.emoji} ${h.nombre}`;
   document.getElementById('calMes').textContent =
     new Date(calAnio, calMes - 1, 1)
-      .toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+      .toLocaleDateString(localeFechas(), { month: 'long', year: 'numeric' });
 
   const grid = document.getElementById('calGrid');
   grid.innerHTML = '';   // borrón y cuenta nueva, igual que en pintar()
@@ -1887,7 +2334,7 @@ function pintarCalendario() {
   const hechos = contarMes(calHabitoId, calAnio, calMes);
   const total = diasDelMes(calAnio, calMes);
   document.getElementById('calResumen').textContent =
-    `${hechos} de ${total} días. Toca un día para corregirlo.`;
+    `${hechos} ${t('de')} ${total} ${t('diasCorrige')}`;
 
   // 4) Las estadísticas
   pintarStats();
@@ -1897,43 +2344,24 @@ function pintarCalendario() {
    Toda la definición vive en esta lista: etiqueta, cómo se calcula y qué
    explica. Agregar una quinta estadística es agregar un objeto aquí; ni el
    dibujado ni la ayuda hay que tocarlos. Los datos mandan sobre el código. */
+// Fíjate en el cambio de la v15: antes aquí estaban las frases; ahora están
+// las CLAVES de las frases, y el texto sale de TEXTOS al dibujar. Tuvo que ser
+// así porque esta lista se crea una sola vez al abrir la app, y el idioma se
+// puede cambiar después: si guardara el texto, se quedaría congelado en el
+// idioma con el que arrancaste.
 const ESTADISTICAS = [
-  {
-    etiqueta: 'Racha actual',
-    calcular: id => calcularRacha(id),
-    ayuda: 'Días seguidos cumpliendo, contando hasta hoy. Si todavía no has ' +
-           'marcado hoy, la racha de ayer sigue en pie: no se rompe hasta que ' +
-           'el día termine sin marcarlo.'
-  },
-  {
-    etiqueta: 'Mejor racha',
-    calcular: id => mejorRacha(id),
-    ayuda: 'La racha más larga que has logrado en toda la historia del hábito. ' +
-           'Es tu récord: no se pierde aunque hoy vayas en cero.'
-  },
-  {
-    etiqueta: 'Últimos 30 días',
-    calcular: id => porcentajeUltimos(id, 30) + '%',
-    ayuda: 'Porcentaje de días cumplidos en el último mes. Se mide desde que ' +
-           'creaste el hábito, no sobre 30 días fijos: si lo creaste hace 4 ' +
-           'días y los cumpliste todos, ves 100% y no 13%.'
-  },
-  {
-    etiqueta: 'Días en total',
-    calcular: id => totalDias(id),
-    ayuda: 'Todas las veces que has marcado este hábito, sumando su historia ' +
-           'completa. Incluye los días que corrijas tocándolos en el calendario.'
-  }
+  { etiqueta: 'eRacha',      ayuda: 'aRacha',      calcular: id => calcularRacha(id) },
+  { etiqueta: 'eMejorRacha', ayuda: 'aMejorRacha', calcular: id => mejorRacha(id) },
+  { etiqueta: 'eUltimos30',  ayuda: 'aUltimos30',  calcular: id => porcentajeUltimos(id, 30) + '%' },
+  { etiqueta: 'eTotal',      ayuda: 'aTotal',      calcular: id => totalDias(id) }
 ];
-
-const AYUDA_POR_DEFECTO = 'Toca una estadística para ver qué mide exactamente.';
 
 function pintarStats() {
   const caja = document.getElementById('calStats');
   caja.innerHTML = ESTADISTICAS.map((e, i) => `
     <button class="stat" data-i="${i}">
       <div class="stat-numero">${e.calcular(calHabitoId)}</div>
-      <div class="stat-etiqueta">${e.etiqueta}</div>
+      <div class="stat-etiqueta">${t(e.etiqueta)}</div>
     </button>`).join('');
 
   // Un manejador por recuadro: muestra su explicación, y si ya estaba
@@ -1947,7 +2375,7 @@ function pintarStats() {
         mostrarAyuda(null);
       } else {
         boton.classList.add('activa');
-        mostrarAyuda(ESTADISTICAS[boton.dataset.i].ayuda);
+        mostrarAyuda(t(ESTADISTICAS[boton.dataset.i].ayuda));
       }
     };
   });
@@ -1956,7 +2384,7 @@ function pintarStats() {
 }
 
 function mostrarAyuda(texto) {
-  document.getElementById('calAyuda').textContent = texto || AYUDA_POR_DEFECTO;
+  document.getElementById('calAyuda').textContent = texto || t('ayudaPorDefecto');
 }
 
 document.getElementById('calAtras').onclick    = () => moverMes(-1);
@@ -2000,15 +2428,15 @@ function mensajeDeError(error) {
   const texto = (error.message || '').toLowerCase();
 
   if (texto.includes('invalid login credentials'))
-    return 'Correo o contraseña incorrectos.';
+    return t('errCredenciales');
   if (texto.includes('email not confirmed'))
-    return 'La cuenta existe pero está sin confirmar. Actívala desde el panel de Supabase.';
+    return t('errSinConfirmar');
   if (texto.includes('failed to fetch') || texto.includes('network'))
-    return 'Sin conexión. Tus hábitos siguen guardados en el teléfono.';
+    return t('errSinConexion');
   if (texto.includes('rate limit') || texto.includes('too many'))
-    return 'Demasiados intentos seguidos. Espera unos minutos.';
+    return t('errDemasiados');
 
-  return 'No se pudo entrar: ' + (error.message || 'error desconocido');
+  return t('errGenerico') + (error.message || t('errDesconocido'));
 }
 /* ---------- fin M1 ---------- */
 
@@ -2019,7 +2447,7 @@ function mensajeDeError(error) {
    más. Ni el panel ni la sincronización se enteran.                */
 
 async function entrar(correo, contrasena) {
-  if (!nube) return { message: 'La nube todavía no ha cargado.' };
+  if (!nube) return { message: t('nubeSinCargar') };
 
   const { error } = await nube.auth.signInWithPassword({
     email: correo,
@@ -2094,18 +2522,17 @@ function pintarSesion(mensaje, tipo) {
     estado.textContent = mensaje;
   } else if (conectado) {
     let detalle;
-    if (sincronizando)                  detalle = 'Sincronizando…';
+    if (sincronizando)                  detalle = t('sincronizando');
     else if (navigator.onLine === false) detalle = textoPendientes(datos.pendientes.length) +
-                                                   ' Sin señal por ahora.';
+                                                   ' ' + t('sinSenal');
     else                                 detalle = textoPendientes(datos.pendientes.length);
 
     estado.textContent = `${sesion.user.email} — ${detalle}`;
     if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
   } else if (nube) {
-    estado.textContent = 'Entra para respaldar tus hábitos en la nube.';
+    estado.textContent = t('invitaEntrar');
   } else {
-    estado.textContent = 'Sin conexión con la nube. La app funciona igual, ' +
-                         'con los datos del teléfono.';
+    estado.textContent = t('sinNube');
   }
 }
 
@@ -2120,13 +2547,13 @@ document.getElementById('formEntrar').onsubmit = async (ev) => {
   const clave  = document.getElementById('clave').value;
 
   if (!correo || !clave) {
-    pintarSesion('Escribe tu correo y tu contraseña.', 'error');
+    pintarSesion(t('faltanDatos'), 'error');
     return;
   }
 
   const boton = document.getElementById('btnEntrar');
   boton.disabled = true;                       // que no lo toques dos veces
-  pintarSesion('Entrando…');
+  pintarSesion(t('entrando'));
 
   const error = await entrar(correo, clave);
   boton.disabled = false;
@@ -2135,13 +2562,13 @@ document.getElementById('formEntrar').onsubmit = async (ev) => {
     pintarSesion(mensajeDeError(error), 'error');
   } else {
     document.getElementById('clave').value = '';   // no dejarla en pantalla
-    pintarSesion('Listo, entraste.', 'bien');
+    pintarSesion(t('entraste'), 'bien');
   }
 };
 
 document.getElementById('btnSalir').onclick = async () => {
   await salir();
-  pintarSesion('Sesión cerrada. Tus hábitos siguen aquí en el teléfono.');
+  pintarSesion(t('sesionCerrada'));
 };
 
 // Estado inicial, mientras la librería baja (o si nunca baja)
@@ -2189,9 +2616,9 @@ function filasARegistros(filas) {
 
 // Cuenta cuántos cambios distintos hay esperando, para el mensaje del panel.
 function textoPendientes(cuantos) {
-  if (cuantos === 0) return 'Todo sincronizado.';
-  if (cuantos === 1) return '1 cambio esperando señal.';
-  return `${cuantos} cambios esperando señal.`;
+  if (cuantos === 0) return t('todoSincronizado');
+  if (cuantos === 1) return t('unCambioEsperando');
+  return t('cambiosEsperando').replace('%n', cuantos);
 }
 /* ---------- fin M5 ---------- */
 
@@ -2333,20 +2760,17 @@ let vista = 'habitos';
 // Las dos listas comparten pantalla y solo cambian las palabras. Tenerlas aquí
 // en una tabla, en vez de repartidas en ifs por todo el código, significa que
 // agregar una tercera lista mañana es agregar un objeto a esta tabla.
+//
+// Desde la v15 esta tabla guarda CLAVES, no frases: las frases viven todas
+// juntas en A0. El emoji sí se queda aquí, porque un emoji no se traduce.
 const TEXTOS_LISTA = {
   pendientes: {
-    etiqueta:    'Pendientes',
-    placeholder: '¿Qué tienes pendiente?',
-    boton:       '+ Nuevo pendiente',
-    vacioEmoji:  '☑️',
-    vacioTexto:  'Nada pendiente.<br>Escribe algo arriba cuando aparezca.'
+    etiqueta: 'pendientes', placeholder: 'phPendiente',
+    boton: 'nuevoPendiente', vacioEmoji: '☑️', vacioTexto: 'vacioPendientes'
   },
   ideas: {
-    etiqueta:    'Ideas',
-    placeholder: '¿Qué se te ocurrió?',
-    boton:       '+ Nueva idea',
-    vacioEmoji:  '💡',
-    vacioTexto:  'Sin ideas guardadas.<br>Apunta lo que se te ocurra, sin compromiso.'
+    etiqueta: 'ideas', placeholder: 'phIdea',
+    boton: 'nuevaIdea', vacioEmoji: '💡', vacioTexto: 'vacioIdeas'
   }
 };
 
@@ -2379,20 +2803,20 @@ function cambiarVista(nueva) {
   // Salir del modo edición al cambiar de sección: si te quedaras dentro,
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
   document.body.classList.remove('editando');
-  document.getElementById('btnEditar').textContent = 'Editar';
+  document.getElementById('btnEditar').textContent = t('editar');
 
   if (enHabitos) {
-    document.getElementById('btnAgregar').textContent = '+ Nuevo hábito';
-    document.getElementById('progresoEtiqueta').textContent = 'Hoy';
-    pintar();
+    pintar();   // pintar() ya pone el botón grande y la etiqueta "Hoy"
     return;
   }
 
-  // Las palabras de la lista a la que llegaste
-  const t = TEXTOS_LISTA[vista];
-  document.getElementById('btnAgregar').textContent = t.boton;
-  document.getElementById('progresoEtiqueta').textContent = t.etiqueta;
-  campoTarea.placeholder = t.placeholder;
+  // Las palabras de la lista a la que llegaste. Ojo con el nombre: se llama
+  // "palabras" y no "t" porque t() es ahora la función que traduce, y una
+  // variable con el mismo nombre la taparía dentro de esta función.
+  const palabras = TEXTOS_LISTA[vista];
+  document.getElementById('btnAgregar').textContent = t(palabras.boton);
+  document.getElementById('progresoEtiqueta').textContent = t(palabras.etiqueta);
+  campoTarea.placeholder = t(palabras.placeholder);
   campoTarea.value = '';          // lo que ibas a escribir era para la otra lista
 
   pintarLista();
@@ -2420,7 +2844,8 @@ function pintarLista() {
     cajaProgreso.style.visibility = 'hidden';
   } else {
     cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
-    document.getElementById('progresoTexto').textContent = `${cuenta.hechas} de ${cuenta.total}`;
+    document.getElementById('progresoTexto').textContent =
+      `${cuenta.hechas} ${t('de')} ${cuenta.total}`;
     document.getElementById('barra').style.width =
       (cuenta.total ? cuenta.hechas / cuenta.total * 100 : 0) + '%';
   }
@@ -2428,11 +2853,11 @@ function pintarLista() {
   tareasCuerpo.innerHTML = '';
 
   if (cuenta.total === 0) {
-    const t = TEXTOS_LISTA[vista];
+    const palabras = TEXTOS_LISTA[vista];
     tareasCuerpo.innerHTML = `
       <div class="vacio">
-        <div class="vacio-emoji">${t.vacioEmoji}</div>
-        <div>${t.vacioTexto}</div>
+        <div class="vacio-emoji">${palabras.vacioEmoji}</div>
+        <div>${t(palabras.vacioTexto)}</div>
       </div>`;
     return;
   }
@@ -2449,7 +2874,7 @@ function pintarLista() {
     // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
     // pendientes algo que ya diste por hecho no tiene sentido.
     const botonMover = (enIdeas && !item.hecha)
-      ? '<button class="mover" title="Mover a Pendientes">→</button>' : '';
+      ? `<button class="mover" title="${t('aPendientesTitulo')}">→</button>` : '';
 
     tarjeta.innerHTML = `
       <div class="check">✓</div>
@@ -2496,7 +2921,7 @@ function pintarLista() {
       if (enIdeas) { abrirIdea(item.id); return; }
 
       if (!document.body.classList.contains('editando')) { marcar(); return; }
-      const nuevo = prompt('Cambiar el pendiente:', item.texto);
+      const nuevo = prompt(t('promptPendiente'), item.texto);
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
 
@@ -2525,9 +2950,9 @@ function pintarLista() {
     const listaActual = vista;   // se guarda porque el clic ocurre después
     const btn = document.createElement('button');
     btn.className = 'limpiar-hechas';
-    btn.textContent = `Limpiar ${cuenta.hechas} hecha(s)`;
+    btn.textContent = `${t('limpiarHechas')} ${cuenta.hechas} ${t('hechas')}`;
     btn.onclick = () => {
-      if (confirm(`¿Borrar las ${cuenta.hechas} ya hechas de esta lista?`)) {
+      if (confirm(t('confirmLimpiar'))) {
         limpiarHechas(listaActual);
       }
     };
@@ -2569,17 +2994,17 @@ let ideaAbierta = null;
 const modalIdea = document.getElementById('modalIdea');
 
 function abrirIdea(idTarea) {
-  const t = datos.tareas.find(x => x.id === idTarea);
-  if (!t) return;
+  const idea = datos.tareas.find(x => x.id === idTarea);
+  if (!idea) return;
 
   ideaAbierta = idTarea;
-  document.getElementById('ideaTexto').value = t.texto;
-  document.getElementById('ideaNota').value  = t.nota || '';
+  document.getElementById('ideaTexto').value = idea.texto;
+  document.getElementById('ideaNota').value  = idea.nota || '';
 
   // Una idea ya dada por hecha no se manda a Pendientes. Se deshabilita en
   // vez de esconderse, para que los botones no cambien de sitio bajo el dedo
   // — el mismo criterio que las flechas de reordenar hábitos.
-  document.getElementById('ideaMover').disabled = t.hecha;
+  document.getElementById('ideaMover').disabled = idea.hecha;
 
   modalIdea.classList.add('abierto');
 }
@@ -2610,10 +3035,10 @@ document.getElementById('ideaBorrar').onclick = () => {
   // Aquí sí se pregunta, a diferencia de la ✕ de la lista. La razón es lo que
   // se pierde: una idea con contexto escrito ya no es una línea de texto que
   // reescribes en tres segundos.
-  const t = datos.tareas.find(x => x.id === ideaAbierta);
-  const aviso = t && t.nota
-    ? '¿Borrar esta idea? También se pierde el contexto que escribiste.'
-    : '¿Borrar esta idea?';
+  const idea = datos.tareas.find(x => x.id === ideaAbierta);
+  const aviso = idea && idea.nota
+    ? t('confirmBorrarIdeaNota')
+    : t('confirmBorrarIdea');
   if (!confirm(aviso)) return;
   borrarTarea(ideaAbierta);
   cerrarIdea();
@@ -2624,7 +3049,113 @@ document.getElementById('ideaCancelar').onclick = cerrarIdea;
 // Tocar el fondo oscuro (no la tarjeta) también cierra
 modalIdea.onclick = (ev) => { if (ev.target === modalIdea) cerrarIdea(); };
 
+/* ---------- Ñ. AJUSTES: IDIOMA, TEMA Y TU NOMBRE ----------
+   Tres ajustes de ESTE dispositivo. Ninguno viaja a la nube ni entra en las
+   copias de seguridad: no son datos de hábitos, son cómo prefieres ver la app
+   en este teléfono.                                                          */
+
+/**
+ * Aplica el tema poniendo `data-tema` en la etiqueta <html>.
+ *
+ * "Automático" no es un tercer juego de colores: se resuelve a claro u oscuro
+ * preguntándole al sistema. Así el CSS solo conoce dos temas.
+ *
+ * Esta función es la versión completa del trocito que está arriba en el <head>.
+ * Aquella corre antes de dibujar (para que no parpadee) y esta corre cuando
+ * cambias la opción.
+ */
+function aplicarTema() {
+  const elegido = datos.prefs.tema || 'auto';
+  const oscuro = elegido === 'oscuro' || (elegido === 'auto' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+
+  // Con la app instalada en la pantalla de inicio, el iPhone pinta la barra de
+  // estado de arriba con este color. Si no se actualiza, en tema claro queda
+  // una franja negra arriba que no pega con nada.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', oscuro ? '#0f1115' : '#f4f5f7');
+}
+
+function cambiarIdioma(id) {
+  datos.prefs.idioma = id;
+  guardar();
+  // El atributo lang le dice al navegador en qué idioma está la página: de eso
+  // dependen el corrector ortográfico y cómo lo lee VoiceOver.
+  document.documentElement.lang = id;
+  refrescarTodo();
+}
+
+function cambiarTema(id) {
+  datos.prefs.tema = id;
+  guardar();
+  aplicarTema();
+  pintarAjustes();
+}
+
+/* Redibuja la app entera. Hace falta al cambiar de idioma porque los textos
+   están repartidos en cuatro sitios que se dibujan por separado: la pantalla
+   de hábitos, la lista en la que estés, el panel de cuenta y los propios
+   botones de Ajustes. */
+function refrescarTodo() {
+  if (vista === 'habitos') pintar();
+  else                     cambiarVista(vista);
+  pintarLista();
+  pintarSesion();
+  pintarAjustes();
+}
+
+/* Dibuja los dos grupos de botones. Se genera desde las listas IDIOMAS y TEMAS
+   en vez de escribir cinco botones en el HTML: agregar un idioma mañana es
+   agregar un objeto a la lista, sin tocar ni el HTML ni esta función. */
+function pintarAjustes() {
+  const cajaIdiomas = document.getElementById('idiomas');
+  cajaIdiomas.innerHTML = '';
+  IDIOMAS.forEach(idioma => {
+    const boton = document.createElement('button');
+    boton.textContent = idioma.nombre;         // los idiomas no se traducen
+    boton.className = datos.prefs.idioma === idioma.id ? 'activo' : '';
+    boton.onclick = () => cambiarIdioma(idioma.id);
+    cajaIdiomas.appendChild(boton);
+  });
+
+  const cajaTemas = document.getElementById('temas');
+  cajaTemas.innerHTML = '';
+  TEMAS.forEach(tema => {
+    const boton = document.createElement('button');
+    boton.textContent = t(tema.clave);         // estos sí
+    boton.className = datos.prefs.tema === tema.id ? 'activo' : '';
+    boton.onclick = () => cambiarTema(tema.id);
+    cajaTemas.appendChild(boton);
+  });
+
+  document.getElementById('ajusteNombre').value = datos.prefs.nombre || '';
+}
+
+/* El nombre del saludo. Se guarda con 'input' (en cada tecla) y no al salir
+   del campo: en un teléfono cerrar el teclado no siempre dispara 'blur', y
+   perder lo escrito por eso sería el tipo de fallo que uno no entiende.
+
+   Solo se repinta la cabecera, no la app entera: repintar la lista completa en
+   cada tecla cerraría el teclado y te sacaría del campo. */
+document.getElementById('ajusteNombre').addEventListener('input', ev => {
+  datos.prefs.nombre = ev.target.value.trim().slice(0, 20);
+  guardar();
+  if (vista === 'habitos') pintar();
+});
+
+// Si el tema está en Automático y cambias el del iPhone (o entra solo de
+// noche), la app lo sigue sin que tengas que abrirla de nuevo.
+window.matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', () => {
+        if ((datos.prefs.tema || 'auto') === 'auto') aplicarTema();
+      });
+
 /* ---------- K. ARRANCAR ---------- */
+document.documentElement.lang = datos.prefs.idioma || 'es';
+aplicarTema();
+pintarAjustes();
 pintar();
 pintarLista();   // deja el contador de la pestaña puesto desde el arranque
 </script>

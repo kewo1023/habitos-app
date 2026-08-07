@@ -11,7 +11,8 @@ const script = html.slice(inicio, html.indexOf('</script>', inicio));
 // (traducir errores). Nos saltamos todo lo que toca la pantalla o la
 // red, porque aquí no hay ni pantalla ni red.
 const trozo = (desde, hasta) => script.slice(script.indexOf(desde), script.indexOf(hasta));
-const logica = trozo('const CLAVE', '/* ---------- E.')
+const logica = trozo('/* ---------- A0.', '/* ---------- fin A0')
+             + trozo('const CLAVE', '/* ---------- E.')
              + trozo('/* ---------- H. COPIA', '/* ---------- I.')
              + trozo('/* ---------- F0.', '/* ---------- fin F0')
              + trozo('/* ---------- M1.', '/* ---------- fin M1')
@@ -28,7 +29,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea}); Object.defineProperty(ctx,"datos",{get:()=>datos});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -625,6 +626,136 @@ ok('una copia con tareas mal formadas se rechaza',
    ctx.esCopiaValida({ habitos: [], registros: {}, tareas: [{ id: 1 }] }) === false);
 ok('tareas que no son lista se rechaza',
    ctx.esCopiaValida({ habitos: [], registros: {}, tareas: 'nop' }) === false);
+
+
+// ============================================================================
+// v15 — IDIOMAS Y AJUSTES
+// ============================================================================
+
+// --- las dos tablas de textos tienen que estar completas.
+// Este es el test más valioso de todo el bloque: no comprueba una traducción
+// concreta, comprueba que no falte NINGUNA. Sin él, el día que agregues una
+// frase al español y se te olvide el inglés, la app sale mezclada y solo te
+// enteras cuando la ves en el teléfono.
+const clavesEs = Object.keys(ctx.TEXTOS.es).sort();
+const clavesEn = Object.keys(ctx.TEXTOS.en).sort();
+const faltanEnIngles = clavesEs.filter(c => !(c in ctx.TEXTOS.en));
+const sobranEnIngles = clavesEn.filter(c => !(c in ctx.TEXTOS.es));
+ok('no falta ninguna clave en inglés' +
+   (faltanEnIngles.length ? ' -> faltan: ' + faltanEnIngles.join(', ') : ''),
+   faltanEnIngles.length === 0);
+ok('no sobra ninguna clave en inglés' +
+   (sobranEnIngles.length ? ' -> sobran: ' + sobranEnIngles.join(', ') : ''),
+   sobranEnIngles.length === 0);
+
+// --- ningún texto puede quedar vacío: sería un botón sin palabra
+const vacios = [];
+['es','en'].forEach(idioma => {
+  Object.entries(ctx.TEXTOS[idioma]).forEach(([clave, valor]) => {
+    if (typeof valor === 'string' && valor.trim() === '') vacios.push(idioma + '.' + clave);
+  });
+});
+ok('ningún texto está vacío' + (vacios.length ? ' -> ' + vacios.join(', ') : ''),
+   vacios.length === 0);
+
+// --- las letras de los días son siete en los dos idiomas
+ok('el calendario tiene 7 letras en español', ctx.TEXTOS.es.letrasDias.length === 7);
+ok('el calendario tiene 7 letras en inglés',  ctx.TEXTOS.en.letrasDias.length === 7);
+
+// --- los huecos %h, %d y %n tienen que existir en las dos versiones, o al
+// rellenarlos el número desaparecería en un idioma y no en el otro
+ok('%n está en las dos versiones de "cambios esperando"',
+   ctx.TEXTOS.es.cambiosEsperando.includes('%n') &&
+   ctx.TEXTOS.en.cambiosEsperando.includes('%n'));
+ok('%h y %d están en las dos versiones del aviso de importar',
+   ['es','en'].every(l => ctx.TEXTOS[l].confirmImportar1.includes('%h') &&
+                          ctx.TEXTOS[l].confirmImportar1.includes('%d')));
+
+// --- t() responde al idioma activo
+ctx.datos.prefs = { idioma: 'es', tema: 'auto', nombre: '' };
+ok('t() en español',            ctx.t('guardar') === 'Guardar');
+ok('textoPendientes en español', ctx.textoPendientes(0) === 'Todo sincronizado.');
+ok('localeFechas en español',    ctx.localeFechas() === 'es-CO');
+
+ctx.datos.prefs.idioma = 'en';
+ok('t() en inglés',              ctx.t('guardar') === 'Save');
+ok('textoPendientes en inglés',  ctx.textoPendientes(0) === 'Everything synced.');
+ok('el plural rellena el número', ctx.textoPendientes(3) === '3 changes waiting for signal.');
+ok('localeFechas en inglés',     ctx.localeFechas() === 'en-US');
+ok('mensajeDeError traduce al inglés',
+   ctx.mensajeDeError({ message: 'Invalid login credentials' }) === 'Wrong email or password.');
+
+// --- una clave que no existe no debe romper nada ni mostrar la clave cruda
+ok('una clave inventada devuelve undefined, no la clave', ctx.t('noExiste') === undefined);
+
+// --- un idioma desconocido cae al español en vez de dejar la app en blanco
+ctx.datos.prefs.idioma = 'pt';
+ok('un idioma que no tenemos cae al español', ctx.t('guardar') === 'Guardar');
+ctx.datos.prefs.idioma = 'es';
+
+// --- migración: los datos guardados antes de la v15 no traen prefs
+store['habitos-app-v1'] = JSON.stringify({
+  version: 1, habitos: [], registros: {}, tareas: [], pendientes: []
+});
+const sinPrefs = ctx.cargar();
+ok('a los datos viejos se les ponen las prefs por defecto',
+   sinPrefs.prefs.idioma === 'es' && sinPrefs.prefs.tema === 'auto' && sinPrefs.prefs.nombre === '');
+
+// --- y si ya traen algunas, se conservan y solo se completan las que falten
+store['habitos-app-v1'] = JSON.stringify({
+  version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
+  prefs: { idioma: 'en' }
+});
+const prefsAMedias = ctx.cargar();
+ok('una preferencia guardada no se pisa',      prefsAMedias.prefs.idioma === 'en');
+ok('las que faltaban entran con su valor de fábrica', prefsAMedias.prefs.tema === 'auto');
+
+// --- restaurar una copia NO debe cambiarte el idioma del dispositivo
+ctx.datos = {
+  version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
+  prefs: { idioma: 'en', tema: 'claro', nombre: 'Kev' }
+};
+ctx.importar(JSON.stringify({ habitos: [{ id:'x', nombre:'Leer' }], registros: {} }));
+ok('importar respeta el idioma del dispositivo', ctx.datos.prefs.idioma === 'en');
+ok('importar respeta el tema del dispositivo',   ctx.datos.prefs.tema === 'claro');
+ok('importar respeta tu nombre',                 ctx.datos.prefs.nombre === 'Kev');
+ok('pero sí trae los hábitos de la copia',       ctx.datos.habitos.length === 1);
+
+// --- las listas de opciones que dibuja el panel de Ajustes
+ok('hay dos idiomas', ctx.IDIOMAS.length === 2);
+ok('los idiomas están escritos en su propio idioma',
+   ctx.IDIOMAS.map(i => i.nombre).join(',') === 'Español,English');
+ok('hay tres temas', ctx.TEMAS.length === 3);
+ok('las claves de los temas existen en las dos tablas',
+   ctx.TEMAS.every(tema => ctx.TEXTOS.es[tema.clave] && ctx.TEXTOS.en[tema.clave]));
+
+// --- cada data-t / data-ph / data-aria del HTML tiene que existir en la tabla.
+// Este test mira el HTML crudo, no el JavaScript. Cubre el error más fácil de
+// cometer: marcar un elemento con data-t="cerrarTodo" y llamar a la clave
+// "cerrarTodos" en TEXTOS. En pantalla eso sale como un botón sin texto.
+// Se mira solo el trozo de HTML, no el <script>: ahí abajo hay un comentario
+// que menciona data-t="clave" como ejemplo y lo daría por marca real.
+const soloHtml = html.slice(html.indexOf('<body>'), html.lastIndexOf('<script>'));
+const marcas = [...soloHtml.matchAll(/data-(?:t|ph|aria)="([^"]+)"/g)].map(m => m[1]);
+const marcasHuerfanas = [...new Set(marcas)].filter(c => ctx.TEXTOS.es[c] === undefined);
+ok(`las ${new Set(marcas).size} marcas del HTML existen en TEXTOS` +
+   (marcasHuerfanas.length ? ' -> huérfanas: ' + marcasHuerfanas.join(', ') : ''),
+   marcasHuerfanas.length === 0);
+
+// --- y al revés: ningún color escrito a mano en el CSS.
+// La regla de la v15 es que todo color vive en las variables de :root. Un
+// #ffffff suelto funciona en un tema y desaparece en el otro.
+const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+const variables = css.slice(0, css.indexOf('/* ---------- 2. RESET'));
+const cuerpoCss = css.slice(css.indexOf('/* ---------- 2. RESET'));
+const coloresSueltos = [...cuerpoCss.matchAll(/(#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\))/g)]
+  .map(m => m[0])
+  .filter(c => !/^rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)$/.test(c));
+ok('no quedan colores escritos a mano fuera de las variables' +
+   (coloresSueltos.length ? ' -> ' + coloresSueltos.join(', ') : ''),
+   coloresSueltos.length === 0);
+ok('los dos temas definen las mismas variables',
+   (variables.match(/--[a-z-]+:/g) || []).length % 2 === 0);
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);
