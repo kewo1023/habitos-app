@@ -1020,6 +1020,97 @@ Se cumplió el plan: primero usarlas unos días, después decidir. Ya se usaron.
       consultas). El nº 1 lo cerró la v15.
 - [ ] Fase 4 sin decidir. Ejercicios 1 y 4 de `COMO-EDITAR.md` y la tanda 7–12.
 
+## 2026-08-08 — El error que la app se estaba tragando (v17)
+
+Kev publicó la v16 y el panel de Cuenta se quedó en **"14 cambios esperando
+señal"**. Verificó la tabla `tareas` en Supabase con tres consultas y todas
+daban bien: columnas correctas, RLS encendido, política creada.
+
+**La causa real: el proyecto equivocado**
+
+El SQL se había corrido entero —tabla, RLS, política, índice, permisos— en un
+proyecto de Supabase llamado **`habitos_apps`** (con `s`) en vez de
+**`habitos_app`**. La tabla estaba perfecta, en la base que la app no consulta.
+
+Lo que lo destapó fue la propia consulta de diagnóstico: ordenaba por
+`table_name`, así que `habitos` tenía que salir antes que `tareas` — y la
+primera fila era `tareas`. En ese proyecto no existía `habitos`. Un detalle del
+**orden** del resultado dijo más que el resultado.
+
+Se confirmó con la URL del navegador: `.../project/gsqntgdkwprjijrlvuls/...`,
+mientras `index.html` apunta a `wfqhtnxhxjtdsvjzxaks`.
+
+**Los dos diagnósticos equivocados que costaron el rato**
+
+Antes de llegar ahí se persiguieron dos causas falsas, y las dos por el mismo
+motivo: **afirmar en vez de comprobar**.
+
+1. *"No corriste el SQL"* — Claude lo escribió como un hecho sin poder ver el
+   panel de Kev. Kev lo corrigió, con razón. Segundo precedente después del de
+   la v11.
+2. *"La caché de PostgREST"* y luego *"faltan los GRANT"* — dos hipótesis
+   razonables presentadas con demasiada seguridad. Kev corrió el
+   `NOTIFY pgrst, 'reload schema'` y reinició el proyecto para nada.
+
+El diagnóstico bueno salió cuando se dejó de deducir y se pidió **una consulta
+que distinguiera entre las causas posibles** en vez de una que confirmara la
+sospechada. Esa es la diferencia entre depurar y adivinar con estilo.
+
+`PASOS-FASE-3.md` lleva ahora, al principio del Paso 5, la comprobación del
+identificador del proyecto: no "mira que sea el correcto" sino "que la URL
+contenga `wfqhtnxhxjtdsvjzxaks`". Dos nombres que se diferencian en una letra
+se confunden; una cadena de veinte caracteres al azar, no.
+
+**Lo que impidió verlo antes: dos fallos de diseño propios**
+
+1. **`enviarPendiente` se tragaba el error.** Hacía `return !error`: miraba *si*
+   hubo error y tiraba el *motivo* a la basura. Supabase estaba diciendo
+   exactamente qué pasaba (`Could not find the table 'public.tareas' in the
+   schema cache`) y la app lo desechaba en la misma línea.
+2. **El panel culpaba al motivo equivocado.** Solo tenía dos casos, y el de
+   "cambios en la cola" decía *"esperando señal"* hubiera señal o no. Un avión
+   sin wifi y un rechazo del servidor se veían idénticos. Un mensaje que señala
+   la causa equivocada es peor que no tener mensaje: manda a revisar donde no es
+   — y eso fue justo lo que pasó.
+
+**Hecho**
+
+- `ultimoErrorNube` (declarado junto a `nube` y `sesion`, no junto a la función
+  que lo escribe: `pintarSesion()` corre al cargar la página, antes de que el
+  navegador haya leído la sección M6, y un `let` no existe hasta su línea).
+- Los seis `return !error` de `enviarPendiente` pasan ahora por una función
+  `resultado(error)` que guarda el motivo y lo manda a la consola. Al ser un
+  solo sitio, no se puede olvidar en uno de ellos.
+- Caso nuevo en `pintarSesion()`: con señal y error de la nube, muestra el tipo
+  de operación y el mensaje de Postgres tal cual, en rojo.
+- Los textos pasaron de *"N cambios esperando señal"* a *"N cambios sin subir"*.
+  El *"Sin señal por ahora"* se añade aparte, solo cuando de verdad aplica.
+- **Texto corregido: `notaCopia`.** Decía *"Tus hábitos viven solo en este
+  dispositivo... si borras la app, se pierde el historial"*. Era de antes de la
+  Fase 3 y llevaba meses siendo falso. Ahora explica lo que la copia es hoy: el
+  respaldo que no depende de nadie más, al lado de una sincronización que ya
+  funciona sola. Un texto de la interfaz que envejece mal es una mentira que la
+  app le repite al usuario cada vez que abre el panel.
+- `pruebas.js`: tres tests comparaban las frases viejas palabra por palabra;
+  actualizados. Siguen **316** y **64**.
+- `sw.js`: `VERSION` a `'v17'`.
+
+**Estado al cerrar**
+
+Cola vacía, **"Todo sincronizado."** Pendientes e ideas viven en Postgres.
+
+**Pendiente / siguiente**
+
+- [ ] Publicar la `v17` (los mensajes de error y el texto del panel de copia).
+- [ ] Sigue pendiente: `git rm --cached .DS_Store` y commitear el `.gitignore`.
+- [ ] Decidir si se borra el proyecto sobrante `habitos_apps`
+      (`gsqntgdkwprjijrlvuls`). No estorba —el plan gratuito permite dos y uno
+      sin uso se pausa— pero existir con un nombre casi idéntico al bueno es
+      justo lo que causó el problema de hoy.
+- [ ] De la v16, todavía sin probar en el iPhone: que el confeti salga una sola
+      vez al completar el día y se lea bien en tema claro, y que las flechas de
+      reordenar no queden apretadas junto a la ✕.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

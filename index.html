@@ -1033,8 +1033,9 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <!-- Este input abre el selector de archivos. Va oculto porque el
          botón de arriba es más bonito; al tocarlo, lo activamos desde JS -->
     <input type="file" id="archivoEntrada" accept=".json,application/json" hidden>
-    <p class="nota" data-t="notaCopia">Tus hábitos viven solo en este dispositivo. Guarda una copia
-      de vez en cuando: si borras la app, se pierde el historial.</p>
+    <p class="nota" data-t="notaCopia">Si entras a tu cuenta, tus datos se sincronizan solos con la
+      nube. Esta copia es el respaldo que no depende de nadie más: un archivo tuyo, guardado donde
+      tú quieras.</p>
   </section>
 
   <!-- Ajustes. Va en modo edición igual que los otros dos paneles, y por la
@@ -1253,8 +1254,9 @@ const TEXTOS = {
     // --- Copia de seguridad ---
     copiaSeguridad: 'Copia de seguridad',
     guardarCopia: '↓ Guardar copia', restaurarCopia: '↑ Restaurar copia',
-    notaCopia: 'Tus hábitos viven solo en este dispositivo. Guarda una copia ' +
-               'de vez en cuando: si borras la app, se pierde el historial.',
+    notaCopia: 'Si entras a tu cuenta, tus datos se sincronizan solos con la ' +
+               'nube. Esta copia es el respaldo que no depende de nadie más: ' +
+               'un archivo tuyo, guardado donde tú quieras.',
     tituloCompartir: 'Copia de mis hábitos',
     copiaIlegible: 'Ese archivo no se puede leer. ¿Seguro que es una copia de Mis Hábitos?',
     copiaMalFormada: 'El archivo se lee, pero no tiene la forma de una copia de Mis Hábitos.',
@@ -1341,8 +1343,9 @@ const TEXTOS = {
 
     copiaSeguridad: 'Backup',
     guardarCopia: '↓ Save backup', restaurarCopia: '↑ Restore backup',
-    notaCopia: 'Your habits live only on this device. Save a backup now and ' +
-               'then: if you delete the app, the history goes with it.',
+    notaCopia: 'If you sign in, your data syncs to the cloud on its own. This ' +
+               'backup is the one that depends on nobody else: a file of your ' +
+               'own, kept wherever you want.',
     tituloCompartir: 'My habits backup',
     copiaIlegible: "That file can't be read. Are you sure it's a My Habits backup?",
     copiaMalFormada: "The file reads fine, but it isn't shaped like a My Habits backup.",

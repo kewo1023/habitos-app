@@ -346,12 +346,73 @@ seguridad. Con tu volumen de datos no vas a notar la diferencia; se escriben
 así porque es la forma correcta y no cuesta nada. Si algún día quieres, las
 políticas viejas se pueden reescribir igual — pero no corre prisa.
 
-**Lo que NO hace falta:** la documentación menciona unos `GRANT` para tablas
-creadas desde el SQL Editor. Tus tablas `habitos` y `registros` se crearon
-igual y funcionan sin ellos, porque Supabase ya le da esos permisos a los roles
-`anon` y `authenticated` sobre el esquema `public` al crear el proyecto. Si
-después de esto la app diera un error de permisos, ese sería el primer sitio
-donde mirar.
+**Antes de correr nada: confirma en qué proyecto estás.** La URL del navegador
+debe contener **`wfqhtnxhxjtdsvjzxaks`**, y en **Table Editor** deben verse
+`habitos` y `registros`. No basta con leer el nombre del proyecto arriba: el
+8 de agosto de 2026 el SQL de este paso se corrió entero en un proyecto
+llamado `habitos_apps` —con `s`— en vez de `habitos_app`. La tabla quedó
+perfecta, con su RLS y sus permisos, en la base equivocada; la app tardó una
+hora en poder explicarlo.
+
+**Los `GRANT`.** Corre también esto:
+
+```sql
+grant select, insert, update, delete on public.tareas to authenticated;
+grant select, insert, update, delete on public.tareas to service_role;
+
+notify pgrst, 'reload schema';
+```
+
+> Nota honesta: la primera versión de esta guía decía que estos `GRANT` no
+> hacían falta, razonando que `habitos` y `registros` funcionan sin ellos. Eso
+> era una **deducción**, no una comprobación. Resultó que Supabase sí los pone
+> solo — el problema del 8 de agosto era el proyecto equivocado, no los
+> permisos. Se dejan escritos igual porque la documentación los recomienda
+> para tablas creadas desde el SQL Editor, no cuestan nada y hacen explícito
+> lo que si no queda dependiendo de un valor por defecto.
+
+Por qué importan más de lo que parece: PostgREST **solo mete en su mapa de
+tablas las que los roles de la API pueden tocar**. Si `authenticated` no tiene
+permisos sobre `tareas`, PostgREST no la incluye — y el error que ves no es
+"permiso denegado" sino `Could not find the table 'public.tareas' in the schema
+cache`, que suena a que la tabla no existe. Dos causas muy distintas, el mismo
+mensaje.
+
+`anon` no necesita nada: la app exige haber entrado, y el RLS bloquea a `anon`
+de todos modos. Menos permisos de los que sobran.
+
+### Después de crear la tabla, avisa a PostgREST
+
+**Este paso parece de sobra y no lo es.** Pasó de verdad el 8 de agosto de 2026
+y costó un rato largo de diagnóstico.
+
+Corre esto en el **SQL Editor**, justo después del `create table`:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+Debe responder **Success. No rows returned**.
+
+**Por qué.** Entre tu app y Postgres hay una pieza intermedia, **PostgREST**:
+es la que convierte `nube.from('tareas')` en una consulta SQL. Para no leer la
+estructura de la base en cada petición, guarda un **mapa de las tablas en
+memoria**. Cuando creas una tabla, Postgres le manda un aviso para que lo
+recargue — y a veces ese aviso no llega.
+
+El resultado es desconcertante: la tabla **existe**, pero la app dice
+`Could not find the table 'public.tareas' in the schema cache`. Y si la
+verificas desde el SQL Editor, aparece perfecta, porque el SQL Editor habla con
+Postgres directamente y se salta a PostgREST. **Estás preguntándole a dos cosas
+distintas.**
+
+Si el `NOTIFY` no bastara: **Project Settings → General → Restart project**.
+Tarda un minuto, no borra nada, y PostgREST reconstruye el mapa al arrancar.
+
+> La lección que vale más allá de Supabase: cuando dos comprobaciones se
+> contradicen, casi nunca es que una mienta. Es que están mirando capas
+> distintas del mismo sistema. La pregunta útil no es "¿cuál tiene razón?"
+> sino "¿qué hay entre las dos?".
 
 ### Comprobar que quedó
 
