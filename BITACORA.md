@@ -858,10 +858,41 @@ que reinstalar la app con otro manifiesto. No vale la pena.
         del historial y los días del calendario
       - que el panel de Ajustes quepa sin apretar en modo edición
       - que **entrar con correo y contraseña siga funcionando**
-- [ ] Elegir el logo entre los cuatro conceptos y generar los PNG
-      (180 / 192 / 512) con un script de Python, como se hizo la primera vez.
+      - que el ícono nuevo se vea bien en la pantalla de inicio (hay que
+        **borrar la app y volver a añadirla**: iOS guarda el ícono al instalar
+        y no lo vuelve a pedir)
+- [x] Logo nuevo elegido y generado (ver abajo).
 - [ ] Usar las tres secciones unos días. Después decidir: ¿sincronizar
       pendientes e ideas con Supabase? ¿prioridad en los pendientes?
+
+## 2026-08-07 — Logo nuevo: "El brote"
+
+Se propusieron cuatro conceptos (la racha, la marca, el brote, la cuadrícula)
+dibujados en SVG y mirados también a 44 px, que es el tamaño al que se ve un
+ícono de verdad en la pantalla de inicio. **Kev eligió el brote.**
+
+- **`hacer-iconos.py`** — el script que genera los tres PNG. Reemplaza al que
+  vivía suelto en esta bitácora desde la Fase 1; ahora es un archivo del
+  proyecto y se corre con `python3 hacer-iconos.py`.
+- Los colores salen de las variables de la app: `--fondo`, `--exito` y
+  `--acento`. El ícono y la app son la misma cosa.
+- **El dibujo se centra solo.** El script mide su propia caja, la escala al 74%
+  del lienzo y la centra. Cuadrar coordenadas a ojo obliga a rehacer el cuadre
+  entero cada vez que mueves una hoja.
+- **Se dibuja 8 veces más grande y luego se encoge** (LANCZOS). Pillow no
+  suaviza bordes: sin eso, las curvas de las hojas salen con escalones.
+- Dos cosas que solo se vieron generando la imagen y mirándola:
+  1. **El orden de dibujado.** Con el tallo antes que la hoja de la izquierda,
+     la hoja le pisaba un trozo con su verde oscuro y quedaba un escalón justo
+     en el medio. Ahora el orden es hoja de atrás → tallo → hoja de delante.
+  2. **La punta del tallo sobresalía** por encima de la unión de las hojas y se
+     leía como un bultito suelto. Se bajó a `TALLO_ARRIBA = 61`.
+- Las hojas arrancan un poco *dentro* del tallo (x=58 y x=62, no 60): dos
+  bordes que se tocan justo se notan, dos que se solapan un poco no.
+
+**Ojo al probarlo:** iOS guarda el ícono **al instalar** la app en la pantalla
+de inicio y no lo vuelve a pedir. Para ver el nuevo hay que borrar el ícono
+viejo y volver a añadir la app desde Safari. Publicar y recargar no basta.
 
 ---
 

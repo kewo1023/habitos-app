@@ -151,7 +151,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 | `index.html` | La app completa |
 | `sw.js` | Service worker (funcionar sin internet) |
 | `manifest.json` | Metadatos para instalarla en el teléfono |
-| `icono-*.png` | Íconos generados con PIL (script en la bitácora) |
+| `icono-*.png` | Íconos (180/192/512). **No editarlos a mano** |
+| `hacer-iconos.py` | El script que los genera. `python3 hacer-iconos.py` |
 | `pruebas.js` | Tests de la lógica pura. Correr con `node pruebas.js` |
 | `pruebas-app.js` | Tests de la app entera. Correr con `node pruebas-app.js` |
 | `mini-dom.js` | Navegador de mentira que usa `pruebas-app.js`. No tocar |
