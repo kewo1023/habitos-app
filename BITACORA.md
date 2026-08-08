@@ -894,6 +894,132 @@ dibujados en SVG y mirados también a 44 px, que es el tamaño al que se ve un
 de inicio y no lo vuelve a pedir. Para ver el nuevo hay que borrar el ícono
 viejo y volver a añadir la app desde Safari. Publicar y recargar no basta.
 
+## 2026-08-08 — Celebraciones, reordenar tareas y las tareas en la nube (v16)
+
+Tres cambios grandes en una sesión, que es uno más de los que aconseja la regla
+del proyecto. Se hicieron en orden y con las pruebas corriendo entre uno y otro.
+
+**La evaluación previa, y en qué cambió lo que Kev pidió**
+
+Kev propuso confeti al marcar cada hábito. Se evaluó y se propuso otra cosa:
+marcar pasa cinco o seis veces al día, y una celebración que sale siempre deja
+de ser una celebración en una semana. Quedó **una animación pequeña para el
+gesto diario** (el check hace *pop* y sale una onda) y **el confeti reservado
+para el día completo**, que es el evento de verdad. Kev estuvo de acuerdo.
+
+Para reordenar pidió flechas o arrastrar sosteniendo. Se descartó arrastrar —
+tercera vez en este proyecto, siempre por lo mismo: en táctil lo difícil no es
+mover la tarjeta, es distinguir tu dedo arrastrando de tu dedo haciendo scroll,
+y nada de eso se puede probar con `node`.
+
+**1. Las dos animaciones**
+
+- `diaCompleto(fecha)` en la sección C: función **pura**, y por eso probada. La
+  animación no se puede probar (no hay pantalla); la condición que la dispara,
+  sí. Esa separación es todo el diseño de este cambio.
+- Sin hábitos devuelve `false` a propósito. `every` sobre una lista vacía es
+  `true` por lógica, y la app te felicitaría por no tener hábitos.
+- El confeti se dispara en `alternarFecha()`, **nunca en `pintar()`**.
+  `pintar()` corre al abrir la app, al cambiar de idioma y al sincronizar:
+  puesto ahí, saldría confeti cada vez que abrieras la app con el día ya
+  terminado. Se exige la **transición** (`!estabaCompleto` antes, completo
+  después), no el estado.
+- Y se exige que la fecha sea hoy: arreglar un martes desde el calendario no es
+  "quedar al día".
+- La clase de la animación no se pone directamente sobre el elemento, porque
+  `pintar()` rehace las tarjetas desde cero y se la llevaría. Se anota en
+  `habitoRecienMarcado` y la aplica `pintar()` al construir la tarjeta — el
+  mismo truco que `tareaRecienMovida` ya usaba en Pendientes.
+- La capa del confeti (`#confeti`) vive fuera de la lista, en el `<body>`, por
+  esa misma razón.
+- El azar vive en JavaScript y el movimiento en CSS: cada papelito recibe
+  `--dx`, `--giro` y `--dur`, y la animación es una sola. Así el navegador la
+  corre en la tarjeta gráfica en vez de que la movamos con un temporizador.
+- `prefers-reduced-motion` se respeta en el CSS **y** en JavaScript. En JS es lo
+  que evita crear 34 elementos para después esconderlos.
+- Color nuevo `--celebrar` en los dos temas (más oscuro en el claro, como pasó
+  con el verde). La regla de la v15 sigue en pie: ningún color suelto.
+
+**2. Reordenar Pendientes e Ideas**
+
+- `moverTarea(id, direccion)`. Lo que no se ve a simple vista: `datos.tareas`
+  tiene las dos listas mezcladas, así que **subir una posición en pantalla no es
+  subir un sitio en el array**. La función anota primero en qué sitios del array
+  están las tareas visibles y luego intercambia esos dos.
+- Las hechas no se mueven: viven al final por definición.
+- Flechas ↑↓ en modo edición, con los extremos apagados en vez de escondidos —
+  mismo criterio que los hábitos, para que los botones no cambien de sitio bajo
+  el dedo.
+- En modo edición se esconde la flecha → de las ideas: con ↑ ↓ ✕ ya son tres
+  botones y un cuarto no cabe bien en un iPhone.
+
+**3. Pendientes e Ideas en Postgres**
+
+Se cumplió el plan: primero usarlas unos días, después decidir. Ya se usaron.
+
+- Tabla `tareas`, **una sola** para las dos listas, igual que en la app hay un
+  solo array. Con `check (lista in ('pendientes','ideas'))`: lo que en el código
+  es una promesa, en la base es una garantía.
+- **El detalle que casi cuesta datos.** El `orden` de una tarea es su posición
+  en `datos.tareas`, así que todo lo que corre las posiciones obliga a resubir
+  las que se movieron. De eso se encarga `encolarTareasDesde(indice)`: borrar la
+  tercera corre a la cuarta y la quinta, las anteriores no. Sin eso, dos tareas
+  podrían acabar con el mismo `orden` y volver barajadas del otro dispositivo.
+- **El otro detalle, peor.** Kev ya había entrado antes de la v16, así que tiene
+  `datos.subidaHecha = true` y la subida inicial no vuelve a correr nunca. Sin
+  hacer nada, sus tareas no habrían subido jamás y el primer `bajarTodo()` se
+  las habría llevado por delante, reemplazándolas por la tabla vacía. Se agregó
+  una segunda bandera, `datos.tareasSubidas`. **Cada vez que el modelo crece hay
+  que preguntarse qué pasa con quien ya venía usando la app**: los datos nuevos
+  casi nunca son el problema, los viejos casi siempre.
+- La nota vacía sube como `null`, no como `''`. Guardar una cadena vacía sería
+  inventarse un tercer estado que no significa nada.
+- `bajarTodo()` ahora reemplaza `datos.tareas` y llama también a `pintarLista()`.
+- El SQL, verificado contra la documentación del 7 de agosto, está en el
+  **Paso 5 de `PASOS-FASE-3.md`**. Usa `to authenticated` y `(select auth.uid())`,
+  que las políticas viejas no tienen: son recomendaciones de rendimiento
+  actuales de Supabase, no de seguridad.
+
+**Verificación**
+
+- `pruebas.js`: de 270 a **316**. Un test viejo — *"crear, marcar y mover no
+  encola nada"* — hubo que **darlo vuelta**: afirmaba la decisión de la v15 de
+  no sincronizar tareas. Un test que defiende una decisión ya cambiada hace que
+  un cambio correcto parezca un fallo.
+- `pruebas-app.js`: de 53 a **64**. Los nuevos cubren el confeti (que se creen
+  los papelitos, que tengan color **en los dos temas** y que "reducir
+  movimiento" lo apague de verdad) y el reordenar desde la pantalla.
+- **`mini-dom.js` sí se tocó**, dos cosas mínimas que la app pasó a necesitar:
+  `style.setProperty` (lo usa el confeti) y leer el atributo `disabled` de un
+  `innerHTML` (lo usan las flechas). Y en `pruebas-app.js`, `matchMedia` ahora
+  mira **qué** se le pregunta: antes respondía lo mismo a todo, y con el sistema
+  en oscuro habría contestado "sí, reduce el movimiento" y el confeti no se
+  habría probado nunca.
+- `sw.js`: `VERSION` a `'v16'`.
+
+**Pendiente / siguiente**
+
+- [ ] **Correr primero el SQL** del Paso 5 de `PASOS-FASE-3.md` en Supabase, y
+      **solo después** publicar la `v16`. Al revés, la app intentaría subir
+      tareas a una tabla que no existe y la cola se quedaría atascada
+      reintentando ("N cambios esperando" en el panel de Cuenta). No se pierde
+      nada, pero confunde.
+- [ ] Publicar la `v16` y probar en el iPhone:
+      - que la onda del check se vea y no estorbe al marcar rápido varios
+      - que el confeti salga **una sola vez** al completar el día, y que no
+        vuelva a salir al cerrar y reabrir la app
+      - que el confeti se lea bien en tema claro
+      - que las flechas de reordenar no queden apretadas junto a la ✕
+      - que en **Table Editor** aparezcan tus pendientes e ideas
+      - que la cola quede en "Todo sincronizado" después de entrar
+- [ ] Sigue pendiente de la v15: probar el tema claro a plena luz y **borrar la
+      app y volver a añadirla** para ver el ícono nuevo (iOS lo guarda al
+      instalar).
+- [ ] Bloqueadores 2, 3 y 4 de "compartir la app" (registros cerrados, sin
+      recuperar contraseña, el plan gratuito pausa el proyecto tras 7 días sin
+      consultas). El nº 1 lo cerró la v15.
+- [ ] Fase 4 sin decidir. Ejercicios 1 y 4 de `COMO-EDITAR.md` y la tanda 7–12.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

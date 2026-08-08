@@ -265,6 +265,108 @@ Supabase está caído o no hay señal, la app sigue funcionando igual que hoy.
 
 ---
 
+## Paso 5 — La tabla de Pendientes e Ideas (v16, agosto de 2026)
+
+Esto llega después. Cuando se construyeron Pendientes e Ideas se decidió a
+propósito dejarlas **solo en el teléfono** hasta usarlas unos días. Ya se
+usaron, así que ahora se les da su tabla.
+
+> **Verificado el 8 de agosto de 2026** contra la documentación de Supabase
+> (la página de RLS se actualizó el 7 de agosto). Los nombres de las secciones
+> del panel — **SQL Editor**, **Table Editor** — siguen siendo esos. Si ves
+> algo distinto, mándame una captura antes de improvisar.
+
+### El SQL
+
+Menú de la izquierda → **SQL Editor** (el ícono `>_`). Pega esto y dale **Run**:
+
+```sql
+-- ============================================================
+--  TABLA 3: pendientes e ideas
+--  Una sola tabla para las dos listas, igual que en la app hay
+--  un solo array. Lo que las separa es la columna "lista".
+-- ============================================================
+create table tareas (
+  id      uuid primary key,
+  usuario uuid not null references auth.users(id) on delete cascade,
+  texto   text not null,
+  nota    text,
+  hecha   boolean not null default false,
+  lista   text not null default 'pendientes'
+          check (lista in ('pendientes', 'ideas')),
+  creada  date not null,
+  orden   int  not null default 0
+);
+
+-- ============================================================
+--  SEGURIDAD
+-- ============================================================
+alter table tareas enable row level security;
+
+create policy "solo mis tareas" on tareas
+  for all
+  to authenticated
+  using      ((select auth.uid()) = usuario)
+  with check ((select auth.uid()) = usuario);
+
+-- Un índice sobre la columna por la que filtra la política. Sin él,
+-- Postgres revisa fila por fila si es tuya.
+create index tareas_usuario on tareas (usuario);
+```
+
+Debe responder **Success. No rows returned**.
+
+### Qué dice ese SQL, y en qué se diferencia del de las otras dos tablas
+
+**`nota text`** — sin `not null`, a diferencia de las demás columnas. Una tarea
+sin nota guarda `null`, que en SQL significa "aquí no hay nada". La app hace lo
+mismo: si no escribes nota, el campo ni existe. Guardar una cadena vacía sería
+inventarse un tercer estado ("existe pero está vacía") que no significa nada.
+
+**`check (lista in ('pendientes', 'ideas'))`** — un **CHECK constraint**: la
+base de datos se niega a guardar una fila con cualquier otro valor. En el
+código de la app eso mismo lo cuida `LISTAS`, pero eso es una promesa del
+código; esto es una garantía de la base. Si mañana un error escribe
+`lista = 'pendintes'`, aquí revienta en vez de perderse la tarea en silencio.
+
+**`orden int`** — la posición en la lista, lo mismo que ya hace `habitos`. Un
+array tiene orden por sí mismo; una tabla no. Sin esta columna, tus pendientes
+te llegarían barajados al otro dispositivo.
+
+**`to authenticated` y `(select auth.uid())`** — dos detalles que las políticas
+de `habitos` y `registros` no tienen, porque se escribieron antes.
+
+- `to authenticated` corta la evaluación para quien no ha iniciado sesión, en
+  vez de calcular la condición y descubrir que no.
+- `(select auth.uid())` hace que Postgres calcule tu id **una vez** por
+  consulta en vez de una vez por fila.
+
+Las dos son recomendaciones actuales de Supabase y solo afectan velocidad, no
+seguridad. Con tu volumen de datos no vas a notar la diferencia; se escriben
+así porque es la forma correcta y no cuesta nada. Si algún día quieres, las
+políticas viejas se pueden reescribir igual — pero no corre prisa.
+
+**Lo que NO hace falta:** la documentación menciona unos `GRANT` para tablas
+creadas desde el SQL Editor. Tus tablas `habitos` y `registros` se crearon
+igual y funcionan sin ellos, porque Supabase ya le da esos permisos a los roles
+`anon` y `authenticated` sobre el esquema `public` al crear el proyecto. Si
+después de esto la app diera un error de permisos, ese sería el primer sitio
+donde mirar.
+
+### Comprobar que quedó
+
+En **Table Editor** debe aparecer `tareas` junto a `habitos` y `registros`,
+vacía. Al abrir la app y entrar con tu cuenta, tus pendientes e ideas de hoy se
+suben solos y la tabla se llena.
+
+> **Ojo con el orden de las cosas:** publica la `v16` **después** de correr este
+> SQL. Si la app intenta subir tareas a una tabla que no existe, la cola de
+> pendientes se atasca reintentando y el panel de Cuenta se queda diciendo
+> "N cambios esperando". No se pierde nada — para eso está la cola — pero es
+> confuso. Primero la tabla, después la app.
+
+---
+
 ## Anexo — Si algún día quieres el código por correo
 
 No hace falta ahora. Queda escrito para no volver a investigarlo.

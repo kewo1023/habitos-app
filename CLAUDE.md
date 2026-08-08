@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 270 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 53 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 316 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 64 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -230,8 +230,8 @@ pantalla, agregarlo a `pruebas-app.js`.
   - **Decisión clave:** en el código se llaman `datos.tareas`; en pantalla,
     "Pendientes". `datos.pendientes` ya existía y es la cola de sincronización.
     **No confundirlas.**
-  - **Decisión clave:** los pendientes viven **solo en `localStorage`**, sin
-    Supabase, hasta que Kev los use unos días. `bajarTodo()` no los toca.
+  - ~~Los pendientes viven solo en `localStorage`~~ — cerrado en la v16: ya
+    tienen su tabla en Postgres. Ver Fase 3.7.
   - **Decisión clave:** descartado deslizar (swipe) para borrar/editar. Se
     reutiliza el modo edición que ya existe, mismo criterio que arrastrar-y-
     soltar en la Fase 2. Retomar solo si el uso real lo pide.
@@ -303,6 +303,51 @@ pantalla, agregarlo a `pruebas-app.js`.
   - **Límite aceptado:** el nombre bajo el ícono de la pantalla de inicio sigue
     en español. Sale de `manifest.json`, que el teléfono lee una sola vez al
     instalar y no se puede cambiar desde JavaScript.
+- **Fase 3.6 — Celebraciones y reordenar tareas ✅ (v16)**
+  - **Decisión clave:** dos animaciones de tamaño muy distinto a propósito.
+    Marcar un hábito pasa 5 o 6 veces al día, así que su señal es pequeña (el
+    check hace *pop* y sale una onda, ~15 líneas de CSS). Completar el día pasa
+    una vez, y esa sí lleva confeti. Se descartó poner confeti en cada marca:
+    una celebración que sale siempre deja de ser una celebración.
+  - **Decisión clave:** la condición que dispara el confeti vive en una función
+    pura, `diaCompleto(fecha)` (sección C), separada de la animación (E2). La
+    animación no se puede probar; la decisión sí, y es donde uno se equivoca.
+  - **Decisión clave:** el confeti se dispara en `alternarFecha()`, **nunca en
+    `pintar()`**. `pintar()` se llama al abrir la app, al cambiar de idioma y al
+    sincronizar; puesto ahí, saldría confeti cada vez que abres la app con el
+    día ya completo. Se exige la **transición** (`!estabaCompleto`), no el
+    estado, y que la fecha sea hoy: corregir un martes pasado no es "quedar al
+    día".
+  - **Decisión clave:** `prefers-reduced-motion` se respeta en el CSS **y** en
+    JavaScript. En JS es lo que evita crear 34 elementos para luego esconderlos.
+  - **Regla de la v15 extendida:** el color del confeti también sale de una
+    variable (`--celebrar`, en los dos temas). Hay un test que compara los dos.
+  - Reordenar Pendientes e Ideas con **flechas ↑↓ en modo edición**, igual que
+    los hábitos. Arrastrar sosteniendo se descartó por tercera vez en este
+    proyecto, siempre por lo mismo: en táctil lo difícil es distinguir arrastrar
+    de hacer scroll, y no se puede probar con `pruebas.js`.
+  - **Ojo con `moverTarea()`:** `datos.tareas` tiene las dos listas mezcladas,
+    así que subir una posición en pantalla no es subir un sitio en el array.
+    Trabaja sobre los índices filtrados. En modo edición la flecha → de las
+    ideas se esconde: cuatro botones no caben bien en un iPhone.
+- **Fase 3.7 — Pendientes e Ideas en la nube ✅ (v16)** Tabla `tareas` en
+  Postgres. El SQL está en el **Paso 5** de `PASOS-FASE-3.md`.
+  - **Decisión clave:** una sola tabla con columna `lista`, igual que en la app
+    hay un solo array. Y un `check (lista in ('pendientes','ideas'))`: lo que en
+    el código es una promesa, en la base es una garantía.
+  - **Decisión clave:** el `orden` de una tarea es su posición en
+    `datos.tareas`. Por eso **todo lo que corre las posiciones obliga a volver a
+    subir las que se movieron** — de eso se encarga `encolarTareasDesde()`.
+    Borrar la tercera corre a la cuarta y la quinta; las anteriores no. Si se
+    olvidara, las tareas volverían en un orden que ya no es el tuyo, y no te
+    enterarías hasta abrir la app en otro aparato.
+  - **Decisión clave:** bandera nueva `datos.tareasSubidas`, aparte de
+    `subidaHecha`. Quien ya había entrado antes de la v16 tiene `subidaHecha` en
+    true, así que la subida inicial no vuelve a correr: sin esa segunda bandera
+    sus tareas no subirían nunca y el primer `bajarTodo()` se las llevaría. Cada
+    vez que el modelo crece hay que preguntarse qué pasa con los datos viejos.
+  - `bajarTodo()` ahora **sí** reemplaza `datos.tareas`, y llama a
+    `pintarLista()` además de a `pintar()`.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -322,8 +367,12 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v15` (tema claro + inglés + panel de Ajustes).
-Confirmar que la `v14` y la `v15` quedaron publicadas.
+`VERSION` en el Mac: `v16` (celebraciones + reordenar tareas + tareas en la
+nube). La `v15` quedó publicada (commits `451d68c` y `c55160e`).
+
+**Orden obligatorio para la v16:** primero correr el SQL del Paso 5 de
+`PASOS-FASE-3.md` en Supabase, y solo después publicar. Si la app sube tareas a
+una tabla que no existe, la cola se atasca reintentando.
 
 **Probar en el iPhone exige publicar.** La vista de móvil del inspector del
 navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill

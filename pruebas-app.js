@@ -27,6 +27,7 @@ const doc = crearDocumento(cuerpo);
 
 const almacen = {};
 let temaDelSistemaEsOscuro = true;
+let pideMenosMovimiento = false;   // el ajuste de Accesibilidad > Movimiento del teléfono
 
 global.document = doc;
 global.localStorage = {
@@ -37,14 +38,38 @@ global.localStorage = {
 global.crypto = require('crypto').webcrypto;
 global.navigator = { onLine: true, serviceWorker: undefined };
 global.location = { protocol: 'file:' };
+// matchMedia mira QUÉ se le pregunta. Antes respondía lo mismo a todo, y eso
+// dejó de servir cuando la app empezó a preguntar también por
+// prefers-reduced-motion: con el sistema en oscuro habría respondido "sí,
+// reduce el movimiento" y el confeti no se habría probado nunca.
 global.window = {
   addEventListener: () => {},
-  matchMedia: () => ({
-    get matches() { return temaDelSistemaEsOscuro; },
+  matchMedia: consulta => ({
+    get matches() {
+      if (String(consulta).includes('prefers-color-scheme: dark')) return temaDelSistemaEsOscuro;
+      if (String(consulta).includes('prefers-reduced-motion')) return pideMenosMovimiento;
+      return false;
+    },
     addEventListener: () => {}
   })
 };
 global.matchMedia = global.window.matchMedia;
+
+// Los colores calculados. El navegador de mentira no calcula estilos, así que
+// se leen las variables del bloque :root del tema activo directamente del
+// <style>. Es suficiente para lo único que la app le pregunta: de qué color
+// pintar el confeti.
+global.getComputedStyle = () => ({
+  getPropertyValue(nombre) {
+    const tema = doc.documentElement.dataset.tema === 'claro' ? 'claro' : 'oscuro';
+    const marca = tema === 'claro' ? ':root[data-tema="claro"]' : ':root, :root[data-tema="oscuro"]';
+    const desde = html.indexOf(marca);
+    if (desde === -1) return '';
+    const bloque = html.slice(desde, html.indexOf('}', desde));
+    const hallado = new RegExp(nombre + '\\s*:\\s*([^;]+);').exec(bloque);
+    return hallado ? hallado[1].trim() : '';
+  }
+});
 
 let ultimaAlerta = null, ultimoConfirm = null, ultimoPrompt = null;
 let respuestaPrompt = null, respuestaConfirm = true;
@@ -63,7 +88,8 @@ eval(script + `
 ; Object.assign(app, {
     pintar, pintarLista, cambiarVista, cambiarIdioma, cambiarTema, aplicarTema,
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
-    abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion
+    abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
+    celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas
   });
   Object.defineProperty(app, 'datos', { get: () => datos });
   Object.defineProperty(app, 'vista', { get: () => vista });
@@ -238,6 +264,64 @@ app.cambiarVista('habitos');
 app.pintar();
 ok('el hábito sigue en su sitio', $('lista').textContent.includes('Leer'));
 ok('y sigue marcado como hecho hoy', $('progresoTexto').textContent === '1 de 1');
+
+// ===========================================================================
+// 9. El confeti del día completo
+//    Que se vea bonito no se puede probar aquí. Lo que sí: que se creen los
+//    papelitos, que tengan color en los dos temas y que el ajuste de
+//    accesibilidad del teléfono lo apague de verdad.
+// ===========================================================================
+app.celebrarDiaCompleto();
+ok('el confeti crea papelitos', $('confeti').children.length > 0);
+ok('cada papelito lleva su clase', $('confeti').children.every(p => p.className === 'papelito'));
+ok('y sus tres variables de animación',
+   $('confeti').children.every(p =>
+     p.style['--dx'] && p.style['--giro'] && p.style['--dur']));
+
+// Los colores salen de las variables de la app. Este test es el que atrapa el
+// olvido más fácil: agregar un color al tema oscuro y no al claro.
+app.cambiarTema('oscuro');
+const enOscuro = app.coloresConfeti();
+app.cambiarTema('claro');
+const enClaro = app.coloresConfeti();
+ok('hay tres colores de confeti en tema oscuro',
+   enOscuro.length === 3 && enOscuro.every(Boolean));
+ok('y tres en tema claro',
+   enClaro.length === 3 && enClaro.every(Boolean));
+ok('y no son los mismos: el claro tiene sus propios valores',
+   enOscuro.join() !== enClaro.join());
+app.cambiarTema('auto');
+
+// El ajuste de Accesibilidad > Movimiento del teléfono.
+$('confeti').innerHTML = '';
+pideMenosMovimiento = true;
+app.celebrarDiaCompleto();
+ok('con "reducir movimiento" no se crea ni un papelito',
+   $('confeti').children.length === 0);
+pideMenosMovimiento = false;
+
+// ===========================================================================
+// 10. Reordenar pendientes desde la pantalla
+// ===========================================================================
+app.cambiarVista('pendientes');
+app.agregarTarea('Segundo', 'pendientes');
+app.agregarTarea('Tercero', 'pendientes');
+app.pintarLista();
+
+const enPantalla = () => app.tareasOrdenadas('pendientes').map(x => x.texto).join(',');
+ok('los tres pendientes están en orden', enPantalla() === 'Comprar café,Segundo,Tercero');
+
+const idSegundo = app.datos.tareas.find(x => x.texto === 'Segundo').id;
+app.moverTarea(idSegundo, -1);
+ok('subir un pendiente lo mueve en pantalla', enPantalla() === 'Segundo,Comprar café,Tercero');
+ok('la idea de la otra lista sigue intacta',
+   app.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'App de propinas');
+
+app.pintarLista();
+const flechasApagadas = $('tareasCuerpo').children
+  .flatMap(t => t.querySelectorAll('.subir'))
+  .filter(b => b.disabled).length;
+ok('la primera tarjeta tiene su flecha de subir apagada', flechasApagadas >= 1);
 
 console.log(fallos === 0
   ? '\n🎉 La app entera funciona'

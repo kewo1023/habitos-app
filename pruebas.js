@@ -24,12 +24,19 @@ global.localStorage = { getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=Strin
 global.crypto = require('crypto').webcrypto;
 global.pintar = () => {};        // en el test no dibujamos nada
 global.pintarLista = () => {};   // lo mismo para pendientes e ideas
+global.habitoRecienMarcado = null;   // la marca de "anima este círculo"; aquí no hay círculo
+
+// El confeti no se puede probar (no hay pantalla), pero sí se puede contar
+// cuántas veces se pidió lanzarlo. Eso es lo que de verdad importa: que salga
+// en el momento justo y no en cualquier otro.
+global.confetisLanzados = 0;
+global.celebrarDiaCompleto = () => { global.confetisLanzados++; };
 let ultimaAlerta = null;
 global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -607,14 +614,61 @@ const migrado = ctx.cargar();
 ok('a una tarea vieja se le pone lista = pendientes', migrado.tareas[0].lista === 'pendientes');
 ok('y no pierde su texto', migrado.tareas[0].texto === 'De antes de las Ideas');
 
-// --- los pendientes NO se encolan para la nube (viven solo aquí, por ahora)
+// --- desde la v16 los pendientes y las ideas SÍ se encolan para la nube.
+// Este test decía justo lo contrario hasta la v15; se cambió al llevarlas a
+// Supabase. Un test que afirma una decisión vieja es peor que no tenerlo:
+// hace que un cambio correcto se vea como un fallo.
 ctx.datos.tareas = [];
 ctx.datos.pendientes = [];
-ctx.agregarTarea('No debe subir a la nube', P);
-ctx.agregarTarea('Una idea tampoco', I);
+ctx.agregarTarea('Sube a la nube', P);
+ctx.agregarTarea('Una idea también', I);
 ctx.alternarTarea(ctx.tareasDe(P)[0].id);
 ctx.moverALista(ctx.tareasDe(I)[0].id, P);
-ok('crear, marcar y mover no encola nada', ctx.datos.pendientes.length === 0);
+ok('crear, marcar y mover encolan un cambio cada uno', ctx.datos.pendientes.length === 4);
+ok('y todos son del tipo guardarTarea',
+   ctx.datos.pendientes.every(p => p.tipo === 'guardarTarea'));
+
+// Borrar encola el borrado Y vuelve a subir las que se corrieron de sitio.
+ctx.datos.tareas = [];
+ctx.datos.pendientes = [];
+ctx.agregarTarea('primera', P);
+ctx.agregarTarea('segunda', P);
+ctx.agregarTarea('tercera', P);
+ctx.datos.pendientes = [];
+ctx.borrarTarea(ctx.tareasDe(P)[0].id);
+ok('borrar encola el borrado', ctx.datos.pendientes[0].tipo === 'borrarTarea');
+ok('y vuelve a subir las dos que se corrieron',
+   ctx.datos.pendientes.filter(p => p.tipo === 'guardarTarea').length === 2);
+
+// Borrar la ÚLTIMA no corre a nadie: solo el borrado.
+ctx.datos.pendientes = [];
+ctx.borrarTarea(ctx.tareasDe(P)[1].id);
+ok('borrar la última no obliga a resubir nada', ctx.datos.pendientes.length === 1);
+
+// --- los traductores entre la app y la tabla "tareas"
+const filaIdea = ctx.tareaAFila(
+  { id:'i1', texto:'App de propinas', nota:'para el trabajo', hecha:false,
+    creada:'2026-08-01', lista:'ideas' }, 3, 'usuario-1');
+ok('tareaAFila guarda la posición como columna orden', filaIdea.orden === 3);
+ok('y de quién es la fila',                            filaIdea.usuario === 'usuario-1');
+ok('la nota viaja tal cual',                           filaIdea.nota === 'para el trabajo');
+
+const filaSinNota = ctx.tareaAFila(
+  { id:'p1', texto:'Comprar café', hecha:true, creada:'2026-08-02', lista:'pendientes' },
+  0, 'usuario-1');
+ok('una tarea sin nota sube como null, no como cadena vacía', filaSinNota.nota === null);
+ok('hecha sube como booleano de verdad', filaSinNota.hecha === true);
+
+const devueltas = ctx.filasATareas([
+  { id:'p1', texto:'Comprar café', nota:null, hecha:true,  creada:'2026-08-02', lista:'pendientes', orden:0 },
+  { id:'i1', texto:'App de propinas', nota:'para el trabajo', hecha:false, creada:'2026-08-01', lista:'ideas', orden:1 }
+]);
+ok('vuelven las dos tareas',              devueltas.length === 2);
+ok('la que no tenía nota no la inventa',  !('nota' in devueltas[0]));
+ok('la que sí tenía nota la conserva',    devueltas[1].nota === 'para el trabajo');
+ok('y cada una vuelve a su lista',        devueltas[1].lista === 'ideas');
+ok('una lista rara cae a pendientes',
+   ctx.filasATareas([{ id:'x', texto:'?', lista:'inventada' }])[0].lista === 'pendientes');
 
 // --- copias de seguridad
 ok('una copia con tareas es válida',
@@ -756,6 +810,113 @@ ok('no quedan colores escritos a mano fuera de las variables' +
    coloresSueltos.length === 0);
 ok('los dos temas definen las mismas variables',
    (variables.match(/--[a-z-]+:/g) || []).length % 2 === 0);
+
+
+// ============================================================
+//  DÍA COMPLETO Y CELEBRACIONES
+//  La animación no se puede probar: no hay pantalla. Lo que sí se prueba es
+//  la CONDICIÓN que la dispara, que es donde de verdad se puede uno equivocar.
+// ============================================================
+
+const limpio = () => {
+  ctx.datos = { version:1, habitos: [], registros: {}, tareas: [], pendientes: [],
+                prefs: { ...ctx.PREFS_POR_DEFECTO } };
+  global.confetisLanzados = 0;
+};
+
+limpio();
+ok('sin hábitos el día NO está completo', ctx.diaCompleto(ctx.hoy()) === false);
+
+ctx.agregarHabito('Leer','📖');
+ctx.agregarHabito('Agua','💧');
+const [hA, hB] = ctx.datos.habitos.map(h => h.id);
+
+ok('con nada marcado el día no está completo', ctx.diaCompleto(ctx.hoy()) === false);
+ctx.alternarHoy(hA);
+ok('con uno de dos marcado tampoco',           ctx.diaCompleto(ctx.hoy()) === false);
+ok('todavía no hay confeti',                   global.confetisLanzados === 0);
+
+ctx.alternarHoy(hB);
+ok('con los dos marcados el día está completo', ctx.diaCompleto(ctx.hoy()) === true);
+ok('el confeti salió una vez',                  global.confetisLanzados === 1);
+
+// Volver a tocar algo de un día ya completo no debe repetir la celebración.
+ctx.alternarHoy(hB);   // desmarcar
+ok('desmarcar no lanza confeti', global.confetisLanzados === 1);
+ok('y el día deja de estar completo', ctx.diaCompleto(ctx.hoy()) === false);
+
+// Un hábito nuevo rompe el día completo aunque no hayas desmarcado nada.
+limpio();
+ctx.agregarHabito('Leer','📖');
+const soloUno = ctx.datos.habitos[0].id;
+ctx.alternarHoy(soloUno);
+ok('un solo hábito marcado completa el día',  ctx.diaCompleto(ctx.hoy()) === true);
+ok('y celebra',                               global.confetisLanzados === 1);
+ctx.agregarHabito('Agua','💧');
+ok('agregar un hábito rompe el día completo', ctx.diaCompleto(ctx.hoy()) === false);
+
+// Corregir un día pasado desde el calendario NO es "quedar al día".
+limpio();
+ctx.agregarHabito('Leer','📖');
+const idAyer = ctx.datos.habitos[0].id;
+ctx.alternarFecha(idAyer, ctx.haceNDias(1));
+ok('completar un día pasado no lanza confeti', global.confetisLanzados === 0);
+ok('pero sí queda marcado',                    ctx.diaCompleto(ctx.haceNDias(1)) === true);
+
+// La marca que le dice a pintar() qué círculo animar.
+limpio();
+ctx.agregarHabito('Leer','📖');
+const idMarca = ctx.datos.habitos[0].id;
+ctx.alternarHoy(idMarca);
+ok('marcar anota el hábito para animarlo', global.habitoRecienMarcado === idMarca);
+ctx.alternarHoy(idMarca);
+ok('desmarcar no anota nada',              global.habitoRecienMarcado === null);
+
+// ============================================================
+//  REORDENAR PENDIENTES E IDEAS
+//  Lo difícil aquí no es el intercambio: es que datos.tareas tiene las dos
+//  listas mezcladas, así que "una posición arriba" en pantalla no es "un
+//  sitio arriba" en el array.
+// ============================================================
+
+limpio();
+ctx.agregarTarea('uno',  'pendientes');
+ctx.agregarTarea('idea', 'ideas');        // se cuela en medio a propósito
+ctx.agregarTarea('dos',  'pendientes');
+ctx.agregarTarea('tres', 'pendientes');
+
+const textos = lista => ctx.tareasOrdenadas(lista).map(x => x.texto).join(',');
+const idDe   = texto => ctx.datos.tareas.find(x => x.texto === texto).id;
+
+ok('orden inicial de pendientes', textos('pendientes') === 'uno,dos,tres');
+
+ok('subir "dos" devuelve true', ctx.moverTarea(idDe('dos'), -1) === true);
+ok('"dos" pasó al primer puesto saltándose la idea del array',
+   textos('pendientes') === 'dos,uno,tres');
+ok('la lista de ideas no se tocó', textos('ideas') === 'idea');
+
+ok('bajar "dos" lo devuelve a su sitio', ctx.moverTarea(idDe('dos'), 1) === true);
+ok('orden restaurado', textos('pendientes') === 'uno,dos,tres');
+
+ok('el primero no puede subir',  ctx.moverTarea(idDe('uno'), -1) === false);
+ok('el último no puede bajar',   ctx.moverTarea(idDe('tres'), 1) === false);
+ok('y nada se movió',            textos('pendientes') === 'uno,dos,tres');
+
+// Las hechas viven al final por definición: moverlas no significaría nada.
+ctx.alternarTarea(idDe('uno'));
+ok('una tarea hecha no se mueve', ctx.moverTarea(idDe('uno'), -1) === false);
+ok('las hechas siguen al final',  textos('pendientes') === 'dos,tres,uno');
+ok('y "dos" sí puede subir aunque haya una hecha en medio del array',
+   ctx.moverTarea(idDe('tres'), -1) === true);
+ok('el intercambio ignoró a la hecha', textos('pendientes') === 'tres,dos,uno');
+
+// Las ideas se reordenan igual, con la misma función.
+ctx.agregarTarea('idea2', 'ideas');
+ok('subir una idea funciona',  ctx.moverTarea(idDe('idea2'), -1) === true);
+ok('las ideas quedaron al revés', textos('ideas') === 'idea2,idea');
+ok('y los pendientes no se enteraron', textos('pendientes') === 'tres,dos,uno');
+
+ok('un id que no existe no rompe nada', ctx.moverTarea('no-existe', -1) === false);
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

@@ -86,6 +86,10 @@
   --peligro-borde: rgba(255,138,128,.35);
   --exito-borde:   rgba(62,207,142,.30);
   --velo:          rgba(0,0,0,.65);      /* el fondo oscuro detrás de las ventanas */
+
+  /* El tercer color del confeti. El verde y el azul ya los tiene la app; hacía
+     falta uno cálido para que los papelitos no parezcan más de lo mismo. */
+  --celebrar:      #f2c14e;
 }
 
 /* El tema claro. No es "el oscuro con los números al revés": el fondo no es
@@ -114,6 +118,10 @@
   --peligro-borde: rgba(180,35,24,.30);
   --exito-borde:   rgba(21,128,61,.28);
   --velo:          rgba(15,17,21,.42);
+
+  /* El mismo amarillo, un punto más oscuro: sobre fondo claro el de arriba
+     casi desaparece. Es el mismo ajuste que hubo que hacerle al verde. */
+  --celebrar:      #d99e10;
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -270,6 +278,84 @@ header { margin-bottom: 22px; }
   background: var(--exito);
   border-color: var(--exito);
   color: var(--sobre-exito);
+}
+
+/* --- La celebración al marcar un hábito ---
+   Dos momentos, dos animaciones de tamaño muy distinto a propósito:
+   marcar pasa cinco o seis veces al día, así que su señal es pequeña;
+   completar el día pasa una vez, y esa sí lleva confeti. Si la grande
+   saliera en cada toque, dejaría de significar algo en una semana. */
+
+@keyframes pop-check {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* La onda es un pseudo-elemento ENCIMA del círculo, no el círculo mismo.
+   Si le hiciéramos un scale grande al propio .check, empujaría el texto de
+   la tarjeta hacia los lados mientras dura la animación. */
+@keyframes onda {
+  from { transform: scale(1);   opacity: .5; }
+  to   { transform: scale(2.3); opacity: 0; }
+}
+
+.check { position: relative; }
+
+.check.celebrar { animation: pop-check .34s cubic-bezier(.2,.9,.3,1.4); }
+
+.check.celebrar::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--exito);
+  animation: onda .5s ease-out forwards;
+  /* La onda queda encima del círculo. Sin esto se comería el siguiente toque
+     durante medio segundo, justo cuando quieres desmarcar por error. */
+  pointer-events: none;
+}
+
+/* --- El confeti del día completo ---
+   Vive en una capa fija encima de todo. pointer-events: none la vuelve
+   invisible al dedo: es decoración, los toques la atraviesan y llegan a la
+   app que hay debajo. */
+.confeti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Cada papelito recibe sus propias variables (--dx, --giro, --dur) desde
+   JavaScript. Así la animación es una sola y el CSS no sabe nada de azar. */
+.papelito {
+  position: absolute;
+  width: 8px;
+  height: 13px;
+  opacity: 0;
+  /* Le avisa al navegador qué va a cambiar, para que lo prepare en la tarjeta
+     gráfica en vez de recalcularlo cuadro a cuadro. En un iPhone se nota. */
+  will-change: transform, opacity;
+  animation: caer var(--dur) cubic-bezier(.15,.6,.5,1) forwards;
+}
+
+@keyframes caer {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--giro)); opacity: 0; }
+}
+
+/* Hay gente a la que el movimiento en pantalla le produce mareo, y iOS tiene
+   un ajuste para pedir que se reduzca (Accesibilidad > Movimiento). Respetarlo
+   es parte de hacer las cosas bien, no un extra. El confeti además se apaga
+   desde JavaScript, que es más barato que dibujarlo y esconderlo. */
+@media (prefers-reduced-motion: reduce) {
+  .check.celebrar,
+  .check.celebrar::after,
+  .papelito,
+  .tarea.recien-movida { animation: none; }
 }
 
 /* Botones de mover y borrar. Solo aparecen en modo edición, donde
@@ -628,6 +714,12 @@ body.editando .tarea-texto {
 
 .mover:active { background: var(--tarjeta-alta); }
 
+/* En modo edición la flecha → se esconde. Con las dos de reordenar y la ✕ ya
+   son tres botones, y un cuarto en el ancho de un iPhone hace que termines
+   tocando el que no era. La → sigue estando en el uso normal, que es donde
+   de verdad la usas. */
+body.editando .mover { display: none; }
+
 /* El botón de limpiar las hechas. Solo se dibuja si hay alguna. */
 .limpiar-hechas {
   width: 100%;
@@ -875,6 +967,14 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 <body>
 
   <!-- ====== HTML: la estructura visible ====== -->
+
+  <!-- La capa donde cae el confeti. Va aquí arriba, fuera de la lista, y no
+       por casualidad: pintar() borra y rehace la lista entera cada vez que
+       marcas algo. Si el confeti viviera dentro, se borraría a mitad de vuelo.
+       aria-hidden le dice a VoiceOver que se la salte: no tiene información,
+       solo adorno. -->
+  <div class="confeti" id="confeti" aria-hidden="true"></div>
+
   <header>
     <div class="fecha" id="fecha"></div>
     <div class="titulo">Mis Hábitos</div>
@@ -1456,6 +1556,21 @@ function estaHecho(idHabito, fecha) {
   return delDia.includes(idHabito);
 }
 
+// ¿Están marcados TODOS los hábitos en esta fecha?
+//
+// Sin hábitos devuelve false, y eso es una decisión, no un descuido: una lista
+// vacía cumple "todos están marcados" por pura lógica (`every` sobre nada es
+// siempre true), y la app te felicitaría por no tener hábitos. El caso vacío
+// hay que pensarlo aparte casi siempre.
+//
+// Es una función pura: solo lee y devuelve un sí o un no. Por eso se puede
+// probar sin abrir la app, que es justo lo que la hace confiable — la
+// animación no se puede probar, pero la condición que la dispara sí.
+function diaCompleto(fecha) {
+  if (datos.habitos.length === 0) return false;
+  return datos.habitos.every(h => estaHecho(h.id, fecha));
+}
+
 // Todas las fechas en que se marcó un hábito, ordenadas de vieja a nueva.
 // En SQL: SELECT fecha FROM registros WHERE habito = ? ORDER BY fecha
 // Ordenar textos AAAA-MM-DD ya los deja en orden cronológico.
@@ -1561,10 +1676,17 @@ function contarMes(idHabito, anio, mes) {
 function alternarFecha(idHabito, fecha) {
   if (esFutura(fecha)) return false;   // el futuro no se marca
 
+  // Foto del "antes", tomada antes de tocar nada. Lo que se celebra es el
+  // MOMENTO en que el día se completa, no el hecho de estar completo. Sin
+  // esta foto no hay forma de distinguir las dos cosas, y el confeti saldría
+  // cada vez que tocaras cualquier hábito de un día ya terminado.
+  const estabaCompleto = diaCompleto(fecha);
+
   if (!datos.registros[fecha]) datos.registros[fecha] = [];
 
   const posicion = datos.registros[fecha].indexOf(idHabito);
-  if (posicion === -1) {
+  const marcando = posicion === -1;
+  if (marcando) {
     datos.registros[fecha].push(idHabito);                      // marcar
     encolar({ tipo: 'marcar', id: idHabito, fecha: fecha });
   } else {
@@ -1576,8 +1698,24 @@ function alternarFecha(idHabito, fecha) {
   // guardar filas vacías. Mantiene la copia de seguridad limpia.
   if (datos.registros[fecha].length === 0) delete datos.registros[fecha];
 
+  // La animación chica, solo al marcar: desmarcar no tiene nada que celebrar.
+  // No se aplica aquí directamente porque pintar() rehace las tarjetas desde
+  // cero y se llevaría por delante cualquier clase puesta antes. Se anota
+  // cuál fue y pintar() la aplica al construirla — el mismo truco que
+  // tareaRecienMovida usa en Pendientes.
+  habitoRecienMarcado = marcando ? idHabito : null;
+
   guardar();
   pintar();
+
+  // Y la grande. Tres condiciones, cada una por su motivo:
+  //   marcando           -> desmarcar nunca completa nada
+  //   fecha === hoy()    -> corregir un martes pasado desde el calendario no
+  //                         es "quedar al día"; es arreglar el pasado
+  //   !estabaCompleto    -> la transición, no el estado
+  if (marcando && fecha === hoy() && !estabaCompleto && diaCompleto(fecha)) {
+    celebrarDiaCompleto();
+  }
   return true;
 }
 
@@ -1699,9 +1837,28 @@ function borrarHabito(idHabito) {
    campo (un UPDATE), no borrarla de un sitio y crearla en otro. Y toda la
    lógica de abajo sirve para las dos listas con solo pasarle cuál.
 
-   Nota: estas funciones NO llaman a encolar(). Pendientes e ideas viven solo
-   en este dispositivo por ahora, a propósito: primero se usan unos días y solo
-   entonces se decide si merecen su propia tabla en Supabase.                */
+   Desde la v16 estas funciones SÍ encolan: pendientes e ideas ya tienen su
+   propia tabla en Postgres, igual que los hábitos. Se esperó a usarlas unos
+   días antes de decidirlo, que era justo el plan.
+
+   Ojo con el `orden`. Un array tiene orden por sí mismo; una tabla no, hay que
+   guardarlo en una columna. Aquí el orden de una tarea es su posición dentro
+   de datos.tareas, así que **cualquier cosa que corra las posiciones obliga a
+   volver a subir las que se movieron**. De eso se encarga encolarTareasDesde().
+   Si se olvidara, la nube devolvería las tareas en un orden que ya no es el
+   tuyo, y lo peor es que no te enterarías hasta abrir la app en otro aparato. */
+
+// Vuelve a encolar las tareas desde una posición en adelante, porque son
+// justo las que cambiaron de sitio dentro del array. Borrar la número 3 corre
+// a la 4, la 5 y la 6; las anteriores no se enteran, así que no hace falta
+// tocarlas. Subir de a poco en vez de subirlo todo es la diferencia entre una
+// petición y treinta.
+function encolarTareasDesde(indice) {
+  for (let i = Math.max(0, indice); i < datos.tareas.length; i++) {
+    encolar({ tipo: 'guardarTarea', id: datos.tareas[i].id });
+  }
+}
+
 
 // Los dos valores válidos de la columna "lista", en un solo sitio. Si algún día
 // aparece una tercera, se agrega aquí y no hay que buscar textos sueltos por
@@ -1717,8 +1874,9 @@ function agregarTarea(texto, lista) {
   const limpio = (texto || '').trim();
   if (!limpio) return false;              // una tarea vacía no es una tarea
 
+  const id = crypto.randomUUID();
   datos.tareas.push({
-    id: crypto.randomUUID(),
+    id: id,
     texto: limpio.slice(0, 120),          // el mismo tope que el campo del HTML
     hecha: false,
     creada: hoy(),
@@ -1728,6 +1886,8 @@ function agregarTarea(texto, lista) {
     lista: lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
   });
 
+  // Entra al final, así que no corre a nadie: basta con encolar esta.
+  encolar({ tipo: 'guardarTarea', id: id });
   guardar();
   pintarLista();
   return true;
@@ -1740,6 +1900,8 @@ function alternarTarea(idTarea) {
   if (!tarea) return false;
 
   tarea.hecha = !tarea.hecha;
+
+  encolar({ tipo: 'guardarTarea', id: idTarea });
   guardar();
   pintarLista();
   return true;
@@ -1760,6 +1922,56 @@ function moverALista(idTarea, lista) {
   // hacerla, así que todavía está por hacer.
   tarea.hecha = false;
 
+  // No cambia de sitio en el array, solo de columna: una sola fila que subir.
+  // Ese es el pago de haber usado un array con una columna "lista" en vez de
+  // dos arrays gemelos.
+  encolar({ tipo: 'guardarTarea', id: idTarea });
+  guardar();
+  pintarLista();
+  return true;
+}
+
+// Subir o bajar una tarea una posición dentro de SU lista.
+// direccion: -1 sube, 1 baja. Devuelve true si se movió.
+//
+// Aquí está el detalle que hace esta función menos obvia de lo que parece.
+// En pantalla ves una lista limpia de pendientes; en los datos, esos
+// pendientes están salpicados dentro de un array que también tiene las ideas
+// y las tareas ya hechas. Subir "una posición" en pantalla puede significar
+// saltar tres sitios en el array. Por eso no se intercambian vecinos a lo
+// bruto: primero se anota en qué sitios del array están las tareas que sí se
+// ven, y se intercambian esos dos sitios.
+//
+// En SQL esto sería intercambiar el valor de una columna "orden" entre dos
+// filas. Aquí el orden no es una columna: es la posición en el array. Cuando
+// estas listas suban a Supabase habrá que darles su columna `orden`, porque
+// una tabla de Postgres no tiene orden propio — es lo mismo que ya hace
+// habitoAFila() con los hábitos.
+//
+// Las tareas ya hechas no se mueven: viven al final por definición
+// (tareasOrdenadas las manda ahí), así que reordenarlas no cambiaría nada.
+function moverTarea(idTarea, direccion) {
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea || tarea.hecha) return false;
+
+  const sitios = [];
+  datos.tareas.forEach((x, i) => {
+    if (x.lista === tarea.lista && !x.hecha) sitios.push(i);
+  });
+
+  const cual = sitios.indexOf(datos.tareas.indexOf(tarea));
+  const destino = cual + direccion;
+  if (destino < 0 || destino >= sitios.length) return false;   // ya está en el extremo
+
+  // Se intercambia el CONTENIDO de los dos sitios. Lo que haya en medio
+  // (ideas, tareas hechas) ni se entera.
+  const a = sitios[cual];
+  const b = sitios[destino];
+  [datos.tareas[a], datos.tareas[b]] = [datos.tareas[b], datos.tareas[a]];
+
+  // Cambiaron de sitio exactamente dos, así que se suben exactamente dos.
+  encolar({ tipo: 'guardarTarea', id: datos.tareas[a].id });
+  encolar({ tipo: 'guardarTarea', id: datos.tareas[b].id });
   guardar();
   pintarLista();
   return true;
@@ -1792,6 +2004,7 @@ function editarTarea(idTarea, textoNuevo, notaNueva) {
   tarea.texto = texto;
   if (nota) tarea.nota = nota; else delete tarea.nota;
 
+  encolar({ tipo: 'guardarTarea', id: idTarea });
   guardar();
   pintarLista();
   return true;
@@ -1809,9 +2022,15 @@ function renombrarTarea(idTarea, textoNuevo) {
 // línea de texto que vuelves a escribir en tres segundos. Además la ✕ solo
 // existe en modo edición, que ya es una barrera.
 function borrarTarea(idTarea) {
-  const antes = datos.tareas.length;
-  datos.tareas = datos.tareas.filter(x => x.id !== idTarea);
-  if (datos.tareas.length === antes) return false;   // ese id no existía
+  const donde = datos.tareas.findIndex(x => x.id === idTarea);
+  if (donde === -1) return false;                    // ese id no existía
+
+  datos.tareas.splice(donde, 1);
+
+  encolar({ tipo: 'borrarTarea', id: idTarea });
+  // Las que venían detrás se corrieron un sitio, así que su "orden" en la
+  // nube quedó viejo. Se vuelven a subir; las de delante no se movieron.
+  encolarTareasDesde(donde);
 
   guardar();
   pintarLista();
@@ -1822,13 +2041,21 @@ function borrarTarea(idTarea) {
 // Que reciba la lista importa: limpiar tus pendientes no debe tocar tus ideas.
 // En SQL: DELETE FROM tareas WHERE hecha = true AND lista = ?
 function limpiarHechas(lista) {
-  const cuantas = datos.tareas.filter(tarea => tarea.hecha && tarea.lista === lista).length;
-  if (cuantas === 0) return 0;
+  const seVan = datos.tareas.filter(tarea => tarea.hecha && tarea.lista === lista);
+  if (seVan.length === 0) return 0;
+
+  // Dónde estaba la primera que se va: desde ahí en adelante todas cambian de
+  // sitio. Hay que anotarlo ANTES de borrar, porque después ya no está.
+  const primera = datos.tareas.indexOf(seVan[0]);
 
   datos.tareas = datos.tareas.filter(tarea => !(tarea.hecha && tarea.lista === lista));
+
+  seVan.forEach(tarea => encolar({ tipo: 'borrarTarea', id: tarea.id }));
+  encolarTareasDesde(primera);
+
   guardar();
   pintarLista();
-  return cuantas;
+  return seVan.length;
 }
 
 // El orden en que se dibujan: primero lo que falta, al final lo hecho.
@@ -1862,6 +2089,13 @@ function contarTareas(lista) {
    desincroniza nunca.                                           */
 
 const lista = document.getElementById('lista');
+
+// Cuál hábito se acaba de marcar, para darle la animación del círculo al
+// dibujarlo. Vive fuera de pintar() porque quien lo pone es alternarFecha(),
+// que ocurre antes. Se limpia sola después de usarla una vez: si se quedara
+// puesta, la animación volvería a salir al cambiar de idioma o al sincronizar,
+// que también repintan.
+let habitoRecienMarcado = null;
 
 /* Traduce todo lo que está escrito directamente en el HTML.
 
@@ -1973,6 +2207,12 @@ function pintar() {
       </div>
     `;
 
+    // Si este es el hábito que se acaba de marcar, su círculo nace con la
+    // clase puesta y el navegador arranca la animación al insertarlo.
+    if (h.id === habitoRecienMarcado) {
+      tarjeta.querySelector('.check').classList.add('celebrar');
+    }
+
     // Tocar la tarjeta = marcar/desmarcar
     tarjeta.querySelector('.check').onclick = () => alternarHoy(h.id);
     tarjeta.querySelector('.habito-info').onclick = () => {
@@ -2010,6 +2250,73 @@ function pintar() {
 
     lista.appendChild(tarjeta);
   });
+
+  // Ya se dibujó con su animación. Se limpia para que el siguiente repintado
+  // no la repita — mismo cierre que pintarLista() hace con tareaRecienMovida.
+  habitoRecienMarcado = null;
+}
+
+/* ---------- E2. EL CONFETI DEL DÍA COMPLETO ----------
+   Esto no se puede probar con pruebas.js: no hay pantalla que mirar. Lo que
+   sí se prueba es la condición que lo dispara, diaCompleto(), que vive arriba
+   en la sección C. Esa es la razón de haberlas separado — la parte que puede
+   equivocarse es la decisión, no la animación.                              */
+
+const capaConfeti = document.getElementById('confeti');
+
+const PAPELITOS = 34;   // suficientes para que se vea, pocos para que no pese
+
+// Los colores se leen del CSS en el momento de lanzar, no al abrir la app.
+// Motivo: el tema pudo haber cambiado desde entonces, y unos papelitos
+// pensados para fondo oscuro cayendo sobre fondo blanco se ven mal.
+function coloresConfeti() {
+  const css = getComputedStyle(document.documentElement);
+  return ['--exito', '--acento', '--celebrar']
+    .map(nombre => css.getPropertyValue(nombre).trim())
+    .filter(Boolean);
+}
+
+// Un número al azar entre dos, para no repetir Math.random() por todas partes.
+function entre(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function celebrarDiaCompleto() {
+  // Si el teléfono pide menos movimiento (Ajustes > Accesibilidad > Movimiento),
+  // no se lanza nada. Se comprueba aquí y no solo en el CSS porque así ni
+  // siquiera se crean los 34 elementos: es más barato no hacer el trabajo que
+  // hacerlo y esconderlo.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const colores = coloresConfeti();
+
+  // Si quedara confeti de una celebración anterior a medias, se limpia. Puede
+  // pasar si desmarcas y vuelves a marcar rápido.
+  capaConfeti.innerHTML = '';
+
+  for (let i = 0; i < PAPELITOS; i++) {
+    const papel = document.createElement('div');
+    papel.className = 'papelito';
+
+    papel.style.left            = entre(0, 100) + 'vw';
+    papel.style.top             = entre(-15, -5) + 'vh';   // arrancan fuera de la pantalla, arriba
+    papel.style.background      = colores[i % colores.length];
+    papel.style.borderRadius    = Math.random() < .35 ? '50%' : '2px';
+
+    // Las tres variables que usa la animación 'caer'. El azar vive en
+    // JavaScript y el movimiento en CSS: así el navegador anima en la tarjeta
+    // gráfica en vez de que nosotros movamos cada papelito con un temporizador.
+    papel.style.setProperty('--dx',   entre(-70, 70) + 'px');
+    papel.style.setProperty('--giro', entre(-540, 540) + 'deg');
+    papel.style.setProperty('--dur',  entre(1.6, 2.8) + 's');
+
+    capaConfeti.appendChild(papel);
+  }
+
+  // Borrar los elementos cuando termina la animación. Sin esto se irían
+  // acumulando 34 divs invisibles por cada día completado, para siempre.
+  // 3000 ms cubre el papelito más lento (2.8s) con margen.
+  setTimeout(() => { capaConfeti.innerHTML = ''; }, 3000);
 }
 
 /* ---------- F0. EMOJIS (lógica pura, se prueba) ----------
@@ -2493,7 +2800,23 @@ async function iniciarNube(createClient) {
 function primeraSincronizacion() {
   if (!datos.subidaHecha) {
     subirTodo();               // en un teléfono nuevo esto no encola nada
-    datos.subidaHecha = true;
+    datos.subidaHecha   = true;
+    datos.tareasSubidas = true;   // subirTodo() ya las encoló
+    guardar();
+
+  } else if (!datos.tareasSubidas) {
+    // Este caso es el importante y es fácil de no ver. Las tareas llegaron a
+    // la nube en la v16, pero tú ya habías entrado antes: tienes subidaHecha
+    // en true, así que la rama de arriba no se ejecuta nunca más. Sin esta
+    // segunda bandera tus pendientes e ideas no se subirían jamás, y el
+    // primer bajarTodo() te los borraría a todos reemplazándolos por la tabla
+    // vacía de la nube.
+    //
+    // La regla general: cada vez que el modelo crece, hay que preguntarse qué
+    // pasa con quien ya venía usando la app. Los datos nuevos casi nunca son
+    // el problema; los viejos, casi siempre.
+    encolarTareasDesde(0);
+    datos.tareasSubidas = true;
     guardar();
   }
   sincronizar();
@@ -2614,6 +2937,43 @@ function filasARegistros(filas) {
   return registros;
 }
 
+// De una tarea de la app a una fila de la tabla "tareas".
+//
+// Dos detalles que no son cosméticos:
+//   - la nota vacía sube como null, no como ''. En la app un campo vacío ni
+//     existe; en la base, null significa lo mismo. Guardar '' sería inventarse
+//     un tercer estado ("existe pero está vacía") que no significa nada.
+//   - hecha va con Boolean() porque Postgres es estricto con los tipos: un
+//     undefined llegando a una columna "boolean not null" es un error, no un
+//     false. JavaScript perdona esas cosas; SQL no.
+function tareaAFila(tarea, indice, usuarioId) {
+  return {
+    id:      tarea.id,
+    usuario: usuarioId,
+    texto:   tarea.texto,
+    nota:    tarea.nota || null,
+    hecha:   Boolean(tarea.hecha),
+    lista:   tarea.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes,
+    creada:  tarea.creada || hoy(),
+    orden:   indice
+  };
+}
+
+// Y de vuelta. Las filas llegan ordenadas por la columna "orden" (eso lo pide
+// la consulta), y aquí se vuelven a convertir en el array que usa la app.
+// La nota se omite si viene vacía, para que los datos locales queden
+// exactamente como los deja editarTarea(): sin campos vacíos de adorno.
+function filasATareas(filas) {
+  return (filas || []).map(f => {
+    const tarea = {
+      id: f.id, texto: f.texto, hecha: Boolean(f.hecha),
+      creada: f.creada, lista: f.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
+    };
+    if (f.nota) tarea.nota = f.nota;
+    return tarea;
+  });
+}
+
 // Cuenta cuántos cambios distintos hay esperando, para el mensaje del panel.
 function textoPendientes(cuantos) {
   if (cuantos === 0) return t('todoSincronizado');
@@ -2659,6 +3019,22 @@ async function enviarPendiente(p) {
     return !error;
   }
 
+  if (p.tipo === 'guardarTarea') {
+    // Se busca la posición ahora, al enviar, y no cuando se encoló. Si
+    // mientras tanto la tarea se movió, sube con su sitio de verdad.
+    const i = datos.tareas.findIndex(x => x.id === p.id);
+    if (i === -1) return true;   // la borraste después; ya no hay nada que subir
+
+    const { error } = await nube.from('tareas')
+      .upsert(tareaAFila(datos.tareas[i], i, usuarioId));
+    return !error;
+  }
+
+  if (p.tipo === 'borrarTarea') {
+    const { error } = await nube.from('tareas').delete().eq('id', p.id);
+    return !error;
+  }
+
   return true;   // un tipo desconocido no debe atascar la cola para siempre
 }
 
@@ -2674,6 +3050,13 @@ async function bajarTodo() {
     await nube.from('registros').select('*');
   if (e2) return false;
 
+  // El .order('orden') no es un adorno: en SQL, si no pides un orden, el
+  // motor te devuelve las filas como le convenga. Sin esta línea tus
+  // pendientes llegarían barajados.
+  const { data: filasTareas, error: e3 } =
+    await nube.from('tareas').select('*').order('orden');
+  if (e3) return false;
+
   // Red de seguridad. Si la nube llega vacía pero aquí sí hay hábitos,
   // guardamos una copia aparte antes de reemplazar. No debería pasar nunca
   // — solo bajamos con la cola vacía — pero perder el historial es justo
@@ -2683,14 +3066,16 @@ async function bajarTodo() {
     console.warn('La nube vino vacía. Copia de emergencia guardada.');
   }
 
-  // Ojo: aquí NO se toca datos.tareas. Los pendientes viven solo en este
-  // dispositivo, así que bajar de la nube no debe borrarlos. El día que
-  // se sincronicen, este es el sitio donde habrá que agregarlos.
   datos.habitos   = filasAHabitos(filasHabitos);
   datos.registros = filasARegistros(filasRegistros);
+  // Desde la v16 las tareas también bajan. Se puede reemplazar sin miedo por
+  // la misma razón que los hábitos: solo se llega aquí con la cola vacía, o
+  // sea cuando la nube ya tiene todo lo tuyo.
+  datos.tareas    = filasATareas(filasTareas);
 
   guardar();
   pintar();
+  pintarLista();   // por si estabas parado en Pendientes o en Ideas cuando bajó
   return true;
 }
 
@@ -2702,6 +3087,7 @@ function subirTodo() {
   for (const fecha in datos.registros) {
     datos.registros[fecha].forEach(id => encolar({ tipo: 'marcar', id: id, fecha: fecha }));
   }
+  encolarTareasDesde(0);   // y las tareas enteras, con su orden
 }
 
 /* ---------- M7. EL CICLO DE SINCRONIZACIÓN ---------- */
@@ -2865,6 +3251,12 @@ function pintarLista() {
   // tareasOrdenadas() ya devuelve las que faltan primero y las hechas al final.
   const enIdeas = vista === 'ideas';
 
+  // Las que todavía están por hacer, en el orden en que se ven. Se calcula una
+  // sola vez y no dentro del bucle: buscar la posición de cada tarjeta
+  // recorriendo el array entero, para cada tarjeta, es hacer el mismo trabajo
+  // muchas veces. Con diez pendientes da igual; es la costumbre lo que importa.
+  const porHacer = tareasDe(vista).filter(x => !x.hecha);
+
   tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
     tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
@@ -2876,6 +3268,13 @@ function pintarLista() {
     const botonMover = (enIdeas && !item.hecha)
       ? `<button class="mover" title="${t('aPendientesTitulo')}">→</button>` : '';
 
+    // Posición entre las que faltan, para saber si sus flechas deben estar
+    // apagadas. Una tarea ya hecha no tiene posición aquí (-1) y las lleva
+    // apagadas las dos: vive al final de la lista por definición.
+    const puesto  = porHacer.indexOf(item);
+    const arriba  = puesto <= 0;
+    const abajo   = puesto === -1 || puesto === porHacer.length - 1;
+
     tarjeta.innerHTML = `
       <div class="check">✓</div>
       <div class="tarea-info">
@@ -2883,6 +3282,8 @@ function pintarLista() {
       </div>
       ${botonMover}
       <div class="acciones">
+        <button class="subir"  ${arriba ? 'disabled' : ''}>↑</button>
+        <button class="bajar"  ${abajo  ? 'disabled' : ''}>↓</button>
         <button class="borrar">✕</button>
       </div>
     `;
@@ -2926,6 +3327,12 @@ function pintarLista() {
     };
 
     tarjeta.querySelector('.borrar').onclick = () => borrarTarea(item.id);
+
+    // Reordenar. Mismo gesto que en Hábitos a propósito: flechas en modo
+    // edición, y los botones de los extremos apagados en vez de escondidos
+    // para que los demás no cambien de sitio bajo el dedo.
+    tarjeta.querySelector('.subir').onclick = () => moverTarea(item.id, -1);
+    tarjeta.querySelector('.bajar').onclick = () => moverTarea(item.id, 1);
 
     if (botonMover) {
       tarjeta.querySelector('.mover').onclick = (ev) => {

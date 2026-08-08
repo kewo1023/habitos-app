@@ -30,7 +30,15 @@ class El {
     this.tagName = (tag || 'div').toUpperCase();
     this.children = [];       // los que se añaden con appendChild
     this._hijosHtml = [];     // los que salen de parsear un innerHTML
-    this._value = ''; this.style = {}; this.dataset = {};
+    this._value = '';
+    // style es un objeto normal con dos métodos encima. setProperty es lo que
+    // usa el confeti para pasarle sus variables (--dx, --giro, --dur) a la
+    // animación que vive en el CSS. Sin él la app explota al lanzarlo.
+    this.style = {
+      setProperty(nombre, valor) { this[nombre] = String(valor); },
+      getPropertyValue(nombre) { return this[nombre] || ''; }
+    };
+    this.dataset = {};
     this._text = ''; this._html = ''; this._classes = new Set();
     this._lis = {}; this.onclick = null; this.onchange = null; this.onsubmit = null;
     this.type = ''; this.disabled = false; this.hidden = false;
@@ -80,6 +88,9 @@ class El {
       if (cls) hijo.className = cls[1];
       const di = /data-i="([^"]*)"/.exec(m[2]);
       if (di) hijo.dataset.i = di[1];
+      // "disabled" no lleva valor: está o no está. Es como lo escribe la app
+      // en las flechas de reordenar, tanto en hábitos como en tareas.
+      if (/\bdisabled\b/.test(m[2])) hijo.disabled = true;
       this._hijosHtml.push(hijo);
     }
   }
