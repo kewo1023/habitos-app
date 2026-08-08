@@ -1,0 +1,26 @@
+# Archivos que git debe ignorar
+#
+# Cada línea es un patrón. Lo que coincida no aparece en la lista de cambios
+# de VS Code y nunca se sube a GitHub. Ojo: esto NO borra nada de tu Mac,
+# solo le dice a git que mire para otro lado.
+#
+# Regla para el futuro: aquí van los archivos que el sistema o las
+# herramientas crean solos. Lo que escribes tú, va al repositorio.
+
+# macOS lo crea en cada carpeta para recordar cómo la tienes ordenada en el
+# Finder (posición de los íconos, tamaño de la ventana). No es parte del
+# proyecto y cambia solo con abrir la carpeta.
+.DS_Store
+
+# Lo mismo, pero en carpetas de dentro.
+**/.DS_Store
+
+# Windows y Linux tienen sus equivalentes. Si algún día abres el proyecto
+# desde otro sistema, ya están cubiertos.
+Thumbs.db
+desktop.ini
+
+# Copias de seguridad de la app. Las exportas para guardarlas tú, no para
+# publicarlas: llevan tu historial completo de hábitos y el repositorio es
+# público. Si alguna vez guardas una aquí por comodidad, no se sube.
+habitos-*.json
