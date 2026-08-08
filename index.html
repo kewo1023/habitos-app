@@ -1277,8 +1277,9 @@ const TEXTOS = {
     sinNube: 'Sin conexión con la nube. La app funciona igual, con los datos del teléfono.',
     sincronizando: 'Sincronizando…', sinSenal: 'Sin señal por ahora.',
     todoSincronizado: 'Todo sincronizado.',
-    unCambioEsperando: '1 cambio esperando señal.',
-    cambiosEsperando: '%n cambios esperando señal.',
+    unCambioEsperando: '1 cambio sin subir.',
+    cambiosEsperando: '%n cambios sin subir.',
+    errorSubiendo: 'La nube rechazó "%t": %m',
     errCredenciales: 'Correo o contraseña incorrectos.',
     errSinConfirmar: 'La cuenta existe pero está sin confirmar. Actívala desde el panel de Supabase.',
     errSinConexion: 'Sin conexión. Tus hábitos siguen guardados en el teléfono.',
@@ -1362,8 +1363,9 @@ const TEXTOS = {
     sinNube: 'No connection to the cloud. The app works the same, with the data on this phone.',
     sincronizando: 'Syncing…', sinSenal: 'No signal right now.',
     todoSincronizado: 'Everything synced.',
-    unCambioEsperando: '1 change waiting for signal.',
-    cambiosEsperando: '%n changes waiting for signal.',
+    unCambioEsperando: '1 change not uploaded.',
+    cambiosEsperando: '%n changes not uploaded.',
+    errorSubiendo: 'The cloud rejected "%t": %m',
     errCredenciales: 'Wrong email or password.',
     errSinConfirmar: 'The account exists but is unconfirmed. Activate it from the Supabase dashboard.',
     errSinConexion: 'No connection. Your habits are still saved on the phone.',
@@ -2726,6 +2728,17 @@ const NUBE = {
 let nube = null;      // el cliente de Supabase, cuando termine de cargar
 let sesion = null;    // la sesión activa, o null si no has entrado
 
+// El último error que devolvió la nube al intentar subir algo, o null si el
+// último intento salió bien. Lo escribe enviarPendiente() (M6) y lo lee
+// pintarSesion() (M4).
+//
+// Se declara aquí arriba, y no junto a la función que lo escribe, porque
+// pintarSesion() se llama nada más cargar la página — antes de que el
+// navegador haya leído la sección M6. Una variable declarada con `let` no
+// existe hasta que se llega a su línea, así que declararla abajo la dejaría
+// fuera de alcance justo en ese primer dibujado.
+let ultimoErrorNube = null;
+
 /* ---------- M1. TRADUCIR ERRORES (lógica pura, se prueba) ----------
    Supabase responde en inglés y en jerga. Esta función traduce los
    casos que de verdad te pueden pasar. Está aparte del resto porque
@@ -2844,14 +2857,29 @@ function pintarSesion(mensaje, tipo) {
   if (mensaje) {
     estado.textContent = mensaje;
   } else if (conectado) {
+    // El orden de estos casos es el orden en que hay que sospechar. Antes
+    // solo había dos ramas y la del medio se comía a la de abajo: con
+    // cambios en la cola siempre decía "esperando señal", aunque la señal
+    // estuviera perfecta y el problema fuera que la nube estaba rechazando
+    // algo. Un mensaje que culpa al motivo equivocado es peor que no tener
+    // mensaje: te manda a mirar donde no es.
     let detalle;
-    if (sincronizando)                  detalle = t('sincronizando');
-    else if (navigator.onLine === false) detalle = textoPendientes(datos.pendientes.length) +
-                                                   ' ' + t('sinSenal');
-    else                                 detalle = textoPendientes(datos.pendientes.length);
+    if (sincronizando) {
+      detalle = t('sincronizando');
+    } else if (navigator.onLine === false) {
+      detalle = textoPendientes(datos.pendientes.length) + ' ' + t('sinSenal');
+    } else if (ultimoErrorNube) {
+      detalle = textoPendientes(datos.pendientes.length) + ' ' +
+                t('errorSubiendo')
+                  .replace('%t', ultimoErrorNube.tipo)
+                  .replace('%m', ultimoErrorNube.mensaje);
+    } else {
+      detalle = textoPendientes(datos.pendientes.length);
+    }
 
     estado.textContent = `${sesion.user.email} — ${detalle}`;
-    if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
+    if (ultimoErrorNube && !sincronizando) estado.className += ' error';
+    else if (!sincronizando && datos.pendientes.length === 0) estado.className += ' bien';
   } else if (nube) {
     estado.textContent = t('invitaEntrar');
   } else {
@@ -2984,11 +3012,36 @@ function textoPendientes(cuantos) {
 
 /* ---------- M6. SUBIR Y BAJAR ---------- */
 
+// Nota: `ultimoErrorNube` se declara arriba, junto a `nube` y `sesion`.
+//
+// Existe por un problema real: la cola se atascó con 14 cambios y el panel
+// decía "esperando señal" aunque había señal de sobra. El código miraba si
+// hubo error (`return !error`) y tiraba el motivo a la basura, así que no
+// había forma de saber qué pasaba sin abrir la consola del navegador.
+//
+// La regla que sale de ahí: **una cola que falla en silencio no se puede
+// arreglar**. Si algo se reintenta solo, tiene que poder contar por qué no
+// funcionó la última vez.
+
 // Envía UN pendiente. Devuelve true si se pudo, false si no.
 // Devolver false no es un fracaso definitivo: significa "todavía no",
 // y el pendiente se queda en la cola para el próximo intento.
 async function enviarPendiente(p) {
   const usuarioId = sesion.user.id;
+
+  // Un solo sitio que decide qué devolver y que además deja constancia.
+  // Antes esto era un `return !error` repetido cinco veces; ahora los cinco
+  // pasan por aquí, así que no hay manera de olvidarse de anotar el motivo
+  // en uno de ellos.
+  const resultado = (error) => {
+    if (error) {
+      ultimoErrorNube = { tipo: p.tipo, mensaje: error.message || String(error) };
+      console.error('No se pudo subir', p, error);
+      return false;
+    }
+    ultimoErrorNube = null;
+    return true;
+  };
 
   if (p.tipo === 'guardarHabito') {
     const i = datos.habitos.findIndex(h => h.id === p.id);
@@ -2996,12 +3049,12 @@ async function enviarPendiente(p) {
 
     const { error } = await nube.from('habitos')
       .upsert(habitoAFila(datos.habitos[i], i, usuarioId));
-    return !error;
+    return resultado(error);
   }
 
   if (p.tipo === 'borrarHabito') {
     const { error } = await nube.from('habitos').delete().eq('id', p.id);
-    return !error;
+    return resultado(error);
   }
 
   if (p.tipo === 'marcar') {
@@ -3010,13 +3063,13 @@ async function enviarPendiente(p) {
     // duplica nada: la base de datos no lo permite.
     const { error } = await nube.from('registros')
       .upsert({ usuario: usuarioId, habito_id: p.id, fecha: p.fecha });
-    return !error;
+    return resultado(error);
   }
 
   if (p.tipo === 'desmarcar') {
     const { error } = await nube.from('registros').delete()
       .eq('habito_id', p.id).eq('fecha', p.fecha);
-    return !error;
+    return resultado(error);
   }
 
   if (p.tipo === 'guardarTarea') {
@@ -3027,12 +3080,12 @@ async function enviarPendiente(p) {
 
     const { error } = await nube.from('tareas')
       .upsert(tareaAFila(datos.tareas[i], i, usuarioId));
-    return !error;
+    return resultado(error);
   }
 
   if (p.tipo === 'borrarTarea') {
     const { error } = await nube.from('tareas').delete().eq('id', p.id);
-    return !error;
+    return resultado(error);
   }
 
   return true;   // un tipo desconocido no debe atascar la cola para siempre

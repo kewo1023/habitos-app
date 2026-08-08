@@ -331,8 +331,10 @@ ok('un hábito sobrevive el viaje de ida y vuelta',
    idaVuelta[0].emoji === '🏃' && idaVuelta[0].creado === '2026-02-02');
 
 ok('textoPendientes en cero',  ctx.textoPendientes(0) === 'Todo sincronizado.');
-ok('textoPendientes en uno',   ctx.textoPendientes(1) === '1 cambio esperando señal.');
-ok('textoPendientes en varios', ctx.textoPendientes(5) === '5 cambios esperando señal.');
+// Ojo: estos textos cambiaron en la v17. Decían "esperando señal" siempre, y
+// eso hacía que un rechazo de la nube pareciera un problema de internet.
+ok('textoPendientes en uno',   ctx.textoPendientes(1) === '1 cambio sin subir.');
+ok('textoPendientes en varios', ctx.textoPendientes(5) === '5 cambios sin subir.');
 
 // --- la cola de pendientes
 ctx.datos.habitos = [];
@@ -734,7 +736,7 @@ ok('localeFechas en español',    ctx.localeFechas() === 'es-CO');
 ctx.datos.prefs.idioma = 'en';
 ok('t() en inglés',              ctx.t('guardar') === 'Save');
 ok('textoPendientes en inglés',  ctx.textoPendientes(0) === 'Everything synced.');
-ok('el plural rellena el número', ctx.textoPendientes(3) === '3 changes waiting for signal.');
+ok('el plural rellena el número', ctx.textoPendientes(3) === '3 changes not uploaded.');
 ok('localeFechas en inglés',     ctx.localeFechas() === 'en-US');
 ok('mensajeDeError traduce al inglés',
    ctx.mensajeDeError({ message: 'Invalid login credentials' }) === 'Wrong email or password.');
