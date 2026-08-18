@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 316 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 64 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 344 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 81 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -348,6 +348,38 @@ pantalla, agregarlo a `pruebas-app.js`.
     vez que el modelo crece hay que preguntarse qué pasa con los datos viejos.
   - `bajarTodo()` ahora **sí** reemplaza `datos.tareas`, y llama a
     `pintarLista()` además de a `pintar()`.
+- **Fase 3.8 — La carrera de la sincronización y la importancia ✅ (v18)**
+  - **El bug que se sentía como un fantasma:** marcabas un hábito y se
+    desmarcaba solo un instante después. Era `bajarTodo()`: tres viajes a la
+    red, y al volver **reemplaza** lo local con una foto de *antes* de tu
+    toque. `sincronizar()` comprobaba la cola vacía, pero **antes** de pedir
+    los datos. Ahora `sePuedeAplicarLoBajado(cola)` se comprueba **al
+    terminar**, justo antes de reemplazar. **Regla general que se lleva:
+    cuando una respuesta de red va a reemplazar estado, hay que preguntarse
+    qué pasó mientras esperabas.**
+  - Segundo agujero, silencioso: si tu cambio caía mientras había una
+    sincronización en curso, el temporizador se gastaba y el cambio se
+    quedaba en la cola hasta reabrir la app. El `finally` reprograma — pero
+    solo si no fue un error lo que dejó pendientes (`huboError`), porque
+    reintentar cada segundo contra un rechazo es martillear.
+  - **Importancia de un pendiente:** alta / media / baja / sin marcar. Se
+    toca la franja del borde izquierdo y cicla. `PRIORIDADES` en D2.
+  - **Decisión clave:** la baja **no es verde**. El verde ya significa "hecho"
+    en esta app; un pendiente verde sin hacer diría dos cosas a la vez.
+  - **Decisión clave:** el orden de **Pendientes es automático** por
+    importancia, y por eso esa lista **perdió las flechas ↑↓**. **Ideas las
+    conserva** (petición de Kev): no tienen importancia y ahí el orden lo pone
+    él. Tercer sitio donde las dos listas se comportan distinto a propósito.
+  - **Ojo:** el desempate a igual importancia es la antigüedad, apoyada en que
+    `sort` es estable. **No se puede desempatar por `creada`**: guarda el día
+    sin la hora, así que todo lo de hoy empata.
+  - Postgres: columna `prioridad` con `check`, **sin `not null` ni `default`**.
+    Un `default 'baja'` convertiría "no clasificado" en "poco importante".
+    **Paso 6** de `PASOS-FASE-3.md`.
+  - **Sin resolver, lo encontró Kev usándola:** al mover una idea a Pendientes
+    su nota de contexto no se borra pero **queda inalcanzable** (no se dibuja
+    ahí, y no hay botón de vuelta). Su pregunta: si una idea se puede trabajar
+    sin moverla, ¿para qué el botón →?
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -367,12 +399,18 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v16` (celebraciones + reordenar tareas + tareas en la
-nube). La `v15` quedó publicada (commits `451d68c` y `c55160e`).
+`VERSION` en el Mac: `v18` (arreglo de la carrera de sincronización +
+importancia de los pendientes). La `v17` quedó publicada (commit `479107f`).
 
-**Orden obligatorio para la v16:** primero correr el SQL del Paso 5 de
-`PASOS-FASE-3.md` en Supabase, y solo después publicar. Si la app sube tareas a
-una tabla que no existe, la cola se atasca reintentando.
+**Orden obligatorio para la v18:** primero correr el SQL del **Paso 6** de
+`PASOS-FASE-3.md` en Supabase, y solo después publicar. Si la app sube tareas
+con una columna que la tabla no conoce, la cola se atasca reintentando. Es la
+misma trampa que en la v16, y se cayó en ella una vez.
+
+**Regla que salió de la v18:** un test escrito después del arreglo pasa siempre
+— también si el arreglo no sirve. Antes de darlo por bueno, desactivar a
+propósito lo que se acaba de arreglar y comprobar que algo se pone rojo. Cuesta
+un minuto.
 
 **Probar en el iPhone exige publicar.** La vista de móvil del inspector del
 navegador simula el tamaño de pantalla, no el comportamiento de iOS: el autofill

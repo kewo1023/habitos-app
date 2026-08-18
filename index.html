@@ -90,6 +90,22 @@
   /* El tercer color del confeti. El verde y el azul ya los tiene la app; hacía
      falta uno cálido para que los papelitos no parezcan más de lo mismo. */
   --celebrar:      #f2c14e;
+
+  /* La importancia de un pendiente (v18). Tres decisiones detrás de estos
+     cuatro colores:
+
+     1. La baja NO es verde, aunque sea lo que pide el instinto. En esta app el
+        verde ya significa "hecho": lo usan los hábitos cumplidos y las tareas
+        tachadas. Un pendiente verde que no está hecho diría dos cosas a la vez.
+     2. Rojo, ámbar y azul se distinguen también por lo claros que son, no solo
+        por el tono. Quien no separa bien rojo de verde sigue viendo tres cosas
+        distintas — y además la posición en la lista dice lo mismo que el color.
+     3. "Sin importancia" tiene color propio y no es transparente: la franja
+        tiene que verse siempre para que sepas que se puede tocar. */
+  --prio-alta:    #ff6b6b;
+  --prio-media:   #f2b544;
+  --prio-baja:    #7f9cc4;
+  --prio-ninguna: #454e5f;   /* callado, pero visible: si no se ve, no invita a tocarla */
 }
 
 /* El tema claro. No es "el oscuro con los números al revés": el fondo no es
@@ -122,6 +138,14 @@
   /* El mismo amarillo, un punto más oscuro: sobre fondo claro el de arriba
      casi desaparece. Es el mismo ajuste que hubo que hacerle al verde. */
   --celebrar:      #d99e10;
+
+  /* Los cuatro de la importancia, oscurecidos. Un color pensado para brillar
+     sobre fondo negro se lava sobre fondo blanco: es el mismo ajuste que ya
+     hubo que hacerle al verde, al azul y al amarillo del confeti. */
+  --prio-alta:    #d0342c;
+  --prio-media:   #b45309;
+  --prio-baja:    #5470a3;
+  --prio-ninguna: #c2c8d4;
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -604,6 +628,51 @@ body.vista-tareas .panel-datos { display: none; }
 }
 
 .tarea:active { transform: scale(0.98); }
+
+/* --- La franja de importancia (v18) ---
+   Solo en Pendientes. Es el tercer sitio tocable de la tarjeta, y está donde
+   está por descarte: el círculo ✓ marca y el texto también (en Pendientes ese
+   es el gesto de cada día y no se toca), así que la importancia necesitaba un
+   sitio propio que no le quitara el suyo a nadie.
+
+   Se descartó meterla como cuarto botón del modo edición: ahí ya estaban ↑ ↓ ✕
+   y en un iPhone no caben cuatro. Al final salió mejor de lo previsto, porque
+   con el orden automático las dos flechas sobraban en esta lista.
+
+   El botón mide 22px de ancho pero la barra que se ve son 5px. Esa diferencia
+   es a propósito: lo que el dedo necesita y lo que el ojo necesita no son la
+   misma medida, y el dedo pide bastante más. */
+.prio {
+  flex: 0 0 22px;
+  align-self: stretch;          /* toda la altura de la tarjeta */
+  margin: -13px 0 -13px -15px;  /* se come el padding para pegarse al borde */
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.prio::before {
+  content: '';
+  width: 5px;
+  height: 26px;
+  border-radius: 3px;
+  background: var(--prio-ninguna);
+  transition: background .18s ease;
+}
+
+.prio.alta::before  { background: var(--prio-alta); }
+.prio.media::before { background: var(--prio-media); }
+.prio.baja::before  { background: var(--prio-baja); }
+
+/* En una tarea ya hecha la importancia deja de significar algo, y además la
+   tarjeta hecha pinta su propia franja verde en ese mismo borde: dos franjas
+   pegadas se leerían como un error. Se esconde con visibility y no con display
+   para que el resto de la tarjeta no se corra bajo el dedo al marcarla. */
+.tarea.hecha .prio { visibility: hidden; }
 
 /* Las hechas se hunden, igual que un hábito cumplido. Mismas señales
    visuales en las dos secciones = una sola regla que aprender. */
@@ -1228,6 +1297,15 @@ const TEXTOS = {
     confirmLimpiar: '¿Borrar las cosas ya hechas de esta lista?',
     idea: 'Idea', contexto: 'Contexto', aPendientes: '→ A Pendientes',
     aPendientesTitulo: 'Mover a Pendientes',
+
+    // --- Importancia de un pendiente (v18) ---
+    // El nombre corto va aparte del título porque el título los junta:
+    // "Importancia: Alta". Guardar la frase entera armada obligaría a tener
+    // cuatro frases casi iguales en cada idioma.
+    prioTitulo: 'Importancia',
+    prioAlta: 'Alta', prioMedia: 'Media', prioBaja: 'Baja',
+    prioNinguna: 'Sin marcar',
+
     phContexto: '¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes.',
     confirmBorrarIdea: '¿Borrar esta idea?',
     confirmBorrarIdeaNota: '¿Borrar esta idea? También se pierde el contexto que escribiste.',
@@ -1317,6 +1395,11 @@ const TEXTOS = {
     confirmLimpiar: 'Delete the finished items from this list?',
     idea: 'Idea', contexto: 'Context', aPendientes: '→ To To-do',
     aPendientesTitulo: 'Move to To-do',
+
+    prioTitulo: 'Priority',
+    prioAlta: 'High', prioMedia: 'Medium', prioBaja: 'Low',
+    prioNinguna: 'Unset',
+
     phContexto: 'Why did it seem like a good one? What problem does it solve? Whatever you want to remember a month from now.',
     confirmBorrarIdea: 'Delete this idea?',
     confirmBorrarIdeaNota: 'Delete this idea? The context you wrote goes with it.',
@@ -2073,9 +2156,87 @@ function limpiarHechas(lista) {
 //
 // Es una función pura: no toca nada, solo devuelve una lista nueva. Por eso se
 // puede probar sin arrancar la app.
+/* --- La importancia de un pendiente (v18) ---
+
+   Los tres niveles, en orden de más a menos. La ausencia del campo es el
+   cuarto estado ("sin marcar") y no se escribe aquí: un pendiente nace sin
+   importancia, y `prioridad` sencillamente no existe en sus datos. Es el mismo
+   criterio que la nota de las ideas — un campo vacío no se guarda como '' ni
+   como null, se guarda no estando.
+
+   Por qué en una lista y no escritas sueltas: el día que quieras un cuarto
+   nivel, se agrega aquí y el ciclo, el orden y las pruebas se enteran solos. */
+const PRIORIDADES = ['alta', 'media', 'baja'];
+
+// Qué viene después al tocar la franja. El ciclo da la vuelta entera:
+//   sin marcar -> alta -> media -> baja -> sin marcar
+// Devuelve undefined para "sin marcar", que es exactamente lo que hay que
+// guardar: nada.
+function siguientePrioridad(actual) {
+  const donde = PRIORIDADES.indexOf(actual);
+  return PRIORIDADES[donde + 1];   // fuera de la lista da undefined, y eso vale
+}
+
+// Para ordenar hace falta un número, porque 'alta' y 'baja' se comparan
+// alfabéticamente y saldría al revés de lo que quieres. Sin marcar va al final
+// (99): lo que no clasificaste no puede colarse por encima de lo que sí.
+function pesoPrioridad(prioridad) {
+  const donde = PRIORIDADES.indexOf(prioridad);
+  return donde === -1 ? 99 : donde;
+}
+
+// Cambia la importancia de UN pendiente al siguiente nivel del ciclo.
+//
+// Dos guardas que parecen de más y no lo son: las ideas no tienen importancia
+// (no son deudas, esa decisión ya estaba tomada) y una tarea hecha tampoco
+// (ya no hay nada que priorizar). En pantalla la franja ni siquiera se dibuja
+// en esos dos casos, pero la función tiene que aguantar por su cuenta: quien
+// la llame mañana puede no ser este botón.
+function cambiarPrioridad(idTarea) {
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea || tarea.lista !== LISTAS.pendientes || tarea.hecha) return false;
+
+  const siguiente = siguientePrioridad(tarea.prioridad);
+  if (siguiente) tarea.prioridad = siguiente;
+  else delete tarea.prioridad;   // volver a "sin marcar" es borrar el campo
+
+  encolar({ tipo: 'guardarTarea', id: idTarea });
+  guardar();
+  pintarLista();
+  return true;
+}
+
+// El orden en que se ven las tareas de una lista.
+//
+// Aquí las dos listas dejan de comportarse igual, y es a propósito:
+//
+//   PENDIENTES manda la importancia. Rojo arriba, luego ámbar, luego azul, y
+//   al final lo que no marcaste. Por eso esta lista ya no lleva flechas ↑↓:
+//   dos ordenamientos peleando por la misma lista es lo que hace que una app
+//   se sienta poseída. Si quieres algo más arriba, le subes la importancia —
+//   que además significa algo, mientras que "arriba porque sí" no.
+//
+//   IDEAS conserva sus flechas y su orden a mano. No tienen importancia y el
+//   orden ahí lo pones tú.
+//
+// El desempate dentro de un mismo color es el orden del array, o sea la
+// antigüedad. Ojo: NO se puede desempatar por `creada`, que guarda solo el día
+// sin la hora — todo lo que escribas hoy empataría entre sí.
+//
+// Y por eso el sort va sobre una copia con slice() y compara solo el peso:
+// desde 2019 el sort de JavaScript es estable, lo que significa que a igualdad
+// de peso respeta el orden en que ya venían. Es justo lo que queremos, y es la
+// razón de no meter aquí un segundo criterio de desempate: ya está puesto.
 function tareasOrdenadas(lista) {
   const todas = tareasDe(lista);
-  return todas.filter(tarea => !tarea.hecha).concat(todas.filter(tarea => tarea.hecha));
+  let porHacer = todas.filter(tarea => !tarea.hecha);
+
+  if (lista === LISTAS.pendientes) {
+    porHacer = porHacer.slice()
+      .sort((a, b) => pesoPrioridad(a.prioridad) - pesoPrioridad(b.prioridad));
+  }
+
+  return porHacer.concat(todas.filter(tarea => tarea.hecha));
 }
 
 // Los números de UNA lista, para el contador y la barra de progreso. Aislado
@@ -2983,6 +3144,10 @@ function tareaAFila(tarea, indice, usuarioId) {
     usuario: usuarioId,
     texto:   tarea.texto,
     nota:    tarea.nota || null,
+    // La importancia viaja igual que la nota: si no la marcaste, sube como
+    // null. Mismo razonamiento — en la app el campo no existe, y null es como
+    // se dice "no existe" en SQL.
+    prioridad: tarea.prioridad || null,
     hecha:   Boolean(tarea.hecha),
     lista:   tarea.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes,
     creada:  tarea.creada || hoy(),
@@ -3001,6 +3166,9 @@ function filasATareas(filas) {
       creada: f.creada, lista: f.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
     };
     if (f.nota) tarea.nota = f.nota;
+    // Y vuelve solo si trae valor, para que los datos locales queden idénticos
+    // a como los deja cambiarPrioridad(): sin campos vacíos de adorno.
+    if (f.prioridad) tarea.prioridad = f.prioridad;
     return tarea;
   });
 }
@@ -3010,6 +3178,25 @@ function textoPendientes(cuantos) {
   if (cuantos === 0) return t('todoSincronizado');
   if (cuantos === 1) return t('unCambioEsperando');
   return t('cambiosEsperando').replace('%n', cuantos);
+}
+
+// ¿Se puede aplicar lo que acaba de bajar de la nube?
+//
+// Esta pregunta parece tonta y costó un bug de los feos. Bajar de la nube no
+// es instantáneo: son tres viajes que tardan lo suyo, y durante ese rato la
+// app sigue respondiendo. Si marcas un hábito mientras la foto viene en
+// camino, esa foto llega SIN tu marca — es de antes — y aplicarla la borra
+// de la pantalla. Se veía como si el hábito se desmarcara solo.
+//
+// La señal de que eso pasó es la cola: cualquier cambio tuyo encola un
+// pendiente. Así que "la cola dejó de estar vacía mientras yo bajaba"
+// significa exactamente "tocaste algo, esta foto ya no sirve".
+//
+// Está en una función aparte, y no escrita a mano dentro de bajarTodo(), por
+// la misma razón que diaCompleto(): la decisión se puede probar, el viaje a
+// la red no. Y la parte que se equivoca siempre es la decisión.
+function sePuedeAplicarLoBajado(cola) {
+  return (cola || []).length === 0;
 }
 /* ---------- fin M5 ---------- */
 
@@ -3113,6 +3300,14 @@ async function bajarTodo() {
     await nube.from('tareas').select('*').order('orden');
   if (e3) return false;
 
+  // La comprobación que faltaba. Arriba, en sincronizar(), ya miramos que la
+  // cola estuviera vacía ANTES de pedir nada. Pero entre aquel momento y este
+  // pasaron tres viajes a la red, y en ese hueco te dio tiempo a tocar la
+  // pantalla. Si la cola volvió a tener algo, esta foto ya nació vieja: se
+  // tira entera y se vuelve a empezar. Devolver false no es un fracaso, es
+  // "todavía no" — el finally de sincronizar() reprograma otra ronda.
+  if (!sePuedeAplicarLoBajado(datos.pendientes)) return false;
+
   // Red de seguridad. Si la nube llega vacía pero aquí sí hay hábitos,
   // guardamos una copia aparte antes de reemplazar. No debería pasar nunca
   // — solo bajamos con la cola vacía — pero perder el historial es justo
@@ -3165,6 +3360,16 @@ async function sincronizar() {
   sincronizando = true;
   pintarSesion();
 
+  // Por qué hace falta distinguir el motivo de que queden pendientes: al
+  // final reprogramamos otra ronda si la cola no quedó vacía, y hay dos
+  // maneras muy distintas de que eso pase. Si fue porque tocaste algo
+  // mientras sincronizábamos, reintentar es exactamente lo correcto. Si fue
+  // porque la nube está rechazando algo (una tabla que no existe, por
+  // ejemplo), reintentar cada segundo para siempre es martillear a un
+  // servidor que ya dijo que no. En ese caso esperamos al próximo evento de
+  // verdad: que vuelvas a la app, que regrese la señal, o que cambies algo.
+  let huboError = false;
+
   try {
     // 1) Primero SUBIR, en orden y de a uno. El orden importa: crear un
     //    hábito tiene que llegar antes que marcarlo.
@@ -3173,7 +3378,7 @@ async function sincronizar() {
 
       // Si uno falla, paramos. No seguimos con los de atrás, porque
       // podrían depender de este. Se reintenta en la próxima ronda.
-      if (!pudo) return;
+      if (!pudo) { huboError = true; return; }
 
       datos.pendientes.shift();
       guardar();
@@ -3181,11 +3386,21 @@ async function sincronizar() {
 
     // 2) Y solo con la cola vacía, BAJAR. Este orden es la regla de oro:
     //    si bajáramos con cambios sin subir, la nube pisaría lo tuyo.
+    //    bajarTodo() vuelve a comprobarlo al terminar, porque para entonces
+    //    la cola puede haber dejado de estar vacía.
     await bajarTodo();
 
   } finally {
     sincronizando = false;
     pintarSesion();
+
+    // El segundo agujero, más silencioso que el primero. encolar() programa
+    // la subida para dentro de un segundo; si al cumplirse ese segundo esta
+    // función seguía corriendo, se salía por la primera línea sin hacer nada
+    // — y el temporizador ya se había gastado. Tu cambio se quedaba en la
+    // cola hasta que volvieras a abrir la app. El panel decía "1 cambio sin
+    // subir" y ahí se quedaba, quieto, sin que nada lo empujara.
+    if (!huboError && datos.pendientes.length > 0) pedirSincronizar();
   }
 }
 
@@ -3324,22 +3539,41 @@ function pintarLista() {
     const botonMover = (enIdeas && !item.hecha)
       ? `<button class="mover" title="${t('aPendientesTitulo')}">→</button>` : '';
 
-    // Posición entre las que faltan, para saber si sus flechas deben estar
-    // apagadas. Una tarea ya hecha no tiene posición aquí (-1) y las lleva
-    // apagadas las dos: vive al final de la lista por definición.
-    const puesto  = porHacer.indexOf(item);
-    const arriba  = puesto <= 0;
-    const abajo   = puesto === -1 || puesto === porHacer.length - 1;
+    // La franja de importancia es lo contrario: solo en Pendientes. El title
+    // dice en qué nivel está — en el teléfono no se ve, pero es lo que lee un
+    // lector de pantalla y lo que se ve en el Mac al dejar el ratón encima.
+    const nivel = PRIORIDADES.includes(item.prioridad) ? item.prioridad : '';
+    const nombreNivel = t(nivel ? 'prio' + nivel[0].toUpperCase() + nivel.slice(1)
+                               : 'prioNinguna');
+    const botonPrio = enIdeas ? ''
+      : `<button class="prio ${nivel}" title="${t('prioTitulo')}: ${nombreNivel}"></button>`;
+
+    // Las flechas de reordenar se quedaron SOLO en Ideas. En Pendientes el
+    // orden lo decide ahora la importancia, y tener las dos cosas a la vez era
+    // pedirle a la lista que obedeciera a dos jefes. De paso, el modo edición
+    // de Pendientes bajó de tres botones a uno, que en un iPhone se agradece.
+    let flechas = '';
+    if (enIdeas) {
+      // Posición entre las que faltan, para saber si sus flechas deben estar
+      // apagadas. Una idea ya hecha no tiene posición aquí (-1) y las lleva
+      // apagadas las dos: vive al final de la lista por definición.
+      const puesto = porHacer.indexOf(item);
+      const arriba = puesto <= 0;
+      const abajo  = puesto === -1 || puesto === porHacer.length - 1;
+      flechas = `
+        <button class="subir" ${arriba ? 'disabled' : ''}>↑</button>
+        <button class="bajar" ${abajo  ? 'disabled' : ''}>↓</button>`;
+    }
 
     tarjeta.innerHTML = `
+      ${botonPrio}
       <div class="check">✓</div>
       <div class="tarea-info">
         <div class="tarea-texto"></div>
       </div>
       ${botonMover}
       <div class="acciones">
-        <button class="subir"  ${arriba ? 'disabled' : ''}>↑</button>
-        <button class="bajar"  ${abajo  ? 'disabled' : ''}>↓</button>
+        ${flechas}
         <button class="borrar">✕</button>
       </div>
     `;
@@ -3384,11 +3618,27 @@ function pintarLista() {
 
     tarjeta.querySelector('.borrar').onclick = () => borrarTarea(item.id);
 
-    // Reordenar. Mismo gesto que en Hábitos a propósito: flechas en modo
-    // edición, y los botones de los extremos apagados en vez de escondidos
-    // para que los demás no cambien de sitio bajo el dedo.
-    tarjeta.querySelector('.subir').onclick = () => moverTarea(item.id, -1);
-    tarjeta.querySelector('.bajar').onclick = () => moverTarea(item.id, 1);
+    // Tocar la franja sube la importancia un nivel y da la vuelta al llegar
+    // abajo. Como la lista se reordena sola, la tarjeta puede irse de sitio en
+    // el mismo toque: se le pide la animación de aterrizaje, la misma que ya
+    // usaba una tarea al marcarse e irse al final. Un salto sin explicar se
+    // lee como un error; el mismo salto anunciado se lee como una respuesta.
+    if (botonPrio) {
+      tarjeta.querySelector('.prio').onclick = (ev) => {
+        ev.stopPropagation();
+        tareaRecienMovida = item.id;
+        cambiarPrioridad(item.id);
+      };
+    }
+
+    // Reordenar a mano: ya solo en Ideas. Mismo gesto que en Hábitos a
+    // propósito — flechas en modo edición, y los botones de los extremos
+    // apagados en vez de escondidos para que los demás no cambien de sitio
+    // bajo el dedo.
+    if (enIdeas) {
+      tarjeta.querySelector('.subir').onclick = () => moverTarea(item.id, -1);
+      tarjeta.querySelector('.bajar').onclick = () => moverTarea(item.id, 1);
+    }
 
     if (botonMover) {
       tarjeta.querySelector('.mover').onclick = (ev) => {

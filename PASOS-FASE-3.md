@@ -428,6 +428,73 @@ suben solos y la tabla se llena.
 
 ---
 
+## Paso 6 — La importancia de un pendiente (v18, agosto de 2026)
+
+Un pendiente ahora puede tener importancia: alta, media, baja, o ninguna. Eso
+es **una columna más** en la tabla que ya creaste en el Paso 5. No hay que
+crear nada nuevo ni borrar nada.
+
+> **Antes de pegar nada:** mira que la URL del navegador contenga
+> `wfqhtnxhxjtdsvjzxaks`. Es el identificador del proyecto bueno. Esta
+> comprobación está aquí porque el 8 de agosto se perdió una tarde corriendo
+> SQL en un proyecto que se llamaba casi igual.
+
+### El SQL
+
+Menú de la izquierda → **SQL Editor** (el ícono `>_`). Pega esto y dale **Run**:
+
+```sql
+-- ============================================================
+--  La importancia de un pendiente (v18)
+--  Una columna nueva en la tabla que ya existe.
+-- ============================================================
+alter table tareas
+  add column if not exists prioridad text
+  check (prioridad in ('alta', 'media', 'baja'));
+```
+
+### Qué dice ese SQL, línea por línea
+
+**`alter table tareas`** — "modifica la tabla que ya existe". No la borra ni la
+vuelve a crear: lo que tienes dentro se queda donde está.
+
+**`add column if not exists prioridad text`** — agrega la columna. El
+`if not exists` es una red: si por lo que sea la corres dos veces, la segunda no
+da error en vez de romperse. Correr algo dos veces sin consecuencias es una
+propiedad que vale la pena buscar en todo lo que toque datos.
+
+**`check (prioridad in ('alta', 'media', 'baja'))`** — la parte interesante, y
+es el mismo truco que la columna `lista` del Paso 5. En el código de la app hay
+una lista `PRIORIDADES` con esos tres valores, pero eso es una *promesa* del
+programa: si mañana un error escribe `'urgentísimo'`, JavaScript lo guarda
+tan tranquilo. Aquí abajo es una *garantía*: la base rechaza la fila y no hay
+manera de colar un cuarto valor por accidente.
+
+**Fíjate en lo que NO lleva:** ni `not null` ni `default`. Es a propósito. Un
+pendiente sin marcar no tiene importancia — el campo queda en `null`, que en
+SQL significa exactamente "aquí no hay nada". Es lo mismo que la app hace
+localmente al borrar el campo en vez de guardarlo vacío. Un `default 'baja'`
+habría sido un error sutil: convertiría "no lo he clasificado" en "lo clasifiqué
+como poco importante", que no es lo mismo.
+
+**Y no hace falta tocar RLS.** Las políticas de seguridad que escribiste en el
+Paso 5 son por fila, no por columna: protegen la tabla `tareas` entera, así que
+la columna nueva nace protegida.
+
+### Comprobar que quedó
+
+Menú de la izquierda → **Table Editor** → tabla `tareas`. Debe aparecer una
+columna `prioridad` al final, vacía en todas las filas. Vacía es lo correcto:
+todavía no has marcado nada.
+
+> **El orden importa, otra vez:** corre este SQL **antes** de publicar la
+> `v18`. Si la app sube tareas con una columna que la tabla no conoce, Supabase
+> rechaza cada intento y la cola se queda reintentando. No se pierde nada —para
+> eso está la cola— pero el panel de Cuenta se pone en rojo y hay que averiguar
+> por qué. Primero la columna, después la app.
+
+---
+
 ## Anexo — Si algún día quieres el código por correo
 
 No hace falta ahora. Queda escrito para no volver a investigarlo.

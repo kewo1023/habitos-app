@@ -89,10 +89,13 @@ eval(script + `
     pintar, pintarLista, cambiarVista, cambiarIdioma, cambiarTema, aplicarTema,
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
-    celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas
+    celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
+    bajarTodo, estaHecho, hoy, cambiarPrioridad
   });
-  Object.defineProperty(app, 'datos', { get: () => datos });
-  Object.defineProperty(app, 'vista', { get: () => vista });
+  Object.defineProperty(app, 'datos',  { get: () => datos });
+  Object.defineProperty(app, 'vista',  { get: () => vista });
+  Object.defineProperty(app, 'nube',   { get: () => nube,   set: v => { nube = v; } });
+  Object.defineProperty(app, 'sesion', { get: () => sesion, set: v => { sesion = v; } });
 `);
 
 let fallos = 0;
@@ -301,7 +304,11 @@ ok('con "reducir movimiento" no se crea ni un papelito',
 pideMenosMovimiento = false;
 
 // ===========================================================================
-// 10. Reordenar pendientes desde la pantalla
+// 10. La importancia en pantalla, y el reordenar que quedó (v18)
+// ---------------------------------------------------------------------------
+// En la v18 las dos listas dejaron de comportarse igual a propósito:
+// Pendientes se ordena sola por importancia y perdió las flechas; Ideas las
+// conserva porque ahí el orden lo pone Kev a mano y no hay nada que lo calcule.
 // ===========================================================================
 app.cambiarVista('pendientes');
 app.agregarTarea('Segundo', 'pendientes');
@@ -309,21 +316,142 @@ app.agregarTarea('Tercero', 'pendientes');
 app.pintarLista();
 
 const enPantalla = () => app.tareasOrdenadas('pendientes').map(x => x.texto).join(',');
-ok('los tres pendientes están en orden', enPantalla() === 'Comprar café,Segundo,Tercero');
+ok('los tres pendientes están en orden de llegada',
+   enPantalla() === 'Comprar café,Segundo,Tercero');
 
-const idSegundo = app.datos.tareas.find(x => x.texto === 'Segundo').id;
-app.moverTarea(idSegundo, -1);
-ok('subir un pendiente lo mueve en pantalla', enPantalla() === 'Segundo,Comprar café,Tercero');
-ok('la idea de la otra lista sigue intacta',
-   app.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'App de propinas');
+// Cada tarjeta de Pendientes trae su franja, y ninguna trae flechas.
+const tarjetasPend = $('tareasCuerpo').children;
+ok('cada pendiente tiene su franja de importancia',
+   tarjetasPend.filter(x => x.querySelectorAll('.prio').length === 1).length === 3);
+ok('y ninguno tiene ya flechas de reordenar',
+   tarjetasPend.flatMap(x => x.querySelectorAll('.subir')).length === 0);
+ok('la franja nace sin color, o sea sin marcar',
+   tarjetasPend[0].querySelectorAll('.prio')[0].className.trim() === 'prio');
 
+// Subirle la importancia al tercero debe mandarlo arriba del todo. Se hace
+// TOCANDO la franja, no llamando a la función: lo que esta segunda capa existe
+// para comprobar es justamente el cable entre el botón y la lógica. Llamando a
+// cambiarPrioridad() directamente, un botón mal conectado seguiría en verde.
+const tarjetaTercero = tarjetasPend.find(
+  x => x.querySelectorAll('.tarea-texto')[0].textContent === 'Tercero');
+tarjetaTercero.querySelectorAll('.prio')[0].click();
+ok('tocar la franja sube algo importante en pantalla',
+   enPantalla() === 'Tercero,Comprar café,Segundo');
+
+// Sin repintar: cambiarPrioridad() ya dibujó, y pintarLista() borra la marca de
+// "recién movida" después de usarla una vez — igual que hace el confeti con
+// habitoRecienMarcado. Un repintado de más aquí y la animación desaparecería,
+// que es justo lo que queremos que pase al cambiar de idioma o al sincronizar.
+const primera = $('tareasCuerpo').children[0];
+ok('y su franja se dibuja en rojo (clase alta)',
+   primera.querySelectorAll('.prio')[0].className.includes('alta'));
+ok('la tarjeta que saltó lleva la animación de aterrizaje',
+   primera.className.includes('recien-movida'));
+
+// Los cuatro colores existen en los dos temas. Es la regla firme de la v15: un
+// color escrito suelto funciona en un tema y desaparece en el otro.
+const bloqueOscuro = html.slice(html.indexOf(':root, :root[data-tema="oscuro"]'));
+const bloqueClaro  = html.slice(html.indexOf(':root[data-tema="claro"]'));
+['--prio-alta', '--prio-media', '--prio-baja', '--prio-ninguna'].forEach(nombre => {
+  ok(`${nombre} está definido en los dos temas`,
+     bloqueOscuro.slice(0, bloqueOscuro.indexOf('}')).includes(nombre) &&
+     bloqueClaro.slice(0, bloqueClaro.indexOf('}')).includes(nombre));
+});
+
+// --- Ideas: conserva flechas y NO tiene franja
+app.cambiarVista('ideas');
+app.agregarTarea('Idea dos', 'ideas');
 app.pintarLista();
-const flechasApagadas = $('tareasCuerpo').children
-  .flatMap(t => t.querySelectorAll('.subir'))
-  .filter(b => b.disabled).length;
-ok('la primera tarjeta tiene su flecha de subir apagada', flechasApagadas >= 1);
+const tarjetasIdeas = $('tareasCuerpo').children;
+ok('las ideas no llevan franja de importancia',
+   tarjetasIdeas.flatMap(x => x.querySelectorAll('.prio')).length === 0);
+ok('pero conservan sus flechas de reordenar',
+   tarjetasIdeas.flatMap(x => x.querySelectorAll('.subir')).length === 2);
+ok('la primera idea tiene su flecha de subir apagada',
+   tarjetasIdeas[0].querySelectorAll('.subir')[0].disabled === true);
 
-console.log(fallos === 0
-  ? '\n🎉 La app entera funciona'
-  : `\n⚠️ ${fallos} fallo(s)`);
-process.exit(fallos ? 1 : 0);
+const idIdeaDos = app.datos.tareas.find(x => x.texto === 'Idea dos').id;
+app.moverTarea(idIdeaDos, -1);
+ok('y las flechas siguen funcionando en Ideas',
+   app.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'Idea dos,App de propinas');
+
+app.cambiarVista('pendientes');
+
+// ===========================================================================
+// 12. La carrera entre tu dedo y la sincronización (v18)
+// ---------------------------------------------------------------------------
+// Este es el bug que se sentía como un fantasma: marcabas un hábito y un
+// instante después se desmarcaba solo. La causa no era el marcado, era bajar
+// de la nube: son tres viajes que tardan, y la app te deja seguir tocando
+// mientras tanto. La foto llegaba de antes de tu toque y al aplicarla lo
+// borraba.
+//
+// Aquí se reproduce a propósito con una nube de mentira que, justo mientras
+// "viaja", ejecuta lo que tú harías con el dedo.
+// ===========================================================================
+
+let alBajar = null;   // lo que hace el usuario mientras la foto viene en camino
+
+function nubeDeMentira(filasPorTabla) {
+  return {
+    from(tabla) {
+      const respuesta = Promise.resolve().then(() => {
+        if (alBajar) { const hacerlo = alBajar; alBajar = null; hacerlo(); }
+        return { data: filasPorTabla[tabla] || [], error: null };
+      });
+      // La app encadena .order('orden') en dos de las tres consultas. Aquí no
+      // hay nada que ordenar, así que devuelve la misma promesa.
+      respuesta.order = () => respuesta;
+      return { select: () => respuesta };
+    }
+  };
+}
+
+async function pruebasDeCarrera() {
+  app.sesion = { user: { id: 'u1', email: 'kev@ejemplo.com' } };
+  app.datos.pendientes.length = 0;
+  app.agregarHabito('Meditar', '🧘');
+  const idMeditar = app.datos.habitos[app.datos.habitos.length - 1].id;
+  const filaMeditar = { id: idMeditar, nombre: 'Meditar', emoji: '🧘', creado: app.hoy(), orden: 0 };
+
+  // Caso tranquilo: nadie toca nada mientras baja. Debe aplicarse.
+  app.datos.pendientes.length = 0;
+  app.nube = nubeDeMentira({ habitos: [filaMeditar], registros: [], tareas: [] });
+  alBajar = null;
+  ok('con nadie tocando, lo bajado se aplica', (await app.bajarTodo()) === true);
+
+  // Caso de la carrera: marcas justo mientras los datos viajan. La nube trae
+  // una foto sin esa marca; si se aplicara, el hábito se vería desmarcarse
+  // solo. Lo correcto es tirar la foto entera.
+  app.datos.pendientes.length = 0;
+  alBajar = () => app.alternarHoy(idMeditar);
+  const seAplico = await app.bajarTodo();
+
+  ok('marcar mientras baja hace que la foto vieja se descarte', seAplico === false);
+  ok('y tu marca sigue puesta, no se desmarca sola',
+     app.estaHecho(idMeditar, app.hoy()) === true);
+  ok('el cambio queda en la cola para subirse después',
+     app.datos.pendientes.length === 1);
+
+  // Y al revés, que es el otro síntoma: desmarcas mientras baja y la nube
+  // todavía lo tenía marcado. Sin la guarda, te lo volvería a marcar.
+  app.datos.pendientes.length = 0;
+  app.nube = nubeDeMentira({
+    habitos: [filaMeditar],
+    registros: [{ habito_id: idMeditar, fecha: app.hoy() }],
+    tareas: []
+  });
+  alBajar = () => app.alternarHoy(idMeditar);   // ahora esto DESmarca
+  const seAplico2 = await app.bajarTodo();
+
+  ok('desmarcar mientras baja también descarta la foto', seAplico2 === false);
+  ok('y no te lo vuelve a marcar solo',
+     app.estaHecho(idMeditar, app.hoy()) === false);
+}
+
+pruebasDeCarrera().then(() => {
+  console.log(fallos === 0
+    ? '\n🎉 La app entera funciona'
+    : `\n⚠️ ${fallos} fallo(s)`);
+  process.exit(fallos ? 1 : 0);
+});

@@ -1101,15 +1101,148 @@ Cola vacía, **"Todo sincronizado."** Pendientes e ideas viven en Postgres.
 
 **Pendiente / siguiente**
 
-- [ ] Publicar la `v17` (los mensajes de error y el texto del panel de copia).
-- [ ] Sigue pendiente: `git rm --cached .DS_Store` y commitear el `.gitignore`.
-- [ ] Decidir si se borra el proyecto sobrante `habitos_apps`
-      (`gsqntgdkwprjijrlvuls`). No estorba —el plan gratuito permite dos y uno
-      sin uso se pausa— pero existir con un nombre casi idéntico al bueno es
-      justo lo que causó el problema de hoy.
+- [x] Borrar el proyecto sobrante `habitos_apps` (`gsqntgdkwprjijrlvuls`).
+      Hecho por Kev el 18 de agosto de 2026. Ya no hay dos proyectos con
+      nombres casi idénticos donde equivocarse.
 - [ ] De la v16, todavía sin probar en el iPhone: que el confeti salga una sola
       vez al completar el día y se lea bien en tema claro, y que las flechas de
       reordenar no queden apretadas junto a la ✕.
+
+---
+
+## 2026-08-18 — El hábito que se desmarcaba solo (v18)
+
+**El síntoma**
+
+Kev: *"en ocasiones, en un microsegundo después de marcar un hábito este se
+desmarca, y a la inversa. No pasa siempre y no he podido comprobarlo."*
+
+**La causa**
+
+Una carrera entre el dedo y la sincronización. `bajarTodo()` hace tres viajes a
+Supabase y al volver **reemplaza** `datos.registros` con lo que trajo. Esos
+viajes tardan, y durante ese rato la app sigue respondiendo. Si marcas algo en
+ese hueco, la foto que llega es de *antes* de tu toque: aplicarla lo borra de la
+pantalla. Y al revés — si desmarcas, la nube todavía lo tenía marcado y te lo
+vuelve a marcar. Los dos síntomas, un solo agujero.
+
+`sincronizar()` sí comprobaba la cola vacía, pero **antes** de pedir los datos.
+La regla de oro estaba escrita y era correcta; se comprobaba en el momento
+equivocado.
+
+Por qué se notó ahora y no antes: el bug es de la Fase 3, pero la v16 lo hizo
+visible por dos lados. La ventana creció (`bajarTodo()` pasó de dos consultas a
+tres al sumar `tareas`) y la animación de marcado convirtió en evidente lo que
+antes era un cambio mudo. Ver el *pop* y la onda, y que el círculo se apague
+después, es imposible de ignorar.
+
+**Hecho**
+
+- `sePuedeAplicarLoBajado(cola)` en M5, y `bajarTodo()` la consulta **al
+  terminar**, justo antes de reemplazar nada. Si la cola dejó de estar vacía,
+  se tira la foto entera y se devuelve `false` — que aquí significa "todavía
+  no", no "fracasó". Va en función aparte por el mismo motivo que
+  `diaCompleto()`: el viaje a la red no se puede probar, la decisión sí, y la
+  que se equivoca siempre es la decisión.
+- **Segundo agujero, más silencioso.** `encolar()` programa la subida para
+  dentro de un segundo; si al cumplirse ese segundo `sincronizar()` seguía
+  corriendo, se salía por la primera línea y el temporizador ya estaba gastado.
+  El cambio se quedaba en la cola hasta que volvieras a abrir la app, con el
+  panel diciendo "1 cambio sin subir" sin que nada lo empujara. Ahora el
+  `finally` reprograma.
+- Ese reintento distingue **por qué** quedaron pendientes (`huboError`). Si la
+  nube está rechazando algo, reintentar cada segundo para siempre es martillear
+  a un servidor que ya dijo que no; en ese caso se espera al próximo evento de
+  verdad.
+- `pruebas.js`: 4 tests de `sePuedeAplicarLoBajado`. Van **320**.
+- `pruebas-app.js`: una **nube de mentira** que ejecuta lo que haría el dedo
+  justo mientras la consulta "viaja". Reproduce el bug entero, en los dos
+  sentidos. Van **70**.
+- `sw.js`: `VERSION` a `'v18'`.
+
+**Lo que hay que recordar de esto**
+
+Se comprobó que las pruebas nuevas **fallan sin el arreglo**: al desactivar la
+guarda, 4 en rojo, incluida *"y tu marca sigue puesta, no se desmarca sola"*. Un
+test que pasa igual con y sin la corrección no prueba nada — solo da la
+sensación de estarlo. Vale el minuto que cuesta.
+
+Y el patrón general, que se va a repetir: **una respuesta de red que llega
+tarde y pisa algo más nuevo.** Cuando al volver de la red vas a *reemplazar*
+estado, la pregunta obligatoria es "¿y si el usuario cambió esto mientras yo
+esperaba?".
+
+**Cerrado de la lista anterior**
+
+- [x] Publicar la `v17` — ya estaba en `origin/main`; GitHub Pages la sirve.
+- [x] `.DS_Store` fuera del control de versiones — confirmado con
+      `git ls-files`, ya no está rastreado.
+
+**También en la v18: la importancia de un pendiente**
+
+Un pendiente puede tener importancia alta, media, baja o ninguna. Se toca la
+franja de color del borde izquierdo y cicla. Las decisiones:
+
+- **Nace sin importancia y se marca después.** Crear un pendiente sigue siendo
+  escribir y Enter. Una función que añade un paso al gesto de cada día tiene que
+  justificarse mucho, y esta no lo necesitaba: la mayoría de los pendientes no
+  llevan color.
+- **El gesto es una franja tocable, no un cuarto botón del modo edición.** El
+  círculo ✓ marca y el texto también (en Pendientes ese es el gesto diario y no
+  se toca), así que la importancia necesitaba sitio propio. Cuatro botones no
+  caben en un iPhone; con la franja son cero botones nuevos.
+- **La baja NO es verde.** En esta app el verde ya significa "hecho". Un
+  pendiente verde sin hacer diría dos cosas a la vez. Quedó azul grisáceo.
+- **El orden de Pendientes ahora es automático** por importancia, y por eso
+  esa lista **perdió las flechas ↑↓**: dos ordenamientos peleando por la misma
+  lista es lo que hace que una app se sienta poseída. Si quieres algo arriba, le
+  subes la importancia — que además significa algo.
+- **Ideas conserva sus flechas**, a petición de Kev. No tienen importancia y el
+  orden ahí lo pone él. Es el tercer sitio donde las dos listas se comportan
+  distinto a propósito (los otros dos: tocar el texto, y el contador).
+- **El desempate a igual color es la antigüedad**, y se apoya en que el `sort`
+  de JavaScript es estable desde 2019. Ojo: **no se puede desempatar por
+  `creada`**, que guarda el día sin la hora — todo lo escrito hoy empataría.
+- Al cambiar el color la tarjeta salta de sitio, y se le pone la animación de
+  aterrizaje que ya existía (`tareaRecienMovida`). Un salto sin explicar se lee
+  como un error; el mismo salto anunciado se lee como una respuesta.
+- Postgres: columna `prioridad` con `check (prioridad in (...))`, sin
+  `not null` ni `default`. Un `default 'baja'` habría convertido "no lo he
+  clasificado" en "lo clasifiqué como poco importante". **Paso 6** de
+  `PASOS-FASE-3.md`.
+- Pruebas: **344** y **81**. También se comprobó que fallan sin el arreglo
+  (se desactivó el orden por prioridad: 3 y 3 en rojo).
+- Revisado en el navegador a 375px en los dos temas y los dos idiomas.
+
+**Aplazado a propósito**
+
+Con el orden automático, `orden` podría dejar de recalcularse al borrar
+(hoy borrar un pendiente obliga a re-subir todos los de abajo: con doce
+debajo son doce subidas por un borrado). No se tocó en esta tanda: cambiar
+a la vez el orden visible y el significado de una columna que ya viaja a la
+nube son dos cambios grandes, y aquí se hace uno cada vez. Pendiente abajo.
+
+**Lo que Kev encontró de camino**
+
+Al mover una idea a Pendientes, la nota de contexto **no se borra: se vuelve
+inalcanzable**. Sigue en los datos y en la nube, pero en Pendientes no se
+dibuja y tocar el texto marca en vez de abrir la ficha — y no hay botón para
+volver a Ideas. Kev lo notó usándola, y de ahí salió una pregunta mejor que la
+respuesta: *"creo que la solución no es mover una idea a pendientes, ya que yo
+puedo trabajar en una idea sin necesidad de moverla"*. Sin decidir todavía.
+
+**Pendiente / siguiente**
+
+- [ ] **Correr el Paso 6 de `PASOS-FASE-3.md` en Supabase, y solo después
+      publicar la `v18`.** Si la app sube una columna que la tabla no conoce,
+      la cola se atasca.
+- [ ] Confirmar en el iPhone: que el hábito ya no se desmarca solo, y que la
+      franja de importancia se toca cómodamente con el dedo (mide 22px de
+      ancho aunque se vean 5).
+- [ ] Decidir qué pasa con mover ideas a Pendientes y con la nota que se queda
+      sin sitio. Tres caminos: mostrar la nota también en Pendientes; quitar el
+      botón → y que una idea se trabaje desde Ideas; o dejarlo como está.
+- [ ] Opcional: que `orden` deje de recalcularse al borrar (ver arriba).
 
 ---
 

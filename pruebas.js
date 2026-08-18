@@ -36,7 +36,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -335,6 +335,111 @@ ok('textoPendientes en cero',  ctx.textoPendientes(0) === 'Todo sincronizado.');
 // eso hacía que un rechazo de la nube pareciera un problema de internet.
 ok('textoPendientes en uno',   ctx.textoPendientes(1) === '1 cambio sin subir.');
 ok('textoPendientes en varios', ctx.textoPendientes(5) === '5 cambios sin subir.');
+
+// --- la importancia de un pendiente (v18)
+ok('el ciclo empieza en alta', ctx.siguientePrioridad(undefined) === 'alta');
+ok('de alta pasa a media',     ctx.siguientePrioridad('alta')  === 'media');
+ok('de media pasa a baja',     ctx.siguientePrioridad('media') === 'baja');
+// Y da la vuelta entera: de baja se vuelve a "sin marcar", que es no tener
+// campo. Si el ciclo se atascara en 'baja' no habría forma de quitarle la
+// importancia a algo sin borrarlo y volverlo a escribir.
+ok('de baja vuelve a sin marcar', ctx.siguientePrioridad('baja') === undefined);
+ok('un valor raro no rompe el ciclo', ctx.siguientePrioridad('urgentísimo') === 'alta');
+
+ok('alta pesa menos que media', ctx.pesoPrioridad('alta') < ctx.pesoPrioridad('media'));
+ok('media pesa menos que baja', ctx.pesoPrioridad('media') < ctx.pesoPrioridad('baja'));
+ok('sin marcar pesa más que todas',
+   ctx.pesoPrioridad(undefined) > ctx.pesoPrioridad('baja'));
+
+// El ciclo completo sobre una tarea de verdad
+ctx.datos.tareas = [];
+ctx.datos.pendientes = [];
+ctx.agregarTarea('Llamar al banco', 'pendientes');
+const idBanco = ctx.datos.tareas[0].id;
+ok('un pendiente nace sin importancia',
+   ('prioridad' in ctx.datos.tareas[0]) === false);
+
+ctx.cambiarPrioridad(idBanco);
+ok('un toque lo pone en alta', ctx.datos.tareas[0].prioridad === 'alta');
+ctx.cambiarPrioridad(idBanco);
+ctx.cambiarPrioridad(idBanco);
+ok('tres toques lo dejan en baja', ctx.datos.tareas[0].prioridad === 'baja');
+ctx.cambiarPrioridad(idBanco);
+// Lo importante no es que valga undefined: es que el campo NO EXISTE. Un
+// 'prioridad: undefined' colado en los datos se guardaría en la copia de
+// seguridad y subiría a la nube como un estado que no significa nada.
+ok('el cuarto toque borra el campo entero',
+   ('prioridad' in ctx.datos.tareas[0]) === false);
+
+// Las ideas no llevan importancia: no son deudas.
+ctx.agregarTarea('Aprender a hacer pan', 'ideas');
+const idPan = ctx.datos.tareas[1].id;
+ok('una idea no acepta importancia', ctx.cambiarPrioridad(idPan) === false);
+ok('y sigue sin el campo', ('prioridad' in ctx.datos.tareas[1]) === false);
+
+// Ni una tarea ya hecha.
+ctx.alternarTarea(idBanco);
+ok('una tarea hecha tampoco', ctx.cambiarPrioridad(idBanco) === false);
+ctx.alternarTarea(idBanco);
+
+// --- el orden automático de Pendientes
+ctx.datos.tareas = [];
+ctx.datos.pendientes = [];
+['Uno','Dos','Tres','Cuatro'].forEach(x => ctx.agregarTarea(x, 'pendientes'));
+const porTexto = t => ctx.datos.tareas.find(x => x.texto === t).id;
+
+ctx.cambiarPrioridad(porTexto('Tres'));                      // Tres -> alta
+ctx.cambiarPrioridad(porTexto('Uno'));
+ctx.cambiarPrioridad(porTexto('Uno'));                       // Uno  -> media
+const orden1 = ctx.tareasOrdenadas('pendientes').map(x => x.texto).join(',');
+ok('la importancia manda sobre el orden de llegada', orden1 === 'Tres,Uno,Dos,Cuatro');
+
+// Dos con la misma importancia respetan quién llegó antes. Esto depende de que
+// el sort de JavaScript sea estable; si algún día dejara de serlo, este test
+// es el que se pondría rojo.
+ctx.cambiarPrioridad(porTexto('Cuatro'));                    // Cuatro -> alta
+const orden2 = ctx.tareasOrdenadas('pendientes').map(x => x.texto).join(',');
+ok('a igual importancia manda la antigüedad', orden2 === 'Tres,Cuatro,Uno,Dos');
+
+// Y las hechas siguen yéndose al final, pase lo que pase con la importancia.
+ctx.alternarTarea(porTexto('Tres'));
+const orden3 = ctx.tareasOrdenadas('pendientes').map(x => x.texto).join(',');
+ok('lo hecho va al final aunque sea lo más importante',
+   orden3 === 'Cuatro,Uno,Dos,Tres');
+
+// Las ideas conservan SU orden, el que pusiste a mano con las flechas.
+ctx.datos.tareas = [];
+['Idea A','Idea B','Idea C'].forEach(x => ctx.agregarTarea(x, 'ideas'));
+ok('las ideas mantienen el orden en que las escribiste',
+   ctx.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'Idea A,Idea B,Idea C');
+ctx.moverTarea(ctx.datos.tareas[2].id, -1);
+ok('y siguen obedeciendo a las flechas',
+   ctx.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'Idea A,Idea C,Idea B');
+
+// --- la importancia en el viaje a la nube y de vuelta
+const filaPrio = ctx.tareaAFila(
+  { id:'t1', texto:'Pagar', hecha:false, lista:'pendientes', creada:'2026-08-18', prioridad:'alta' },
+  0, 'u1');
+ok('la importancia sube en su columna', filaPrio.prioridad === 'alta');
+ok('sin marcar sube como null',
+   ctx.tareaAFila({ id:'t2', texto:'X', lista:'pendientes' }, 1, 'u1').prioridad === null);
+const vuelta = ctx.filasATareas([filaPrio, { id:'t2', texto:'X', lista:'pendientes', prioridad:null }]);
+ok('la importancia vuelve entera de la nube', vuelta[0].prioridad === 'alta');
+ok('y la que no tenía sigue sin el campo', ('prioridad' in vuelta[1]) === false);
+
+// --- la regla de oro, ahora comprobable (v18)
+// Bajar de la nube reemplaza lo local. Solo se puede hacer si la cola sigue
+// vacía; si dejó de estarlo mientras la foto viajaba, esa foto es más vieja
+// que lo que tienes en pantalla y aplicarla borraría tu último toque.
+ok('con la cola vacía sí se aplica lo bajado',
+   ctx.sePuedeAplicarLoBajado([]) === true);
+ok('con un cambio sin subir NO se aplica',
+   ctx.sePuedeAplicarLoBajado([{tipo:'marcar', id:'x', fecha:'2026-08-18'}]) === false);
+ok('con varios cambios tampoco',
+   ctx.sePuedeAplicarLoBajado([{tipo:'marcar'},{tipo:'desmarcar'}]) === false);
+// Si la cola todavía no existe (arranque en frío) no hay nada que proteger.
+ok('una cola que aún no existe no bloquea',
+   ctx.sePuedeAplicarLoBajado(undefined) === true);
 
 // --- la cola de pendientes
 ctx.datos.habitos = [];
