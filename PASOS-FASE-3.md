@@ -495,6 +495,84 @@ todavía no has marcado nada.
 
 ---
 
+## Paso 7 — La lista de Compras (v19, septiembre de 2026)
+
+La app tiene una cuarta pestaña, Compras, y por dentro es **una tercera lista
+en la misma tabla `tareas`**: una fila de compras es igual a una de pendientes
+con `lista = 'compras'`. No hay tabla nueva ni columna nueva.
+
+Lo único que estorba es la **garantía** que pusiste en el Paso 5:
+`check (lista in ('pendientes', 'ideas'))`. Esa regla hoy rechaza cualquier
+fila con `'compras'`. Hay que reemplazarla por una que admita los tres valores.
+
+> **Antes de pegar nada:** mira que la URL del navegador contenga
+> `wfqhtnxhxjtdsvjzxaks`. Mismo motivo que en el Paso 6.
+
+### El SQL
+
+Menú de la izquierda → **SQL Editor** (el ícono `>_`). Pega esto y dale **Run**:
+
+```sql
+-- ============================================================
+--  La lista de Compras (v19)
+--  Se cambia la regla de la columna "lista" para admitir un
+--  tercer valor. No se toca ninguna fila.
+-- ============================================================
+alter table tareas
+  drop constraint if exists tareas_lista_check;
+
+alter table tareas
+  add constraint tareas_lista_check
+  check (lista in ('pendientes', 'ideas', 'compras'));
+```
+
+Debe responder **Success. No rows returned**.
+
+### Qué dice ese SQL
+
+**`drop constraint if exists tareas_lista_check`** — quita la regla vieja. Un
+`check` no se puede *editar*: se quita y se pone otro. El nombre
+`tareas_lista_check` no lo escribiste tú en el Paso 5; lo inventó Postgres
+solo, con su regla de siempre: `tabla_columna_check`. El `if exists` es la
+misma red que en el Paso 6: si lo corres dos veces, la segunda no explota.
+
+**`add constraint tareas_lista_check check (...)`** — pone la regla nueva, con
+el mismo nombre para que la próxima vez que haya que cambiarla el `drop` de
+arriba la encuentre. Al agregarla, Postgres **revisa todas las filas que ya
+tienes** contra la regla nueva: como todas son `'pendientes'` o `'ideas'`,
+pasan. Si alguna no pasara, el `add` entero fallaría y no cambiaría nada —
+una garantía que no se puede poner a medias.
+
+**No hace falta tocar RLS ni PostgREST.** No hay columna ni tabla nueva; la
+política del Paso 5 sigue protegiendo la tabla entera.
+
+### Comprobar que quedó
+
+Pega esto en el mismo SQL Editor y dale **Run**:
+
+```sql
+select pg_get_constraintdef(oid)
+from pg_constraint
+where conname = 'tareas_lista_check';
+```
+
+Debe devolver una fila con `'compras'` dentro. Si devuelve **cero filas**,
+Postgres le puso otro nombre a la regla vieja; mándame lo que devuelve esta
+consulta y ajustamos el `drop`:
+
+```sql
+select conname, pg_get_constraintdef(oid)
+from pg_constraint
+where conrelid = 'tareas'::regclass;
+```
+
+> **El orden importa, por tercera vez:** corre este SQL **antes** de publicar
+> la `v19`. Si la app sube una compra con la regla vieja puesta, Supabase la
+> rechaza y la cola se queda reintentando, igual que habría pasado en la v16 y
+> en la v18. Primero la regla, después la app.
+
+---
+
 ## Anexo — Si algún día quieres el código por correo
 
 No hace falta ahora. Queda escrito para no volver a investigarlo.

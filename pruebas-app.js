@@ -90,7 +90,7 @@ eval(script + `
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
-    bajarTodo, estaHecho, hoy, cambiarPrioridad
+    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -376,6 +376,61 @@ ok('y las flechas siguen funcionando en Ideas',
    app.tareasOrdenadas('ideas').map(x => x.texto).join(',') === 'Idea dos,App de propinas');
 
 app.cambiarVista('pendientes');
+
+// ===========================================================================
+// 11. La cuarta pestaña: Compras (v19)
+// ---------------------------------------------------------------------------
+// Compras es una lista más de datos.tareas, con sus propias reglas en
+// TEXTOS_LISTA: sin franja de importancia, sin flechas, sin ficha, sin
+// flecha →, con barra de progreso y sin contador en la pestaña. Lo que se
+// comprueba aquí es que la TABLA de reglas manda de verdad sobre lo que se
+// dibuja — si alguien vuelve a poner un `if (enIdeas)` suelto, esto se entera.
+// ===========================================================================
+// El idioma solo se cambia desde Ajustes, que vive en la vista de Hábitos
+// (en las listas ese panel está escondido). Por eso se cambia de vista antes.
+app.cambiarVista('habitos');
+ok('la cuarta pestaña existe y arranca en español', $('pestanaCompras').textContent === 'Compras');
+app.cambiarIdioma('en');
+ok('y se traduce', $('pestanaCompras').textContent === 'Shopping');
+app.cambiarIdioma('es');
+
+app.cambiarVista('compras');
+ok('cambiar a Compras la marca como activa', $('pestanaCompras').className.includes('activa'));
+ok('y apaga las otras', !$('pestanaIdeas').className.includes('activa')
+                       && !$('pestanaTareas').className.includes('activa'));
+ok('el botón grande dice lo suyo', $('btnAgregar').textContent === '+ Agregar a la lista');
+ok('y el texto guía del campo también', $('tareaNueva').placeholder === '¿Qué hay que comprar?');
+ok('la lista vacía muestra su mensaje', $('tareasCuerpo').textContent.includes('Lista vacía'));
+
+app.agregarTarea('Leche', 'compras');
+app.agregarTarea('Huevos', 'compras');
+app.pintarLista();
+const tarjetasCompras = $('tareasCuerpo').children;
+ok('las compras aparecen en su lista', $('tareasCuerpo').textContent.includes('Leche'));
+ok('y NO en Pendientes', app.tareasDe('pendientes').every(x => x.texto !== 'Leche'));
+// Hay 3 pendientes sin hacer del bloque anterior; con dos compras nuevas el
+// número tiene que seguir en 3, no subir a 5.
+ok('el contador de la pestaña NO las cuenta', $('contadorTareas').textContent === '3');
+ok('una compra no lleva franja de importancia',
+   tarjetasCompras.flatMap(x => x.querySelectorAll('.prio')).length === 0);
+ok('ni flechas de reordenar',
+   tarjetasCompras.flatMap(x => x.querySelectorAll('.subir')).length === 0);
+ok('ni flecha → a Pendientes',
+   tarjetasCompras.flatMap(x => x.querySelectorAll('.mover')).length === 0);
+ok('ni el subrayado de "tocar abre la ficha"',
+   tarjetasCompras.every(x => !x.className.includes('idea')));
+ok('la barra de progreso sí se ve', $('cajaProgreso').style.visibility === 'visible');
+ok('y dice cuánto falta', $('progresoTexto').textContent === '0 de 2');
+
+// Tocar el TEXTO marca, como en Pendientes: en la tienda ese es el gesto.
+tarjetasCompras[0].querySelectorAll('.tarea-info')[0].click();
+ok('tocar el texto de una compra la marca', app.tareasDe('compras').filter(x => x.hecha).length === 1);
+ok('y el progreso baja', $('progresoTexto').textContent === '1 de 2');
+ok('el botón de limpiar habla de "compradas"',
+   $('tareasCuerpo').textContent.includes('Limpiar 1 compradas'));
+
+app.cambiarVista('pendientes');
+ok('volver a Pendientes conserva su contador', $('contadorTareas').textContent === '3');
 
 // ===========================================================================
 // 12. La carrera entre tu dedo y la sincronización (v18)

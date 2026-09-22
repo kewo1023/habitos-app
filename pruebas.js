@@ -36,7 +36,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -776,6 +776,45 @@ ok('la que sí tenía nota la conserva',    devueltas[1].nota === 'para el traba
 ok('y cada una vuelve a su lista',        devueltas[1].lista === 'ideas');
 ok('una lista rara cae a pendientes',
    ctx.filasATareas([{ id:'x', texto:'?', lista:'inventada' }])[0].lista === 'pendientes');
+
+// --- v19: la tercera lista (compras) y la trampa del ternario binario.
+// Antes de la v19 había cuatro sitios con `lista === ideas ? ideas :
+// pendientes`. Con dos listas era inofensivo; con tres, una compra se
+// convertía en pendiente al subir y al bajar de la nube, SIN avisar. Estos
+// tests existen para que eso no pueda volver a pasar. Se comprobó que fallan
+// si se vuelve a poner el ternario viejo.
+const C = 'compras';
+ok('esLista reconoce las tres listas',
+   ctx.esLista('pendientes') && ctx.esLista('ideas') && ctx.esLista(C));
+ok('esLista rechaza lo que no existe',
+   !ctx.esLista('inventada') && !ctx.esLista('') && !ctx.esLista(undefined) && !ctx.esLista(null));
+ok('LISTAS y esLista dicen lo mismo',
+   Object.values(ctx.LISTAS).every(ctx.esLista));
+
+ctx.datos.tareas = [];
+ctx.agregarTarea('Leche', C);
+ok('agregar una compra la deja en compras, no en pendientes',
+   ctx.tareasDe(C).length === 1 && ctx.tareasDe(P).length === 0);
+ok('una lista inventada sigue cayendo a pendientes',
+   (ctx.agregarTarea('Rara', 'inventada'), ctx.tareasDe(P).length === 1));
+
+const filaCompra = ctx.tareaAFila(
+  { id:'c1', texto:'Leche', hecha:false, creada:'2026-09-15', lista:C }, 0, 'usuario-1');
+ok('una compra SUBE como compra (ida)', filaCompra.lista === C);
+ok('y VUELVE como compra (vuelta)',
+   ctx.filasATareas([{ id:'c1', texto:'Leche', hecha:false, creada:'2026-09-15', lista:C, orden:0 }])[0].lista === C);
+
+ok('mover a compras es válido', ctx.moverALista(ctx.tareasDe(P)[0].id, C) === true);
+ok('y la tarea llega a compras', ctx.tareasDe(C).length === 2);
+ok('las compras no se ordenan por importancia',
+   (ctx.cambiarPrioridad(ctx.tareasDe(C)[0].id) === false));
+ok('el contador de compras no mezcla listas',
+   ctx.contarTareas(C).total === 2 && ctx.contarTareas(P).total === 0);
+ctx.alternarTarea(ctx.tareasDe(C)[0].id);
+ok('tareasOrdenadas(compras) manda la comprada al final',
+   ctx.tareasOrdenadas(C).map(x => x.texto).join('') === 'RaraLeche');
+ok('limpiar compras no toca las otras listas',
+   (ctx.agregarTarea('Un pendiente', P), ctx.limpiarHechas(C), ctx.tareasDe(C).length === 1 && ctx.tareasDe(P).length === 1));
 
 // --- copias de seguridad
 ok('una copia con tareas es válida',

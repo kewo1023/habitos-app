@@ -1244,6 +1244,157 @@ puedo trabajar en una idea sin necesidad de moverla"*. Sin decidir todavía.
       botón → y que una idea se trabaje desde Ideas; o dejarlo como está.
 - [ ] Opcional: que `orden` deje de recalcularse al borrar (ver arriba).
 
+## 2026-09-15 — La lista de Compras (v19)
+
+**De dónde salió**
+
+Se pidió evaluar una lista de compras dentro de la app, con la regla del 5 de
+agosto: evaluar antes de construir. La evaluación dijo que era el feature más
+barato posible —el modelo de `datos.tareas` ya estaba hecho para "una tercera
+lista"— pero con dos cosas escondidas: una trampa en la sincronización y una
+cuarta pestaña que no cabía en el iPhone. Se aprobaron las decisiones
+recomendadas (lista que se vacía, tocar marca, sin contador en la pestaña).
+
+**Hecho**
+
+- `LISTAS` tiene ahora `compras`, y nace `esLista(valor)` en D2. **La trampa:**
+  había cuatro sitios (`agregarTarea`, `moverALista`, `tareaAFila`,
+  `filasATareas`) con `lista === ideas ? ideas : pendientes`. Con dos listas
+  era inofensivo; con tres, una compra subía a la nube como pendiente y
+  volvía como pendiente, sin un solo error. El comentario encima de `LISTAS`
+  decía "si aparece una tercera, se agrega aquí y ya" — no era verdad, y
+  ahora sí lo es.
+- `TEXTOS_LISTA` guarda además las **reglas** de cada lista (`prioridad`,
+  `flechas`, `ficha`, `mover`, `progreso`, `contador`, `prompt`, `hechas`).
+  `pintarLista()` dejó de preguntar `if (enIdeas)` y lee la tabla. Con dos
+  listas un `if` bastaba; con tres, cada `if` se volvía un `if/else` de tres
+  ramas.
+- Cuarta pestaña `pestanaCompras`, textos en A0 en los dos idiomas
+  (`compras`, `phCompra`, `nuevaCompra`, `vacioCompras`, `promptCompra`,
+  `compradas`), y "Limpiar N compradas" en vez de "hechas".
+- **Se midió a 375px:** con cuatro pestañas cada una tiene 78px y
+  "Pendientes 4" necesitaba 93. Ni a 12px cabía. El contador pasó a ser un
+  **puntito azul en la esquina** (`.cuantas` con `position: absolute`, se
+  esconde con `:empty`), el padding lateral bajó a 2px y el de arriba subió
+  3px para que el puntito no tape la palabra. Revisado en los dos temas y los
+  dos idiomas.
+- `PASOS-FASE-3.md`: **Paso 7**, reemplazar el `check` de `lista` por uno con
+  tres valores. Con consulta de comprobación por si Postgres le puso otro
+  nombre a la regla.
+- `pruebas.js`: 13 tests nuevos → **357**. `pruebas-app.js`: 20 nuevas →
+  **101**. Regla de la v18 cumplida: se volvió a poner el ternario viejo (1 en
+  rojo) y se invirtieron las banderas de compras (9 en rojo).
+- `sw.js`: `VERSION` a `'v19'`.
+
+**Lo que hay que recordar de esto**
+
+Un "valor por defecto" del tipo `¿es X? X : Y` no es un default, es una
+suposición de que solo existen X e Y. Funciona hasta el día que llega Z, y
+ese día no falla: **convierte Z en Y sin avisar**. La forma correcta es
+preguntar "¿esto es válido?" (`esLista`) y solo entonces aplicar el default.
+Un error ruidoso se arregla en un minuto; uno silencioso se descubre en otro
+aparato, semanas después.
+
+Y la otra: **medir antes de suponer.** "Cuatro pestañas no caben" era una
+sensación; 78 contra 93 píxeles es un dato, y del dato salió la solución
+(el puntito) en vez de una discusión.
+
+**Límite que quedó anotado**
+
+Cambiar de idioma solo retraduce los `data-t` (las pestañas) cuando estás en
+Hábitos, porque `traducirEstaticos()` vive dentro de `pintar()`. Hoy no se
+nota: Ajustes solo se ve en Hábitos. Está en `CLAUDE.md` por si Ajustes se
+mueve algún día.
+
+**Bloqueo: el proyecto de Supabase está pausado**
+
+El plan gratuito de Supabase permite **dos proyectos activos**, y hubo que
+pausar este para darle el cupo a otro. Consecuencias mientras siga pausado:
+
+- **No se puede correr SQL** (ni el Paso 6 ni el Paso 7): el SQL Editor no
+  responde con el proyecto pausado.
+- **La app sigue funcionando en el teléfono.** `localStorage` es la fuente de
+  lo que se dibuja y la nube va detrás; eso se decidió en la Fase 3 justo para
+  esto. Lo que marques se guarda local y se queda en la cola (`datos.pendientes`)
+  esperando; el panel de Cuenta se va a poner en rojo, y es normal.
+- **Nada se pierde**, salvo que borres la app o iOS limpie el almacenamiento.
+  Mientras dure la pausa, la copia de seguridad manual (`↓ Guardar copia`)
+  vuelve a ser el único respaldo. Vale la pena hacer una cada tanto.
+- **Ojo con el tiempo de pausa.** Supabase tiene un plazo a partir del cual un
+  proyecto pausado puede dejar de poderse restaurar tal cual. Cuánto es, y qué
+  pasa exactamente, hay que **verificarlo en la documentación oficial antes
+  de fiarse** — no darlo por sabido. Si se va a alargar, exportar un respaldo
+  del teléfono y considerar bajar un backup de la base desde el panel.
+
+**Pendiente / siguiente — al reactivar el proyecto, en este orden**
+
+- [ ] **1. Reactivar el proyecto** en el panel de Supabase (comprobar que la
+      URL contenga `wfqhtnxhxjtdsvjzxaks`) y esperar a que diga que está
+      activo.
+- [ ] **2. Paso 6 de `PASOS-FASE-3.md`** (columna `prioridad`), si no se
+      corrió el 18 de agosto. Comprobar primero en Table Editor → `tareas` si
+      la columna ya existe; si existe, saltar este paso. Correrlo dos veces no
+      rompe nada (`if not exists`).
+- [ ] **3. Paso 7 de `PASOS-FASE-3.md`** (el `check` de `lista` con
+      `'compras'`), con su consulta de comprobación.
+- [ ] **4. Solo entonces abrir la app en el teléfono** y dejar que la cola
+      suba. Si la `v19` ya está publicada, al abrirla antes del SQL las
+      compras se rechazan y la cola se queda quieta hasta el siguiente cambio
+      (`huboError`); no se pierde nada, pero es mejor no probarlo. SQL
+      primero, app después.
+- [ ] **5. Confirmar en el panel de Cuenta** que dice 0 cambios sin subir, y
+      que en Table Editor → `tareas` aparecen filas con `lista = 'compras'`.
+
+**Mientras tanto, sin nube (se puede hacer ya)**
+
+- [x] **Publicar la `v19`** (commit + Sync desde VS Code). No depende de
+      Supabase: la app funciona local y la cola guarda lo que haga falta subir.
+      Mensaje sugerido: `lista de compras (v19)`.
+- [ ] Probar en el iPhone: la cuarta pestaña, el puntito del contador, y
+      agregar/marcar/limpiar una compra. La sincronización no se puede probar
+      hasta reactivar.
+- [ ] Hacer una copia de seguridad manual desde la app mientras dure la pausa.
+
+**Sin fecha**
+
+- [ ] Usarla dos o tres semanas. Si te ves reescribiendo "leche" cada semana,
+      construir `reiniciarLista('compras')`: los ítems se quedan y un botón
+      desmarca todos. ~10 líneas, sin tocar el modelo.
+- [ ] Siguen abiertos de la v18: qué hacer con mover ideas a Pendientes y su
+      nota huérfana; y que `orden` deje de recalcularse al borrar.
+
+## 2026-09-22 — Auditoría de privacidad (sin cambio de versión)
+
+**Hecho**
+
+- Se auditó el repo (y los otros seis proyectos) buscando datos personales en
+  el historial y en la versión actual. Aquí aparecieron el país de residencia
+  en tres comentarios (zona horaria y región de Supabase) y el nombre de
+  usuario de la cuenta vieja de GitHub en la documentación.
+- Commit `c6c6f3b`, ya publicado: el país pasa a "América" y la cuenta vieja
+  se menciona sin su usuario. `.gitignore` incluye por fin `CONTEXTO-LOCAL.md`
+  (antes solo se ignoraba en el Mac).
+- Ese commit lleva **solo** esas 14 líneas: la `v19` (lista de Compras) se
+  quedó fuera a propósito y sigue en la copia de trabajo, ya con los mismos
+  arreglos aplicados. Por eso no se subió `VERSION`: el cambio publicado fue
+  de comentarios, sin comportamiento nuevo.
+- Lista de términos de `CONTEXTO-LOCAL.md` ajustada: fuera los que daban
+  falsos positivos (el apodo, que es de uso normal en esta bitácora; el
+  correo, que puede ser público por decisión explícita) y dentro el usuario
+  de la cuenta vieja.
+
+**Decisión:** corregir hacia adelante, sin reescribir el historial. Reescribir
+cambiaría todos los commits y obligaría a volver a clonar; para un país y un
+nombre de usuario no vale ese costo. Lo viejo sigue visible en commits
+anteriores.
+
+**Pendiente / siguiente**
+
+- [x] **Publicar la `v19`**: publicada el 22 de septiembre, al cerrar esta sesión.
+      Pruebas en verde hoy (`pruebas.js` y `pruebas-app.js`). Todo lo de la
+      entrada anterior sigue igual: la nube espera a reactivar Supabase y
+      correr los Pasos 6 y 7, en ese orden.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

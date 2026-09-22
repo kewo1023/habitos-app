@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 344 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 81 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 357 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 101 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -262,6 +262,25 @@ pantalla, agregarlo a `pruebas-app.js`.
     marcando**, porque ahí ese es el gesto de cada día y obligar a apuntarle al
     círculo lo haría más lento. Son dos comportamientos a propósito, no un
     descuido: la tarjeta de idea lleva subrayado punteado como pista.
+
+    **Mapa de gestos de una tarjeta, al día de la v19.** Es lo que más fácil se
+    rompe al tocar `pintarLista()`, así que conviene tenerlo junto:
+
+    | Dónde tocas | En Pendientes | En Ideas | En Compras |
+    |---|---|---|---|
+    | Círculo ✓ | marca | marca | marca |
+    | Texto | marca | abre la ficha | marca |
+    | Franja izquierda | cambia la importancia | *no existe* | *no existe* |
+    | Flecha → | *no existe* | manda a Pendientes | *no existe* |
+    | ↑ ↓ (modo edición) | *ya no existen* | reordena | *no existen* |
+    | Barra de progreso | sí | no | sí |
+    | Contador en la pestaña | sí | no | no |
+
+    Que las listas se comporten distinto **es la decisión**, no un descuido.
+    Cada diferencia tiene su motivo escrito arriba. Desde la v19 esta tabla
+    **vive en el código** como banderas de `TEXTOS_LISTA` (`prioridad`,
+    `flechas`, `ficha`, `mover`, `progreso`, `contador`); `pintarLista()` las
+    lee y no pregunta por el nombre de la lista.
 - **Fase 3.5 — Tema claro, inglés y Ajustes ✅ (v15)** Tres cosas con la misma
   idea de fondo: sacar del código lo que estaba escrito a mano.
   - **Decisión clave:** dos juegos de colores (`:root[data-tema="claro"]` y
@@ -326,6 +345,9 @@ pantalla, agregarlo a `pruebas-app.js`.
     los hábitos. Arrastrar sosteniendo se descartó por tercera vez en este
     proyecto, siempre por lo mismo: en táctil lo difícil es distinguir arrastrar
     de hacer scroll, y no se puede probar con `pruebas.js`.
+    **⚠️ Caducado en parte por la v18:** Pendientes ya no tiene flechas, su
+    orden lo decide la importancia. `moverTarea()` sigue vivo pero **solo lo
+    usan las Ideas**.
   - **Ojo con `moverTarea()`:** `datos.tareas` tiene las dos listas mezcladas,
     así que subir una posición en pantalla no es subir un sitio en el array.
     Trabaja sobre los índices filtrados. En modo edición la flecha → de las
@@ -369,7 +391,8 @@ pantalla, agregarlo a `pruebas-app.js`.
   - **Decisión clave:** el orden de **Pendientes es automático** por
     importancia, y por eso esa lista **perdió las flechas ↑↓**. **Ideas las
     conserva** (petición de Kev): no tienen importancia y ahí el orden lo pone
-    él. Tercer sitio donde las dos listas se comportan distinto a propósito.
+    él. Una diferencia más entre las dos listas — están todas juntas en el
+    mapa de gestos de la Fase 2.6.
   - **Ojo:** el desempate a igual importancia es la antigüedad, apoyada en que
     `sort` es estable. **No se puede desempatar por `creada`**: guarda el día
     sin la hora, así que todo lo de hoy empata.
@@ -380,6 +403,39 @@ pantalla, agregarlo a `pruebas-app.js`.
     su nota de contexto no se borra pero **queda inalcanzable** (no se dibuja
     ahí, y no hay botón de vuelta). Su pregunta: si una idea se puede trabajar
     sin moverla, ¿para qué el botón →?
+- **Fase 3.9 — Lista de Compras ✅ (v19)** Cuarta pestaña, al mismo nivel que
+  las otras tres. Se evaluó antes de construir (regla del 5 de agosto) y
+  salió barata porque el modelo ya estaba preparado.
+  - **Decisión clave:** una compra es **un tercer valor de la columna
+    `lista`**, no un modelo nuevo. `{ id, texto, hecha, creada, lista:
+    'compras' }`. Ni una función nueva en D2: `tareasDe`, `contarTareas`,
+    `limpiarHechas`, `tareasOrdenadas` sirven tal cual.
+  - **La trampa que se encontró:** cuatro sitios tenían el ternario
+    `lista === ideas ? ideas : pendientes`. Con tres listas, una compra se
+    habría guardado en la nube **como pendiente, en silencio**. Ahora existe
+    `esLista(valor)` y todos preguntan por ella. **Regla que se lleva:** un
+    "valor por defecto" que convierte lo desconocido en otra cosa sin avisar
+    es un bug esperando su tercer valor; mejor rechazar que adivinar.
+  - **Decisión clave:** Compras se comporta como Pendientes al tocar (el
+    texto marca — en la tienda ese es el gesto), pero **sin importancia, sin
+    flechas, sin ficha y sin contador en la pestaña**. Barra de progreso sí:
+    "3 de 12" con el carrito es útil. Todo eso son banderas en `TEXTOS_LISTA`.
+  - **Decisión clave:** la lista **se vacía** ("Limpiar N compradas" borra),
+    igual que Pendientes. La alternativa —que se *reinicie*: los ítems se
+    quedan y un botón desmarca todos— se dejó para cuando el uso real la pida.
+    Sería `reiniciarLista('compras')`, ~10 líneas, sin tocar el modelo.
+  - **Cuatro pestañas en 375px:** se midió. "Pendientes 4" como texto no cabía
+    (necesitaba 93px y había 78). El contador pasó a ser un **puntito en la
+    esquina** (`.cuantas`, posicionado encima) y el padding lateral bajó a
+    2px. Si se cambia la letra de las pestañas, volver a medir.
+  - Postgres: el `check` de `lista` se reemplaza por uno con tres valores.
+    **Paso 7** de `PASOS-FASE-3.md`. Orden obligatorio: SQL primero, publicar
+    después — la misma trampa que la v16 y la v18.
+  - **Límite conocido:** cambiar de idioma solo retraduce las pestañas (los
+    `data-t`) cuando estás en Hábitos, porque `traducirEstaticos()` vive
+    dentro de `pintar()`. No se nota porque Ajustes solo se ve en Hábitos;
+    si algún día Ajustes se mueve, hay que sacar esa llamada a
+    `refrescarTodo()`.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -399,13 +455,22 @@ Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` en el Mac: `v18` (arreglo de la carrera de sincronización +
-importancia de los pendientes). La `v17` quedó publicada (commit `479107f`).
+`VERSION` publicada: `v19` (lista de Compras), el 22 de septiembre de 2026.
+Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
+buena la sincronización de la v18 y la v19.
 
-**Orden obligatorio para la v18:** primero correr el SQL del **Paso 6** de
-`PASOS-FASE-3.md` en Supabase, y solo después publicar. Si la app sube tareas
-con una columna que la tabla no conoce, la cola se atasca reintentando. Es la
-misma trampa que en la v16, y se cayó en ella una vez.
+**Orden obligatorio para la v19:** primero correr el SQL del **Paso 7** de
+`PASOS-FASE-3.md` en Supabase (y el Paso 6 si aún no se corrió), y solo
+después dejar que la app sincronice. Si la app sube una compra con el `check`
+viejo, Supabase la rechaza y la cola se atasca reintentando. Es la misma
+trampa que en la v16 y la v18.
+
+**⚠️ Estado al 15 de septiembre de 2026: el proyecto de Supabase está
+pausado** (el plan gratuito permite dos proyectos activos y el cupo se
+necesitó para otro). Ni el Paso 6 ni el Paso 7 se han corrido. La app
+funciona local y la cola guarda los cambios. La lista ordenada de lo que hay
+que hacer al reactivarlo está en la entrada del 15 de septiembre de
+`BITACORA.md`. **Antes de proponer cualquier cosa que toque la nube, leerla.**
 
 **Regla que salió de la v18:** un test escrito después del arreglo pasa siempre
 — también si el arreglo no sirve. Antes de darlo por bueno, desactivar a

@@ -504,11 +504,12 @@ body.editando .panel-datos { display: block; }
 .panel-datos .sub-etiqueta:first-of-type { margin-top: 12px; }
 
 /* ---------- 4c. LA SECCIÓN DE PENDIENTES ----------
-   La app ahora tiene dos secciones. Piénsalo como dos hojas del mismo
-   libro de Excel: los datos viven en el mismo archivo, pero miras una
-   a la vez. Aquí abajo está todo lo visual de la segunda hoja.        */
+   La app tiene varias secciones. Piénsalo como hojas del mismo libro de
+   Excel: los datos viven en el mismo archivo, pero miras una a la vez.
+   Aquí abajo está todo lo visual de las hojas de listas (Pendientes,
+   Ideas y Compras comparten esta misma hoja; solo cambian las palabras). */
 
-/* Las dos pestañas de arriba */
+/* Las pestañas de arriba */
 .pestanas {
   display: flex;
   gap: 6px;
@@ -523,14 +524,20 @@ body.editando .panel-datos { display: block; }
   position: relative;        /* para poder colgarle la línea de abajo */
   flex: 1;
   min-width: 0;              /* deja que encojan si el texto es largo */
-  padding: 10px 6px 13px;
+  /* Con cuatro pestañas en un iPhone de 375px cada una tiene ~78px. Se midió:
+     a 14px "Pendientes" cabe justo (~74px) si el padding lateral es de 2px,
+     y por eso el contador ya no va AL LADO del nombre sino encima, como
+     puntito. El padding de arriba es 3px más alto que el de abajo para
+     dejarle sitio al puntito sin que tape la palabra. Si se cambia la
+     letra o el padding, medir otra vez a 375px. */
+  padding: 13px 2px 12px;
   border: none;
   border-radius: 10px;
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
   font-size: 14px; font-weight: 600;
-  white-space: nowrap;       /* "Pendientes 4" nunca se parte en dos líneas */
+  white-space: nowrap;       /* "Pendientes" nunca se parte en dos líneas */
   cursor: pointer;
   transition: background .18s ease, color .18s ease;
 }
@@ -561,12 +568,24 @@ body.editando .panel-datos { display: block; }
 }
 
 /* El contador de pendientes ahí mismo, en la pestaña. Así sabes si hay
-   algo esperándote sin tener que entrar a mirar. */
+   algo esperándote sin tener que entrar a mirar.
+   Desde la v19 es un puntito con número en la esquina, no un texto al lado:
+   con cuatro pestañas ya no había sitio para "Pendientes 4" en un iPhone.
+   Va posicionado encima (absolute) para no empujar el nombre ni un píxel,
+   igual que la línea de la pestaña activa. Cuando está vacío no se dibuja:
+   el :empty evita un círculo azul sin nada dentro. */
 .pestana .cuantas {
-  font-size: 12px;
-  color: var(--acento);
+  position: absolute;
+  top: -1px; right: 0;
+  min-width: 15px; height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-size: 10px; font-weight: 700; line-height: 15px;
   font-variant-numeric: tabular-nums;
 }
+.pestana .cuantas:empty { display: none; }
 
 /* Cambiar de sección = esconder una lista y mostrar la otra.
    El "hidden" del HTML hace el trabajo; esto solo se asegura de que
@@ -1056,23 +1075,25 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <div class="progreso-fondo"><div class="progreso-barra" id="barra"></div></div>
     </div>
 
-    <!-- Las tres secciones de la app, todas al mismo nivel: un toque para
+    <!-- Las cuatro secciones de la app, todas al mismo nivel: un toque para
          llegar a cualquiera. Solo Pendientes lleva contador — una idea sin
-         hacer no es una deuda, así que no debe pesarte con un número. -->
+         hacer no es una deuda, y doce cosas por comprar tampoco, así que no
+         deben pesarte con un número. -->
     <div class="pestanas">
       <button class="pestana activa" id="pestanaHabitos" data-t="habitos">Hábitos</button>
-      <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span> <span class="cuantas" id="contadorTareas"></span></button>
+      <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span><span class="cuantas" id="contadorTareas"></span></button>
       <button class="pestana" id="pestanaIdeas" data-t="ideas">Ideas</button>
+      <button class="pestana" id="pestanaCompras" data-t="compras">Compras</button>
     </div>
   </header>
 
   <!-- Aquí JavaScript va a insertar las tarjetas de hábitos -->
   <main id="lista"></main>
 
-  <!-- Pendientes e Ideas comparten este mismo bloque: las dos son una lista de
-       textos y solo cambian las palabras y a qué lista van. Duplicar el HTML
-       para tener dos cosas idénticas sería la misma trampa que tener dos
-       arrays. Arranca oculto: la app siempre abre en Hábitos. -->
+  <!-- Pendientes, Ideas y Compras comparten este mismo bloque: las tres son
+       una lista de textos y solo cambian las palabras y a qué lista van.
+       Duplicar el HTML para tener tres cosas idénticas sería la misma trampa
+       que tener tres arrays. Arranca oculto: la app siempre abre en Hábitos. -->
   <main id="listaTareas" hidden>
     <!-- El campo de captura va arriba y siempre visible: escribir un
          pendiente tiene que ser un toque, no abrir una ventana. -->
@@ -1272,7 +1293,7 @@ const TEXTOS = {
     tituloApp: 'Mis Hábitos',
     saludoManana: 'Buenos días', saludoTarde: 'Buenas tardes', saludoNoche: 'Buenas noches',
     hoy: 'Hoy', de: 'de',
-    habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas',
+    habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas', compras: 'Compras',
 
     // --- Hábitos ---
     nuevoHabito: '+ Nuevo hábito', tituloNuevoHabito: 'Nuevo hábito',
@@ -1286,14 +1307,17 @@ const TEXTOS = {
     promptEmoji: 'Nuevo emoji para',
     emojiInvalido: 'Eso no parece un emoji. Usa el teclado de emojis del teléfono.',
 
-    // --- Pendientes e ideas ---
+    // --- Pendientes, ideas y compras ---
     agregar: 'Agregar',
     phPendiente: '¿Qué tienes pendiente?', phIdea: '¿Qué se te ocurrió?',
+    phCompra: '¿Qué hay que comprar?',
     nuevoPendiente: '+ Nuevo pendiente', nuevaIdea: '+ Nueva idea',
+    nuevaCompra: '+ Agregar a la lista',
     vacioPendientes: 'Nada pendiente.<br>Escribe algo arriba cuando aparezca.',
     vacioIdeas: 'Sin ideas guardadas.<br>Apunta lo que se te ocurra, sin compromiso.',
-    promptPendiente: 'Cambiar el pendiente:',
-    limpiarHechas: 'Limpiar', hechas: 'hechas',
+    vacioCompras: 'Lista vacía.<br>Anota lo que falte en casa y táchalo en la tienda.',
+    promptPendiente: 'Cambiar el pendiente:', promptCompra: 'Cambiar el producto:',
+    limpiarHechas: 'Limpiar', hechas: 'hechas', compradas: 'compradas',
     confirmLimpiar: '¿Borrar las cosas ya hechas de esta lista?',
     idea: 'Idea', contexto: 'Contexto', aPendientes: '→ A Pendientes',
     aPendientesTitulo: 'Mover a Pendientes',
@@ -1372,7 +1396,7 @@ const TEXTOS = {
     tituloApp: 'My Habits',
     saludoManana: 'Good morning', saludoTarde: 'Good afternoon', saludoNoche: 'Good evening',
     hoy: 'Today', de: 'of',
-    habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas',
+    habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas', compras: 'Shopping',
 
     nuevoHabito: '+ New habit', tituloNuevoHabito: 'New habit',
     nombre: 'Name', icono: 'Icon',
@@ -1387,11 +1411,14 @@ const TEXTOS = {
 
     agregar: 'Add',
     phPendiente: "What's on your list?", phIdea: 'What came to mind?',
+    phCompra: 'What do you need to buy?',
     nuevoPendiente: '+ New to-do', nuevaIdea: '+ New idea',
+    nuevaCompra: '+ Add to the list',
     vacioPendientes: 'Nothing pending.<br>Type something above when it comes up.',
     vacioIdeas: 'No ideas saved.<br>Jot down whatever comes to mind, no commitment.',
-    promptPendiente: 'Edit this to-do:',
-    limpiarHechas: 'Clear', hechas: 'done',
+    vacioCompras: "Empty list.<br>Jot down what's missing at home and tick it off at the store.",
+    promptPendiente: 'Edit this to-do:', promptCompra: 'Edit this item:',
+    limpiarHechas: 'Clear', hechas: 'done', compradas: 'bought',
     confirmLimpiar: 'Delete the finished items from this list?',
     idea: 'Idea', contexto: 'Context', aPendientes: '→ To To-do',
     aPendientesTitulo: 'Move to To-do',
@@ -1925,6 +1952,11 @@ function borrarHabito(idHabito) {
    campo (un UPDATE), no borrarla de un sitio y crearla en otro. Y toda la
    lógica de abajo sirve para las dos listas con solo pasarle cuál.
 
+   La prueba de que la decisión era buena llegó en la v19: la lista de
+   Compras entró como un tercer valor de la columna, sin una sola función
+   nueva aquí abajo. Lo único que hubo que arreglar fueron los sitios que
+   asumían que solo había dos valores (ver esLista más abajo).
+
    Desde la v16 estas funciones SÍ encolan: pendientes e ideas ya tienen su
    propia tabla en Postgres, igual que los hábitos. Se esperó a usarlas unos
    días antes de decidirlo, que era justo el plan.
@@ -1948,10 +1980,26 @@ function encolarTareasDesde(indice) {
 }
 
 
-// Los dos valores válidos de la columna "lista", en un solo sitio. Si algún día
-// aparece una tercera, se agrega aquí y no hay que buscar textos sueltos por
-// todo el archivo.
-const LISTAS = { pendientes: 'pendientes', ideas: 'ideas' };
+// Los valores válidos de la columna "lista", en un solo sitio. Cuando en la
+// v19 apareció la tercera (compras) se descubrió que "agregarla aquí" no
+// bastaba: había cuatro sitios con un ternario del tipo
+//   lista === ideas ? ideas : pendientes
+// que asumían que solo existían dos. Con tres, una compra se habría guardado
+// en la nube como pendiente, en silencio. Por eso ahora TODOS preguntan por
+// esLista() y ninguno adivina.
+//
+// Ojo: la tabla de Postgres tiene un CHECK con estos mismos valores (Paso 7 de
+// PASOS-FASE-3.md). Si algún día se agrega una cuarta, va en los dos sitios,
+// y primero en la base: si la app sube un valor que la tabla no admite, la
+// cola de sincronización se atasca reintentando.
+const LISTAS = { pendientes: 'pendientes', ideas: 'ideas', compras: 'compras' };
+
+// ¿Este valor es una lista que existe? Es la única pregunta que hace falta
+// hacer, y por eso vive en una función: si la respuesta cambia (una lista
+// más, una menos), cambia en un solo sitio.
+function esLista(valor) {
+  return Object.values(LISTAS).includes(valor);
+}
 
 // El WHERE de arriba, en JavaScript. Devuelve solo las filas de una lista.
 function tareasDe(lista) {
@@ -1970,8 +2018,9 @@ function agregarTarea(texto, lista) {
     creada: hoy(),
     // Si no dicen a cuál lista va, es un pendiente. Los valores por defecto
     // sirven para que quien llame a la función no tenga que pensar en el caso
-    // normal, solo en el excepcional.
-    lista: lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
+    // normal, solo en el excepcional. Pero el default se aplica SOLO cuando el
+    // valor no es una lista conocida: si es una que sí existe, se respeta.
+    lista: esLista(lista) ? lista : LISTAS.pendientes
   });
 
   // Entra al final, así que no corre a nadie: basta con encolar esta.
@@ -2000,7 +2049,7 @@ function alternarTarea(idTarea) {
 // separados habría que sacarlo de uno, meterlo en el otro y cuidar de no
 // perderlo en el camino.
 function moverALista(idTarea, lista) {
-  if (lista !== LISTAS.pendientes && lista !== LISTAS.ideas) return false;
+  if (!esLista(lista)) return false;
 
   const tarea = datos.tareas.find(x => x.id === idTarea);
   if (!tarea || tarea.lista === lista) return false;
@@ -3149,7 +3198,7 @@ function tareaAFila(tarea, indice, usuarioId) {
     // se dice "no existe" en SQL.
     prioridad: tarea.prioridad || null,
     hecha:   Boolean(tarea.hecha),
-    lista:   tarea.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes,
+    lista:   esLista(tarea.lista) ? tarea.lista : LISTAS.pendientes,
     creada:  tarea.creada || hoy(),
     orden:   indice
   };
@@ -3163,7 +3212,7 @@ function filasATareas(filas) {
   return (filas || []).map(f => {
     const tarea = {
       id: f.id, texto: f.texto, hecha: Boolean(f.hecha),
-      creada: f.creada, lista: f.lista === LISTAS.ideas ? LISTAS.ideas : LISTAS.pendientes
+      creada: f.creada, lista: esLista(f.lista) ? f.lista : LISTAS.pendientes
     };
     if (f.nota) tarea.nota = f.nota;
     // Y vuelve solo si trae valor, para que los datos locales queden idénticos
@@ -3410,24 +3459,59 @@ async function sincronizar() {
    el calendario (lógica en B/C/D, dibujado en L): lo de arriba se prueba con
    node, lo de aquí se mira con los ojos.                                   */
 
-// Dónde estás parado ahora mismo: 'habitos', 'pendientes' o 'ideas'.
-// Es la única variable que decide qué se ve; todo lo demás se deduce de ella.
+// Dónde estás parado ahora mismo: 'habitos', 'pendientes', 'ideas' o
+// 'compras'. Es la única variable que decide qué se ve; todo lo demás se
+// deduce de ella.
 let vista = 'habitos';
 
-// Las dos listas comparten pantalla y solo cambian las palabras. Tenerlas aquí
-// en una tabla, en vez de repartidas en ifs por todo el código, significa que
-// agregar una tercera lista mañana es agregar un objeto a esta tabla.
+// Las tres listas comparten pantalla y solo cambian las palabras y unas pocas
+// reglas de comportamiento. Tenerlas aquí en una tabla, en vez de repartidas
+// en ifs por todo el código, significa que agregar una lista es agregar un
+// objeto a esta tabla.
 //
 // Desde la v15 esta tabla guarda CLAVES, no frases: las frases viven todas
 // juntas en A0. El emoji sí se queda aquí, porque un emoji no se traduce.
+//
+// Desde la v19 también guarda las REGLAS de cada lista, que antes eran
+// `if (enIdeas)` sueltos dentro de pintarLista(). Con dos listas un if
+// bastaba; con tres, cada if se volvía un if/else de tres ramas. Ahora la
+// tabla decide y pintarLista() obedece — la misma jugada que ESTADISTICAS.
+// Cada regla, y por qué está como está:
+//   prioridad — la franja de importancia del borde izquierdo. Solo Pendientes:
+//               una idea no es una deuda y "leche" no tiene importancia.
+//   flechas   — reordenar a mano con ↑↓ en modo edición. Solo Ideas: en
+//               Pendientes el orden lo pone la importancia, y en Compras el
+//               orden de llegada ya es el orden en que las escribiste.
+//   ficha     — tocar el texto ABRE la ficha (nota de contexto) en vez de
+//               marcar. Solo Ideas: en las otras dos, tocar es el gesto de
+//               cada día y obligarte a apuntarle al círculo lo haría más lento.
+//   mover     — la flecha → que manda a Pendientes. Solo Ideas.
+//   progreso  — la barra "3 de 12". Pendientes y Compras sí (es útil saber
+//               cuánto falta con el carrito); Ideas no (medir cuántas ideas
+//               "llevas hechas" la convertiría en otra cosa que te reclama).
+//   contador  — el número en la pestaña. Solo Pendientes: doce cosas por
+//               comprar no son doce deudas, mismo criterio que Ideas.
 const TEXTOS_LISTA = {
   pendientes: {
     etiqueta: 'pendientes', placeholder: 'phPendiente',
-    boton: 'nuevoPendiente', vacioEmoji: '☑️', vacioTexto: 'vacioPendientes'
+    boton: 'nuevoPendiente', vacioEmoji: '☑️', vacioTexto: 'vacioPendientes',
+    prompt: 'promptPendiente', hechas: 'hechas',
+    prioridad: true,  flechas: false, ficha: false, mover: false,
+    progreso: true,   contador: true
   },
   ideas: {
     etiqueta: 'ideas', placeholder: 'phIdea',
-    boton: 'nuevaIdea', vacioEmoji: '💡', vacioTexto: 'vacioIdeas'
+    boton: 'nuevaIdea', vacioEmoji: '💡', vacioTexto: 'vacioIdeas',
+    prompt: 'promptPendiente', hechas: 'hechas',
+    prioridad: false, flechas: true,  ficha: true,  mover: true,
+    progreso: false,  contador: false
+  },
+  compras: {
+    etiqueta: 'compras', placeholder: 'phCompra',
+    boton: 'nuevaCompra', vacioEmoji: '🛒', vacioTexto: 'vacioCompras',
+    prompt: 'promptCompra', hechas: 'compradas',
+    prioridad: false, flechas: false, ficha: false, mover: false,
+    progreso: true,   contador: false
   }
 };
 
@@ -3456,6 +3540,7 @@ function cambiarVista(nueva) {
   document.getElementById('pestanaHabitos').classList.toggle('activa', enHabitos);
   document.getElementById('pestanaTareas').classList.toggle('activa', vista === 'pendientes');
   document.getElementById('pestanaIdeas').classList.toggle('activa', vista === 'ideas');
+  document.getElementById('pestanaCompras').classList.toggle('activa', vista === 'compras');
 
   // Salir del modo edición al cambiar de sección: si te quedaras dentro,
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
@@ -3494,10 +3579,15 @@ function pintarLista() {
   const cuenta = contarTareas(vista);
   const cajaProgreso = document.getElementById('cajaProgreso');
 
+  // Las reglas de la lista en la que estás (ver la tabla de arriba). Se
+  // consultan aquí una vez y no se vuelve a preguntar "¿en qué lista estoy?"
+  // en todo el resto de la función.
+  const reglas = TEXTOS_LISTA[vista];
+
   // En Ideas se esconde la barra de progreso entera. No es un descuido: medir
   // cuántas ideas "llevas hechas" convertiría la lista en otra cosa que te
-  // reclama. En Pendientes sí tiene sentido, ahí sí es una deuda que baja.
-  if (vista === 'ideas') {
+  // reclama. En Pendientes y Compras sí tiene sentido: ahí es algo que baja.
+  if (!reglas.progreso) {
     cajaProgreso.style.visibility = 'hidden';
   } else {
     cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
@@ -3520,7 +3610,6 @@ function pintarLista() {
   }
 
   // tareasOrdenadas() ya devuelve las que faltan primero y las hechas al final.
-  const enIdeas = vista === 'ideas';
 
   // Las que todavía están por hacer, en el orden en que se ven. Se calcula una
   // sola vez y no dentro del bucle: buscar la posición de cada tarjeta
@@ -3530,13 +3619,15 @@ function pintarLista() {
 
   tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
+    // La clase "idea" pone el subrayado punteado: la pista de que tocar el
+    // texto abre algo. Va atada a la regla, no al nombre de la lista.
     tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
-                      + (enIdeas ? ' idea' : '')
+                      + (reglas.ficha ? ' idea' : '')
                       + (item.id === tareaRecienMovida ? ' recien-movida' : '');
 
     // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
     // pendientes algo que ya diste por hecho no tiene sentido.
-    const botonMover = (enIdeas && !item.hecha)
+    const botonMover = (reglas.mover && !item.hecha)
       ? `<button class="mover" title="${t('aPendientesTitulo')}">→</button>` : '';
 
     // La franja de importancia es lo contrario: solo en Pendientes. El title
@@ -3545,15 +3636,15 @@ function pintarLista() {
     const nivel = PRIORIDADES.includes(item.prioridad) ? item.prioridad : '';
     const nombreNivel = t(nivel ? 'prio' + nivel[0].toUpperCase() + nivel.slice(1)
                                : 'prioNinguna');
-    const botonPrio = enIdeas ? ''
-      : `<button class="prio ${nivel}" title="${t('prioTitulo')}: ${nombreNivel}"></button>`;
+    const botonPrio = reglas.prioridad
+      ? `<button class="prio ${nivel}" title="${t('prioTitulo')}: ${nombreNivel}"></button>` : '';
 
     // Las flechas de reordenar se quedaron SOLO en Ideas. En Pendientes el
     // orden lo decide ahora la importancia, y tener las dos cosas a la vez era
     // pedirle a la lista que obedeciera a dos jefes. De paso, el modo edición
     // de Pendientes bajó de tres botones a uno, que en un iPhone se agradece.
     let flechas = '';
-    if (enIdeas) {
+    if (reglas.flechas) {
       // Posición entre las que faltan, para saber si sus flechas deben estar
       // apagadas. Una idea ya hecha no tiene posición aquí (-1) y las lleva
       // apagadas las dos: vive al final de la lista por definición.
@@ -3588,7 +3679,7 @@ function pintarLista() {
     // Si la idea tiene contexto escrito, se asoma debajo del título. Así la
     // reconoces sin abrirla, que es justo el problema que la nota vino a
     // resolver. El CSS la corta a dos líneas.
-    if (enIdeas && item.nota) {
+    if (reglas.ficha && item.nota) {
       const nota = document.createElement('div');
       nota.className = 'tarea-nota';
       nota.textContent = item.nota;
@@ -3609,10 +3700,10 @@ function pintarLista() {
       //   es leerla y recordar de qué iba, no tacharla.
       //   En PENDIENTES, tocar marca. Ese sí es el gesto de cada día, y
       //   obligarte a apuntarle al círculo de 32px lo haría más lento.
-      if (enIdeas) { abrirIdea(item.id); return; }
+      if (reglas.ficha) { abrirIdea(item.id); return; }
 
       if (!document.body.classList.contains('editando')) { marcar(); return; }
-      const nuevo = prompt(t('promptPendiente'), item.texto);
+      const nuevo = prompt(t(reglas.prompt), item.texto);
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
 
@@ -3635,7 +3726,7 @@ function pintarLista() {
     // propósito — flechas en modo edición, y los botones de los extremos
     // apagados en vez de escondidos para que los demás no cambien de sitio
     // bajo el dedo.
-    if (enIdeas) {
+    if (reglas.flechas) {
       tarjeta.querySelector('.subir').onclick = () => moverTarea(item.id, -1);
       tarjeta.querySelector('.bajar').onclick = () => moverTarea(item.id, 1);
     }
@@ -3663,7 +3754,7 @@ function pintarLista() {
     const listaActual = vista;   // se guarda porque el clic ocurre después
     const btn = document.createElement('button');
     btn.className = 'limpiar-hechas';
-    btn.textContent = `${t('limpiarHechas')} ${cuenta.hechas} ${t('hechas')}`;
+    btn.textContent = `${t('limpiarHechas')} ${cuenta.hechas} ${t(reglas.hechas)}`;
     btn.onclick = () => {
       if (confirm(t('confirmLimpiar'))) {
         limpiarHechas(listaActual);
@@ -3678,6 +3769,7 @@ function pintarLista() {
 document.getElementById('pestanaHabitos').onclick = () => cambiarVista('habitos');
 document.getElementById('pestanaTareas').onclick  = () => cambiarVista('pendientes');
 document.getElementById('pestanaIdeas').onclick   = () => cambiarVista('ideas');
+document.getElementById('pestanaCompras').onclick = () => cambiarVista('compras');
 
 function guardarTareaEscrita() {
   // Lo que escribas entra en la lista que estés viendo. Esa es toda la
