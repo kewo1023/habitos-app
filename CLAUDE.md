@@ -451,7 +451,9 @@ usuario.
 
 ## Publicar cambios
 
-Kev edita en `~/Desktop/habitos-app`. Se está migrando de "copiar y pegar en la
+Kev edita la copia local del repo en su Mac: la carpeta que abre en VS Code. La
+ruta exacta no se escribe aquí porque el repo es público y la carpeta ya se
+movió una vez. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.

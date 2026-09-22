@@ -68,7 +68,7 @@ Ya puedes cerrar la Terminal.
 
 1. Abre VS Code
 2. Menú **File → Open Folder…**
-3. Elige `Desktop/habitos-app` → **Open**
+3. Elige la carpeta `habitos-app`, donde la tengas guardada en el Mac → **Open**
 
 A la izquierda deberías ver la lista de archivos del proyecto.
 
@@ -130,10 +130,12 @@ vieja. Es el paso que más se olvida.
 ## Si "Publish to GitHub" falla porque el repo ya existe
 
 Un solo comando conecta tu carpeta con el repo que ya tienes. En la Terminal,
-reemplazando `TU-USUARIO` por tu usuario de GitHub:
+reemplazando `TU-USUARIO` por tu usuario de GitHub y `RUTA-DE-LA-CARPETA` por
+la de tu carpeta. El truco para la ruta: escribe `cd ` (con el espacio) y
+arrastra la carpeta desde Finder a la Terminal; macOS pega la ruta completa.
 
 ```
-cd ~/Desktop/habitos-app
+cd "RUTA-DE-LA-CARPETA"
 git init
 git remote add origin https://github.com/TU-USUARIO/habitos-app.git
 git branch -M main

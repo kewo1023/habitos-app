@@ -29,7 +29,7 @@ quieres una app nativa, el 80% del conocimiento se traslada.
 
 | Sitio | Qué hay |
 |---|---|
-| `~/Desktop/habitos-app` | El código, en tu Mac. Aquí editas |
+| La carpeta `habitos-app` en tu Mac | El código. Aquí editas: es la que abres en VS Code |
 | `github.com/kewo1023/habitos-app` | El código publicado. De aquí sale la página |
 | `kewo1023.github.io/habitos-app` | La app en vivo. Esta es la que abres |
 | Supabase, proyecto `habitos_app` | Tus datos: hábitos y días marcados |
