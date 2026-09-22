@@ -141,10 +141,10 @@ conviene tener anotados por si vuelven.
 
 1. **"Publish to GitHub" creó un repo equivocado.** Como `habitos-app` ya
    existía, VS Code creó `habitos-app-1` — y encima **en la cuenta vieja de Kev
-   (`kev1023`)**, no en la actual (`kewo1023`). Arreglado con
+   (la de antes)**, no en la actual (`kewo1023`). Arreglado con
    `git remote set-url origin https://github.com/kewo1023/habitos-app.git`.
 2. **La causa de fondo era el navegador.** GitHub autoriza con la sesión que
-   esté abierta en el navegador; ahí seguía `kev1023`, así que todo se
+   esté abierta en el navegador; ahí seguía la cuenta vieja, así que todo se
    autorizaba con la cuenta vieja sin preguntar. `git config user.email` no
    tenía nada que ver: eso solo firma el commit, no da permisos. **Firma y
    credencial son cosas distintas.** Se resolvió cerrando sesión en github.com
@@ -176,7 +176,7 @@ conviene tener anotados por si vuelven.
 
 **Pendiente / siguiente**
 
-- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta vieja.
 - [ ] Actualizar `PASOS-GIT.md` con lo aprendido (revisar la sesión del
       navegador **antes** de autorizar) si el tema vuelve a aparecer.
 
@@ -205,7 +205,7 @@ aplazadas sin fecha.
 **Decisiones de cálculo que conviene recordar**
 
 - `diasEntre` parsea con `'T00:00:00'` para leer las fechas en hora local; sin
-  eso JavaScript las toma como UTC y en Colombia caen un día antes. El
+  eso JavaScript las toma como UTC y en América caen un día antes. El
   `Math.round` cubre los días de 23/25 horas del horario de verano.
 - `porcentajeUltimos` mide sobre `min(n, díasDeVida)`: un hábito de 3 días no se
   castiga con 27 días en los que no existía.
@@ -263,7 +263,7 @@ Los tres primeros salen de mirar la app real en el iPhone, no del plan.
       ahora y el que elimina el riesgo de perder el historial. Requiere crear
       cuenta, aprender el cliente de Supabase y reescribir `guardar()`/`cargar()`
       contra Postgres.
-- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta vieja.
 
 ## 2026-08-04 — Fase 3, etapas 1 y 2: base de datos y login
 
@@ -395,7 +395,7 @@ Lo que hay que recordar: el detalle de las guías no era el problema — Kev lo
 agradece. El problema era la **exactitud**. Una guía muy detallada y desfasada es
 peor que una corta, porque genera confianza justo donde no la hay.
 - [ ] Actualizar `GUIA.md`, que quedó describiendo el proyecto de la Fase 0.
-- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta vieja.
 
 ## 2026-08-04 — Pulir detalles y poner la documentación al día
 
@@ -435,7 +435,7 @@ quedado desfasado.
       conviene que lo publicado y lo local coincidan.
 - [ ] Ejercicios 1, 3 y 4 de `COMO-EDITAR.md` (colores, emojis, textos), y los
       nuevos 7, 8 y 9 cuando quiera.
-- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta `kev1023`.
+- [ ] Borrar el repo accidental `habitos-app-1` de la cuenta vieja.
 - [ ] Fase 4 sin decidir y sin prisa. Kev va a usar la app un tiempo antes de
       construir más.
 

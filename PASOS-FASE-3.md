@@ -37,7 +37,7 @@ largo y la app no sincroniza, esa es la primera sospecha.
      No la vas a usar desde la app, pero es la llave maestra de la base de datos
      y no se puede volver a ver después.
    - **Region:** la más cercana a ti. `East US (North Virginia)` sirve bien
-     desde Colombia.
+     desde América.
 4. **Create new project** y espera 2-3 minutos mientras lo construyen.
 
 ---

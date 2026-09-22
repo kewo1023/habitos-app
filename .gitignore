@@ -24,3 +24,6 @@ desktop.ini
 # publicarlas: llevan tu historial completo de hábitos y el repositorio es
 # público. Si alguna vez guardas una aquí por comodidad, no se sube.
 habitos-*.json
+
+# Contexto local: datos de la persona, no del software. Nunca se versiona.
+CONTEXTO-LOCAL.md

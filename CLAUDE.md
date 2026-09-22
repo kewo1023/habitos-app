@@ -420,7 +420,7 @@ Pages. No dar por hecho que algo "no se ha publicado" si Kev manda una captura
 del iPhone: esa captura **es** la prueba de que sí.
 
 Cuenta de GitHub: **`kewo1023`**, repo `habitos-app`, rama `main`. Kev tiene una
-cuenta vieja (`kev1023`); si algo falla al publicar, revisar primero con qué
+cuenta vieja; si algo falla al publicar, revisar primero con qué
 sesión está el navegador — GitHub autoriza con esa, no con `git config`.
 
 ## Personalizaciones hechas por Kev

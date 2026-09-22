@@ -360,7 +360,7 @@ Lo que edites en el Escritorio **no** llega solo al teléfono. Para publicarlo:
 Los detalles están en `PASOS-GIT.md`.
 
 > **Si algo falla al publicar**, lo primero que hay que revisar es con qué cuenta
-> de GitHub está el navegador. Tienes una vieja (`kev1023`) y la buena
+> de GitHub está el navegador. Tienes una vieja y la buena
 > (`kewo1023`), y GitHub autoriza con la sesión del navegador, no con lo que diga
 > git. Eso ya nos costó un rato una vez.
 
