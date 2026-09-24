@@ -1462,7 +1462,7 @@ tipo "¿ya hiciste tal hábito?". Conclusión de la evaluación:
 
 - [x] Kev decide sobre las notificaciones: ícono + Atajos ahora, push con
       servidor después (24 de septiembre).
-- [ ] **Publicar la `v20`** (commit + Sync). No depende de Supabase.
+- [x] **Publicar la `v20`**: publicada el 24 de septiembre (commit `23bde48`).
       Mensaje sugerido: `v20: fuerza del hábito, mapa del año, tabla para Excel`.
 - [ ] En el iPhone: que el mapa del año se vea bien (a 5px por día), que
       "Tabla para Excel" abra el menú Compartir, y que el CSV abierto en Excel
@@ -1503,7 +1503,9 @@ preguntarse quién lo va a actualizar.
 
 **Pendiente / siguiente**
 
-- [ ] Publicar la `v20` y, en el iPhone: Activar el número y aceptar el
+- [x] Publicar la `v20`: publicada el 24 de septiembre, comprobada en el sitio
+      en vivo.
+- [ ] En el iPhone: Activar el número y aceptar el
       permiso; comprobar que aparece el número y que baja al marcar.
 - [ ] Montar las automatizaciones de Atajos.
 - [ ] Usar las dos cosas 2-3 semanas y evaluar C (push con servidor). La

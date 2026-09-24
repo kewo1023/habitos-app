@@ -507,8 +507,9 @@ movió una vez. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
-`VERSION` publicada: `v19` (lista de Compras), el 22 de septiembre de 2026.
-`VERSION` en la copia local: `v20`, **sin publicar** al 23 de septiembre.
+`VERSION` publicada: `v20` (fuerza del hábito, mapa del año, tabla para Excel
+y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
+vivo. Falta probarla en el iPhone.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
