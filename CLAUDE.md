@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 357 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 101 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 400 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 131 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -436,6 +436,56 @@ pantalla, agregarlo a `pruebas-app.js`.
     dentro de `pintar()`. No se nota porque Ajustes solo se ve en Hábitos;
     si algún día Ajustes se mueve, hay que sacar esa llamada a
     `refrescarTodo()`.
+- **Fase 3.10 — Proteger los datos y mirarlos mejor ✅ (v20)** Salió de una
+  revisión con referentes (Loop Habit Tracker, HabitKit). Nada de esto toca
+  la nube: **no hay SQL que correr** para la v20.
+  - `navigator.storage.persist()` al arrancar (sección I): le pide al
+    teléfono que no borre el `localStorage` por su cuenta. Puede decir que
+    no, y no avisa; la app funciona igual.
+  - **"Última copia: hace N días"** en el panel de copia.
+    `datos.prefs.ultimaCopia` (es de este dispositivo, no viaja).
+    `textoUltimaCopia(ultima, hoy)` recibe las dos fechas para poder
+    probarla sin depender del día en que corran las pruebas.
+  - La librería de Supabase quedó **fijada en `2.117.1`**, no `@2`. Con `@2`
+    el código con acceso a la sesión cambiaba solo. Para actualizarla: cambiar
+    el número, probar, publicar.
+  - **Fuerza del hábito** (quinta estadística): promedio móvil exponencial,
+    `FUERZA_ALFA = 0.052` → 80 al mes perfecto, 96 a los dos meses. Igual que
+    la racha, hoy sin marcar no cuenta. **Decisión clave:** complementa la
+    racha, no la reemplaza. La idea es de Loop (GPL-3.0): se reimplementó la
+    fórmula, **no se copió código**. `.stats` bajó a `minmax(56px)` para que
+    quepan cinco en una fila de iPhone; con una sexta, volver a medir.
+  - **Mapa del año** en el calendario: 53 semanas × 7 días. La aritmética vive
+    en `semanasHasta(fecha, n)` (sección C, probada); `pintarAnio()` solo
+    dibuja. No se toca: a 5px no hay dedo que acierte, corregir sigue siendo
+    en el mes. **Dos trampas de CSS que se encontraron midiendo:** columnas
+    implícitas con `1fr` crecen a 120px, y `aspect-ratio` en cada cuadrito
+    estira las filas. Solución: columnas explícitas y la proporción 53/7 en
+    la cuadrícula entera, las dos puestas desde JS con `SEMANAS_ANIO`.
+  - **Tabla para Excel (.csv):** una fila por hábito y por día, **con 0 los
+    días sin marcar** (sin ellos no hay porcentajes). BOM al principio para
+    que Excel lea bien los acentos, `\r\n`, y `celdaCSV()` pone comillas si
+    el nombre trae coma. `entregarArchivo()` se sacó de `exportar()` para
+    que los dos archivos salgan por el mismo camino.
+    `.gitignore` cubre `habitos-*.csv`.
+  - **Trampa de las pruebas:** desde Node 21, `global.navigator = {...}` no
+    reemplaza el `navigator` que trae Node; se ignora en silencio.
+    `pruebas-app.js` usa ahora `Object.defineProperty`.
+  - **Número en el ícono** (sección O, `estadoInsignia()` en D2): cuántos
+    pendientes faltan, como los correos sin leer. Usa la Badging API; solo se
+    ve con la app instalada en la pantalla de inicio y con permiso de
+    notificaciones, que se pide **solo desde el botón Activar** de Ajustes
+    (iOS lo exige). **Decisión clave:** sale de la misma variable que el
+    puntito de la pestaña, dentro de `pintarLista()`: dos vistas de un solo
+    dato. **Decisión clave:** cuenta pendientes y no hábitos, porque el
+    número solo se actualiza con la app abierta; "te faltan 3 hábitos" sería
+    falso a medianoche.
+  - **Recordatorios de hábitos:** con **Atajos de iOS** (automatización a
+    hora fija), sin código. No saben si ya marcaste el hábito.
+  - **Evaluado y NO construido:** notificaciones push de verdad (un servidor
+    que solo avisa de lo que falta). Se evalúa después de usar el ícono y
+    Atajos unas semanas. Depende de reactivar Supabase. Ver `BITACORA.md`,
+    23 y 24 de septiembre.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -458,6 +508,7 @@ web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
 `VERSION` publicada: `v19` (lista de Compras), el 22 de septiembre de 2026.
+`VERSION` en la copia local: `v20`, **sin publicar** al 23 de septiembre.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
@@ -473,6 +524,13 @@ necesitó para otro). Ni el Paso 6 ni el Paso 7 se han corrido. La app
 funciona local y la cola guarda los cambios. La lista ordenada de lo que hay
 que hacer al reactivarlo está en la entrada del 15 de septiembre de
 `BITACORA.md`. **Antes de proponer cualquier cosa que toque la nube, leerla.**
+
+**Plazo para reactivarlo:** la documentación actual de Supabase dice que un
+proyecto pausado se puede restaurar desde el panel durante **1 año**; el
+changelog de 2024 decía **90 días**. Con dos fuentes oficiales que no
+coinciden, se planea con la corta: **reactivar antes del 14 de diciembre de
+2026**. Pasado el plazo, los datos solo se recuperan bajando un backup y
+migrándolo a un proyecto nuevo.
 
 **Regla que salió de la v18:** un test escrito después del arreglo pasa siempre
 — también si el arreglo no sirve. Antes de darlo por bueno, desactivar a

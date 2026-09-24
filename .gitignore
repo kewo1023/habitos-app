@@ -25,5 +25,8 @@ desktop.ini
 # público. Si alguna vez guardas una aquí por comodidad, no se sube.
 habitos-*.json
 
+# Lo mismo con la tabla para Excel: es tu historial completo en otro formato.
+habitos-*.csv
+
 # Contexto local: datos de la persona, no del software. Nunca se versiona.
 CONTEXTO-LOCAL.md

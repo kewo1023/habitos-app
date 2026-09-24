@@ -36,7 +36,37 @@ global.localStorage = {
   removeItem: k => { delete almacen[k]; }
 };
 global.crypto = require('crypto').webcrypto;
-global.navigator = { onLine: true, serviceWorker: undefined };
+// storage imita la API de almacenamiento persistente: anota si la app lo pidió.
+//
+// Ojo con cómo se instala. Desde Node 21, Node trae su propio `navigator`, y
+// `global.navigator = {...}` NO lo reemplaza: la asignación se ignora en
+// silencio. Hasta la v19 este archivo creía tener su navigator de mentira y
+// en realidad usaba el de Node; no se notaba porque nada lo miraba de cerca.
+// defineProperty sí lo reemplaza.
+let pidioPersistencia = false;
+// setAppBadge / clearAppBadge anotan el último número que se puso en el ícono.
+// Notification imita el permiso de iOS: arranca sin preguntar ('default').
+let ultimaInsignia = null, permisoPedido = false;
+global.Notification = {
+  permission: 'default',
+  requestPermission: async () => {
+    permisoPedido = true;
+    global.Notification.permission = 'granted';
+    return 'granted';
+  }
+};
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true, writable: true,
+  value: {
+    onLine: true, serviceWorker: undefined,
+    setAppBadge: async n => { ultimaInsignia = n; },
+    clearAppBadge: async () => { ultimaInsignia = 0; },
+    storage: {
+      persisted: async () => false,
+      persist: async () => { pidioPersistencia = true; return true; }
+    }
+  }
+});
 global.location = { protocol: 'file:' };
 // matchMedia mira QUÉ se le pregunta. Antes respondía lo mismo a todo, y eso
 // dejó de servir cuando la app empezó a preguntar también por
@@ -90,7 +120,7 @@ eval(script + `
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
-    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe
+    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -234,6 +264,97 @@ ok('las estadísticas se traducen',
 ok('y su ayuda también',
    $('calAyuda').textContent === 'Tap a stat to see exactly what it measures.');
 app.cambiarIdioma('es');
+
+// ===========================================================================
+// 6b. Lo nuevo de la v20: Fuerza, el mapa del año y la última copia
+// ===========================================================================
+app.pintarStats();   // el bloque anterior las dejó pintadas en inglés
+ok('las estadísticas ahora son cinco', $('calStats').querySelectorAll('.stat').length === 5);
+ok('la quinta es la Fuerza', $('calStats').textContent.includes('Fuerza'));
+
+const cuadros = $('anioGrid').children;
+ok('el mapa del año tiene 53 semanas × 7 días', cuadros.length === 53 * 7);
+ok('el día de hoy (marcado arriba) sale en verde',
+   cuadros.some(c => c.classList.contains('hecho')));
+ok('ningún cuadro del mapa es un botón: no se toca, solo se mira',
+   cuadros.every(c => c.tagName !== 'BUTTON' && c.onclick === null));
+const vaciosEsperados = 6 - ((new Date().getDay() + 6) % 7);   // lo que falta de esta semana
+ok('los días que faltan de esta semana van vacíos',
+   cuadros.filter(c => c.classList.contains('vacio')).length === vaciosEsperados);
+
+// Tocar un día del mes también repinta el mapa (los dos salen de los mismos datos).
+const antesVerdes = cuadros.filter(c => c.classList.contains('hecho')).length;
+app.alternarHoy(idHabito);            // desmarcar hoy
+app.abrirCalendario(idHabito);
+ok('desmarcar hoy apaga su cuadro en el mapa',
+   $('anioGrid').children.filter(c => c.classList.contains('hecho')).length === antesVerdes - 1);
+app.alternarHoy(idHabito);            // y lo dejamos como estaba
+
+app.cambiarIdioma('en');
+app.pintarStats();
+ok('la Fuerza se traduce', $('calStats').textContent.includes('Strength'));
+app.cambiarIdioma('es');
+
+ok('sin copias todavía, lo dice',
+   $('ultimaCopia').textContent === 'Todavía no has guardado ninguna copia desde este teléfono.');
+ok('el botón de Excel existe y está en español',
+   $('btnExportarCSV').textContent === '↓ Tabla para Excel (.csv)');
+app.cambiarIdioma('en');
+ok('cambiar de idioma también traduce la línea de la última copia',
+   $('ultimaCopia').textContent === "You haven't saved a backup from this phone yet.");
+app.cambiarIdioma('es');
+
+// ===========================================================================
+// 6c. El número en el ícono (v20)
+// ===========================================================================
+ok('al arrancar sin pendientes, el ícono queda sin número', ultimaInsignia === 0);
+
+app.agregarTarea('Llamar al banco', 'pendientes');
+app.agregarTarea('Pagar el arriendo', 'pendientes');
+ok('dos pendientes = un 2 en el ícono', ultimaInsignia === 2);
+
+app.agregarTarea('Una idea suelta', 'ideas');
+app.agregarTarea('Leche', 'compras');
+ok('las ideas y las compras no suman al número', ultimaInsignia === 2);
+
+const idBanco = app.tareasDe('pendientes').find(x => x.texto === 'Llamar al banco').id;
+app.alternarTarea(idBanco);
+ok('marcar uno como hecho baja el número a 1', ultimaInsignia === 1);
+ok('y es el mismo número del puntito de la pestaña',
+   String(ultimaInsignia) === $('contadorTareas').textContent);
+
+// Se sacan las cuatro tareas de prueba: las secciones de abajo cuentan
+// pendientes y esperan encontrar los suyos, no estos.
+const dePrueba = ['Llamar al banco', 'Pagar el arriendo', 'Una idea suelta', 'Leche'];
+for (let i = app.datos.tareas.length - 1; i >= 0; i--) {
+  if (dePrueba.includes(app.datos.tareas[i].texto)) app.datos.tareas.splice(i, 1);
+}
+app.pintarLista();
+ok('y al quedar sin pendientes, el número desaparece', ultimaInsignia === 0);
+
+// El panel de Ajustes, en sus estados
+ok('sin haber preguntado, sale el botón Activar', $('btnInsignia').hidden === false);
+ok('y la explicación del permiso',
+   $('insigniaEstado').textContent.startsWith('Muestra en el ícono'));
+
+async function pruebasDeInsignia() {
+  await $('btnInsignia').onclick();
+  ok('al tocar Activar, se pidió el permiso', permisoPedido === true);
+  ok('concedido: el botón desaparece', $('btnInsignia').hidden === true);
+  ok('y el texto dice que está activado', $('insigniaEstado').textContent.startsWith('Activado'));
+
+  Notification.permission = 'denied';
+  app.pintarAjustes();
+  ok('negado: explica cómo cambiarlo desde el iPhone',
+     $('insigniaEstado').textContent.startsWith('El permiso quedó negado'));
+  ok('y no ofrece un botón que no serviría', $('btnInsignia').hidden === true);
+
+  app.cambiarIdioma('en');
+  ok('el estado se traduce', $('insigniaEstado').textContent.startsWith('Permission was denied'));
+  app.cambiarIdioma('es');
+  Notification.permission = 'default';
+  app.pintarAjustes();
+}
 
 // ===========================================================================
 // 7. Los avisos de la nube
@@ -462,6 +583,31 @@ function nubeDeMentira(filasPorTabla) {
   };
 }
 
+
+// ===========================================================================
+// 9. Guardar una copia anota el día (y pedir almacenamiento persistente)
+// ===========================================================================
+async function pruebasDeCopia() {
+  // El permiso se pide con promesas: hay que dejar que terminen antes de mirar.
+  await new Promise(listo => setTimeout(listo, 0));
+  ok('al arrancar, la app pidió almacenamiento persistente', pidioPersistencia === true);
+
+  // En el computador no hay menú Compartir: exportar() baja el archivo.
+  await app.exportar();
+  ok('guardar la copia anota el día de hoy', app.datos.prefs.ultimaCopia === app.hoy());
+  ok('y la línea lo dice', $('ultimaCopia').textContent === 'Última copia: hoy.');
+  ok('queda guardado en el teléfono',
+     JSON.parse(almacen['habitos-app-v1']).prefs.ultimaCopia === app.hoy());
+
+  // Si cancelas el menú Compartir, no hubo copia: no se anota nada.
+  app.datos.prefs.ultimaCopia = '';
+  navigator.canShare = () => true;
+  navigator.share = async () => { const e = new Error('cancelado'); e.name = 'AbortError'; throw e; };
+  await app.exportar();
+  ok('cancelar el menú Compartir no cuenta como copia', app.datos.prefs.ultimaCopia === '');
+  delete navigator.canShare; delete navigator.share;
+}
+
 async function pruebasDeCarrera() {
   app.sesion = { user: { id: 'u1', email: 'kev@ejemplo.com' } };
   app.datos.pendientes.length = 0;
@@ -504,7 +650,7 @@ async function pruebasDeCarrera() {
      app.estaHecho(idMeditar, app.hoy()) === false);
 }
 
-pruebasDeCarrera().then(() => {
+pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

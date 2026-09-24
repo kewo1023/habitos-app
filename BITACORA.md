@@ -1395,6 +1395,123 @@ anteriores.
       entrada anterior sigue igual: la nube espera a reactivar Supabase y
       correr los Pasos 6 y 7, en ese orden.
 
+## 2026-09-23 — Revisión con referentes y la v20
+
+**De dónde salió**
+
+Kev pidió mejoras mirando apps parecidas. Se leyeron la bitácora, el código y
+las pruebas, y se buscaron referentes: Loop Habit Tracker (la "fuerza" y el
+CSV), HabitKit (el mapa del año) y Streaks (saltar días). Salieron cinco
+optimizaciones y tres features; Kev aprobó las optimizaciones 1 a 3 y los tres
+features.
+
+**Hecho (v20, sin publicar)**
+
+- **Almacenamiento persistente:** `navigator.storage.persist()` al arrancar.
+  Con la nube en pausa, el `localStorage` del teléfono es la única copia viva.
+- **"Última copia: hace N días"** en el panel de copia
+  (`datos.prefs.ultimaCopia`, `textoUltimaCopia()`). Cancelar el menú
+  Compartir no cuenta como copia.
+- **Supabase fijado en `2.117.1`** en vez de `@2`.
+- **Plazo de la pausa verificado:** la guía actual de Supabase dice 1 año; el
+  changelog de 2024 decía 90 días. Se planea con el corto: **reactivar antes
+  del 14 de diciembre de 2026.**
+- **Fuerza del hábito** (quinta estadística), `fuerzaHabito()` en la sección C.
+- **Mapa del año** en el calendario, `semanasHasta()` + `pintarAnio()`.
+- **Tabla para Excel** (`aCSV()`, `celdaCSV()`, `exportarCSV()`), y
+  `entregarArchivo()` compartido con la copia. `.gitignore` cubre
+  `habitos-*.csv`.
+- Pruebas: **395** y **117**. Regla de la v18 cumplida: se sabotearon diez
+  cosas a propósito (alfa, semana en domingo, CSV sin comillas, copia sin
+  anotar, persist sin pedir...) y las diez pusieron algo en rojo.
+- Revisado en el navegador a 375px, en los dos temas y los dos idiomas.
+- `sw.js`: `VERSION` a `'v20'`. **No hay SQL que correr**: nada nuevo viaja a
+  la nube.
+
+**Lo que hay que recordar de esto**
+
+Dos cosas se rompieron de formas que ningún test podía ver, y las dos se
+encontraron **midiendo** en el navegador, no mirando el código: las columnas
+del mapa crecían a 120px, y las filas se estiraban cientos de píxeles. Los
+tests confirman que cada fecha cae en su sitio; si el sitio mide 5 píxeles o
+120, solo lo dice la pantalla.
+
+Y una de pruebas: `pruebas-app.js` llevaba desde siempre con el `navigator`
+de Node en vez del suyo, porque desde Node 21 `global.navigator = ...` se
+ignora sin avisar. Nadie lo notó hasta que un test miró de verdad dentro de
+`navigator`. Es la regla de la v18 otra vez: si nunca lo viste fallar, no
+sabes si está mirando.
+
+**Evaluado, sin construir: notificaciones**
+
+Kev las pidió para no dejar los pendientes quietos, y para recordatorios del
+tipo "¿ya hiciste tal hábito?". Conclusión de la evaluación:
+
+- Las notificaciones de verdad (push) necesitan un programa corriendo en un
+  servidor: una tabla de suscripciones, una Edge Function de Supabase que
+  cada hora mire qué falta y mande el aviso, y `pg_cron` para despertarla.
+  ~8-10 h. **Imposible mientras Supabase esté pausado.**
+- Dos caminos que funcionan hoy, sin nube: el **número en el ícono** con los
+  pendientes sin hacer (Badging API, ~1 h), y **Atajos de iOS** para los
+  recordatorios de hábitos a hora fija (cero código).
+- Límite de Atajos: no sabe si ya marcaste el hábito, así que avisa igual. Si
+  con el uso eso lleva a ignorarlo, es la señal de que vale la pena la versión
+  con servidor, que solo avisa de lo que falta.
+
+**Pendiente / siguiente**
+
+- [x] Kev decide sobre las notificaciones: ícono + Atajos ahora, push con
+      servidor después (24 de septiembre).
+- [ ] **Publicar la `v20`** (commit + Sync). No depende de Supabase.
+      Mensaje sugerido: `v20: fuerza del hábito, mapa del año, tabla para Excel`.
+- [ ] En el iPhone: que el mapa del año se vea bien (a 5px por día), que
+      "Tabla para Excel" abra el menú Compartir, y que el CSV abierto en Excel
+      muestre bien acentos y emojis. Si Excel lo pone todo en una columna, es
+      que espera punto y coma: avisar.
+- [ ] Guardar una copia desde el teléfono para estrenar la línea de "última
+      copia".
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026**, con la lista
+      de la entrada del 15 de septiembre.
+- [ ] Siguen abiertos: el botón → de las ideas y su nota huérfana (la
+      propuesta es quitarlo, contradice la Fase 2.6, sin decidir), y que
+      `orden` deje de recalcularse al borrar (aplazado, prioridad baja).
+
+## 2026-09-24 — El número en el ícono y los recordatorios con Atajos (v20)
+
+**Decisión de Kev sobre las notificaciones:** ícono + Atajos ahora; el push con
+servidor se evalúa después de usarlos.
+
+**Hecho (sigue dentro de la v20, sin publicar)**
+
+- **Número en el ícono:** los pendientes sin hacer, en el ícono de la
+  pantalla de inicio. Se activa en modo edición → Ajustes → "Número en el
+  ícono" → Activar. Sección O de `index.html`; `estadoInsignia()` en D2 con
+  los cuatro estados (no se puede / negado / sin preguntar / activado).
+- Sale del mismo número que el puntito de la pestaña: una sola definición.
+- Pruebas: **400** y **131**. Seis sabotajes a propósito, los seis en rojo.
+- **Atajos:** los pasos se dieron en el chat, verificados contra la guía de
+  Apple para iOS 26. No van al repo: son configuración del teléfono, no de
+  la app.
+
+**Lo que hay que recordar de esto**
+
+El número del ícono solo cambia con la app abierta. Por eso cuenta
+pendientes y no hábitos: un pendiente solo cambia cuando tú lo tocas, pero
+"te faltan 3 hábitos" se vuelve falso a medianoche sin que nadie abra la
+app. Antes de mostrar un dato en un sitio que no se actualiza solo, hay que
+preguntarse quién lo va a actualizar.
+
+**Pendiente / siguiente**
+
+- [ ] Publicar la `v20` y, en el iPhone: Activar el número y aceptar el
+      permiso; comprobar que aparece el número y que baja al marcar.
+- [ ] Montar las automatizaciones de Atajos.
+- [ ] Usar las dos cosas 2-3 semanas y evaluar C (push con servidor). La
+      señal para hacerlo: ignorar los avisos de Atajos porque suenan aunque
+      ya hiciste el hábito.
+- [ ] Lo demás sigue igual que en la entrada del 23 de septiembre
+      (reactivar Supabase antes del 14 de diciembre, botón → de las ideas).
+
 ---
 
 <!-- Plantilla para la próxima entrada:

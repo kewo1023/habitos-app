@@ -36,7 +36,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,semanasHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1063,6 +1063,164 @@ ok('las ideas quedaron al revés', textos('ideas') === 'idea2,idea');
 ok('y los pendientes no se enteraron', textos('pendientes') === 'tres,dos,uno');
 
 ok('un id que no existe no rompe nada', ctx.moverTarea('no-existe', -1) === false);
+
+// ============================================================
+//  FUERZA DEL HÁBITO (v20)
+//  El promedio que perdona un mal día. Se prueba lo que promete la
+//  explicación que ves en pantalla: 80 al mes, 96 a los dos meses.
+// ============================================================
+
+// Marca un hábito en todos los días de [desde, hasta] (en "días atrás").
+const marcarDias = (idH, desde, hasta) => {
+  for (let i = desde; i >= hasta; i--) {
+    const f = ctx.haceNDias(i);
+    (ctx.datos.registros[f] = ctx.datos.registros[f] || []).push(idH);
+  }
+};
+
+limpio();
+ctx.agregarHabito('Entrenar', '🏋️');
+let hf = ctx.datos.habitos[0];
+ok('un hábito recién creado y sin marcar tiene fuerza 0', ctx.fuerzaHabito(hf.id) === 0);
+
+hf.creado = ctx.haceNDias(29);
+marcarDias(hf.id, 29, 0);                 // 30 días perfectos, hoy incluido
+ok('un mes perfecto deja la fuerza en 80', ctx.fuerzaHabito(hf.id) === 80);
+
+limpio();
+ctx.agregarHabito('Entrenar', '🏋️');
+hf = ctx.datos.habitos[0];
+hf.creado = ctx.haceNDias(30);
+marcarDias(hf.id, 30, 1);                 // 30 días perfectos, hoy SIN marcar
+ok('hoy sin marcar no castiga: sigue en 80', ctx.fuerzaHabito(hf.id) === 80);
+
+limpio();
+ctx.agregarHabito('Entrenar', '🏋️');
+hf = ctx.datos.habitos[0];
+hf.creado = ctx.haceNDias(59);
+marcarDias(hf.id, 59, 0);
+ok('dos meses perfectos dejan la fuerza en 96', ctx.fuerzaHabito(hf.id) === 96);
+
+// La razón de ser de la fuerza: fallar ayer rompe la racha, no la fuerza.
+ctx.datos.registros[ctx.haceNDias(1)] = [];
+ok('fallar ayer devuelve la racha a 1', ctx.calcularRacha(hf.id) === 1);
+ok('pero la fuerza apenas se mueve (sigue por encima de 90)', ctx.fuerzaHabito(hf.id) > 90);
+ok('aunque sí baja algo', ctx.fuerzaHabito(hf.id) < 96);
+
+limpio();
+ctx.agregarHabito('Entrenar', '🏋️');
+hf = ctx.datos.habitos[0];
+hf.creado = ctx.haceNDias(400);
+marcarDias(hf.id, 400, 0);
+ok('ni con más de un año perfecto pasa de 100', ctx.fuerzaHabito(hf.id) <= 100);
+
+// Días marcados antes de crear el hábito (se puede, desde el calendario):
+// cuentan desde el primero, igual que el porcentaje de 30 días.
+limpio();
+ctx.agregarHabito('Entrenar', '🏋️');
+hf = ctx.datos.habitos[0];
+marcarDias(hf.id, 29, 0);                 // creado hoy, pero con 30 días marcados
+ok('los días marcados antes de crearlo también cuentan', ctx.fuerzaHabito(hf.id) === 80);
+
+// ============================================================
+//  EL MAPA DEL AÑO (v20): semanasHasta()
+//  La pantalla solo pinta cuadritos; aquí se prueba que cada fecha caiga
+//  en su columna y su fila.
+// ============================================================
+
+let sem = ctx.semanasHasta('2026-09-23', 53);   // un miércoles
+ok('devuelve 53 semanas', sem.length === 53);
+ok('cada semana trae 7 días', sem.every(s => s.length === 7));
+ok('la última semana empieza el lunes 21',
+   sem[52][0] === '2026-09-21' && sem[52][2] === '2026-09-23');
+ok('los días futuros de esta semana vienen vacíos (null)',
+   sem[52].slice(3).every(f => f === null));
+ok('todas las semanas empiezan en lunes',
+   sem.every(s => new Date(s[0] + 'T00:00:00').getDay() === 1));
+ok('la primera columna es 52 semanas antes',
+   ctx.diasEntre(sem[0][0], '2026-09-21') === 52 * 7);
+
+// Que no se salte ni repita ningún día en todo el año, incluido el cambio
+// de horario de noviembre y el de marzo.
+const seguidas = sem.flat().filter(Boolean);
+ok('los días van seguidos, sin huecos ni repetidos (horario de verano incluido)',
+   seguidas.every((f, i) => i === 0 || ctx.diasEntre(seguidas[i - 1], f) === 1));
+
+sem = ctx.semanasHasta('2027-01-03', 2);        // un domingo, justo después de año nuevo
+ok('cruza el año sin romperse',
+   sem[0][0] === '2026-12-21' && sem[1][0] === '2026-12-28' && sem[1][6] === '2027-01-03');
+ok('un domingo no deja días vacíos', sem[1].every(f => f !== null));
+
+// ============================================================
+//  ÚLTIMA COPIA (v20)
+// ============================================================
+
+ok('sin copia lo dice', ctx.textoUltimaCopia('', '2026-09-23') ===
+   'Todavía no has guardado ninguna copia desde este teléfono.');
+ok('copia de hoy', ctx.textoUltimaCopia('2026-09-23', '2026-09-23') === 'Última copia: hoy.');
+ok('copia de ayer', ctx.textoUltimaCopia('2026-09-22', '2026-09-23') === 'Última copia: ayer.');
+ok('copia de hace 12 días', ctx.textoUltimaCopia('2026-09-11', '2026-09-23') ===
+   'Última copia: hace 12 días.');
+ok('cruzando meses también cuenta bien', ctx.textoUltimaCopia('2026-08-30', '2026-09-02') ===
+   'Última copia: hace 3 días.');
+ctx.datos.prefs.idioma = 'en';
+ok('y en inglés', ctx.textoUltimaCopia('2026-09-11', '2026-09-23') === 'Last backup: 12 days ago.');
+ctx.datos.prefs.idioma = 'es';
+ok('la preferencia nace vacía', ctx.PREFS_POR_DEFECTO.ultimaCopia === '');
+
+// ============================================================
+//  LA TABLA PARA EXCEL (v20)
+// ============================================================
+
+ok('una celda normal va tal cual', ctx.celdaCSV('Leer') === 'Leer');
+ok('un número va tal cual', ctx.celdaCSV(1) === '1');
+ok('una coma obliga a poner comillas', ctx.celdaCSV('Leer, 20 min') === '"Leer, 20 min"');
+ok('las comillas de adentro se duplican', ctx.celdaCSV('Dijo "ya"') === '"Dijo ""ya"""');
+ok('un salto de línea también va entre comillas', ctx.celdaCSV('a\nb') === '"a\nb"');
+
+limpio();
+ok('sin hábitos queda solo el encabezado', ctx.aCSV() === 'fecha,habito,hecho');
+
+ctx.agregarHabito('Leer, 20 min', '📖');
+ctx.agregarHabito('Agua', '💧');
+const [hLeer, hAgua] = ctx.datos.habitos;
+hLeer.creado = ctx.haceNDias(2);
+hAgua.creado = ctx.hoy();
+ctx.datos.registros[ctx.haceNDias(1)] = [hLeer.id];
+
+const lineas = ctx.aCSV().split('\r\n');
+ok('encabezado + una fila por hábito y por día (3 de Leer + 1 de Agua)', lineas.length === 5);
+ok('los días sin marcar salen con 0',
+   lineas.includes(`${ctx.haceNDias(2)},"📖 Leer, 20 min",0`));
+ok('los marcados salen con 1',
+   lineas.includes(`${ctx.haceNDias(1)},"📖 Leer, 20 min",1`));
+ok('el hábito nuevo solo tiene la fila de hoy',
+   lineas.filter(l => l.includes('Agua')).length === 1 &&
+   lineas.includes(`${ctx.hoy()},💧 Agua,0`));
+
+// Un hábito borrado no deja filas huérfanas en la tabla.
+ctx.borrarHabito(hLeer.id);
+ok('un hábito borrado desaparece de la tabla', !ctx.aCSV().includes('Leer'));
+
+ctx.datos.prefs.idioma = 'en';
+ok('el encabezado se traduce', ctx.aCSV().startsWith('date,habit,done'));
+ctx.datos.prefs.idioma = 'es';
+ok('el archivo se llama habitos-FECHA.csv (y .gitignore lo cubre)',
+   ctx.nombreArchivoCSV() === `habitos-${ctx.hoy()}.csv`);
+
+// ============================================================
+//  EL NÚMERO EN EL ÍCONO (v20): estadoInsignia()
+// ============================================================
+
+ok('sin soporte (Safari o iOS viejo) dice que no se puede',
+   ctx.estadoInsignia(false, 'granted') === 'insigniaNoDisponible');
+ok('con permiso, está activa', ctx.estadoInsignia(true, 'granted') === 'insigniaActiva');
+ok('con el permiso negado, está bloqueada', ctx.estadoInsignia(true, 'denied') === 'insigniaBloqueada');
+ok('sin haber preguntado, está apagada (y ahí sale el botón)',
+   ctx.estadoInsignia(true, 'default') === 'insigniaApagada');
+ok('las cuatro claves existen en los dos idiomas',
+   ['insigniaNoDisponible','insigniaActiva','insigniaBloqueada','insigniaApagada']
+     .every(k => typeof ctx.TEXTOS.es[k] === 'string' && typeof ctx.TEXTOS.en[k] === 'string'));
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

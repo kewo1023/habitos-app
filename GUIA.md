@@ -125,8 +125,9 @@ sincronización, los traductores. Desde la Terminal, dentro de esta carpeta:
 node pruebas.js
 ```
 
-Son 129 pruebas y deben salir todas en ✅. Vale la pena correrlo cada vez que se
-cambie la lógica.
+Son 400 pruebas y deben salir todas en ✅. Además está `node pruebas-app.js`
+(131 verificaciones de la app entera). Vale la pena correr las dos cada vez que
+se cambie algo.
 
 ---
 
@@ -147,6 +148,13 @@ Las metas semanales quedaron aplazadas: todos tus hábitos son diarios.
 de pendientes para funcionar sin señal.
 *Aprendiste: bases de datos, llaves primarias y foráneas, seguridad por filas,
 autenticación, APIs.*
+
+**v20 — Proteger y mirar mejor tus datos ✅** "Última copia: hace N días",
+pedirle al teléfono que no borre los datos, el número de pendientes en el
+ícono, la Fuerza del hábito (un número que
+un mal día no manda a cero), el mapa del año y la tabla para Excel.
+*Aprendiste: promedios móviles exponenciales y cómo se arma un CSV que Excel
+entiende.*
 
 **Fase 4 — Opcional, si algún día quieres**
 Recordatorios, app nativa con Capacitor (widgets, Apple Health), o reescribirla

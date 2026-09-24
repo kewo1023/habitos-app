@@ -996,17 +996,56 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
 
+/* ---------- 8b. EL MAPA DEL AÑO ----------
+   53 columnas (una por semana) y 7 filas (lunes arriba, domingo abajo).
+   grid-auto-flow: column es la clave: le dice a la cuadrícula que se llene
+   de arriba hacia abajo y después pase a la siguiente columna, que es justo
+   el orden en que vienen los días. Sin eso, los llenaría por filas y la
+   semana quedaría acostada.
+   Las 53 columnas NO se declaran aquí sino en pintarAnio(), desde
+   SEMANAS_ANIO: así el número vive en un solo sitio. Y tienen que ser
+   explícitas: se probó dejar que la cuadrícula las creara sola
+   (grid-auto-columns) y cada columna creció a 120px en vez de repartirse
+   el ancho.
+   Tampoco se le pone aspect-ratio a cada cuadrito: se probó, y las filas
+   se estiraban cientos de píxeles (el cuadrito espera a saber el alto de
+   la fila y la fila espera a saber el del cuadrito). En vez de eso, la
+   proporción la lleva la cuadrícula ENTERA (53 de ancho por 7 de alto) y
+   las 7 filas se reparten ese alto. Mismo resultado, sin la espera mutua.
+   Medido a 375px: 335px de ancho / 53 columnas = unos 6px por día, gap
+   incluido. Si se ve demasiado chico en el teléfono, bajar a 26 semanas en
+   pintarAnio() antes que achicar el gap. */
+.anio-etiqueta { display: block; margin-top: 14px; margin-bottom: 6px; }
+
+.anio-grid {
+  display: grid;
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: 1px;
+}
+
+.anio-dia {
+  border-radius: 1.5px;
+  background: var(--borde);
+}
+
+.anio-dia.hecho { background: var(--exito); }
+.anio-dia.antes { opacity: .35; }         /* antes de que existiera el hábito */
+.anio-dia.vacio { background: none; }     /* el futuro de esta semana */
+
 /* Con el calendario y las estadísticas, la ventana creció.
    Esto evita que se salga de la pantalla en teléfonos pequeños. */
 .modal { max-height: 92vh; overflow-y: auto; }
 
 /* ---------- 9. ESTADÍSTICAS ----------
-   auto-fit + minmax = "mete las columnas que quepan, mínimo 72px cada una".
-   Así se acomodan solas: 4 en fila en un iPhone, 2 y 2 si la pantalla es
-   más angosta. No hay que escribir ninguna regla para cada tamaño. */
+   auto-fit + minmax = "mete las columnas que quepan, mínimo 56px cada una".
+   Así se acomodan solas sin escribir una regla para cada tamaño.
+   Era 72px con cuatro estadísticas; con la quinta (Fuerza) no cabían en una
+   fila de iPhone (5 × 72 + 4 × 8 = 392px, y hay 335). Con 56 caben justas.
+   Si algún día agregas una sexta, vuelve a hacer esta cuenta. */
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
   gap: 8px;
   margin-top: 14px;
 }
@@ -1123,9 +1162,18 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <!-- Este input abre el selector de archivos. Va oculto porque el
          botón de arriba es más bonito; al tocarlo, lo activamos desde JS -->
     <input type="file" id="archivoEntrada" accept=".json,application/json" hidden>
+    <!-- Hace cuánto guardaste la última copia. Lo escribe pintarUltimaCopia().
+         Existe porque la copia manual solo sirve si te acuerdas de hacerla, y
+         "hace 40 días" es el recordatorio que no tiene que mandarte nadie. -->
+    <p class="nota" id="ultimaCopia"></p>
     <p class="nota" data-t="notaCopia">Si entras a tu cuenta, tus datos se sincronizan solos con la
       nube. Esta copia es el respaldo que no depende de nadie más: un archivo tuyo, guardado donde
       tú quieras.</p>
+    <!-- La tabla para Excel. No es un respaldo (la app no la puede volver a
+         leer): es para que analices tus hábitos con tablas dinámicas. -->
+    <div class="panel-botones">
+      <button class="btn-mini" id="btnExportarCSV" data-t="exportarCSV">↓ Tabla para Excel (.csv)</button>
+    </div>
   </section>
 
   <!-- Ajustes. Va en modo edición igual que los otros dos paneles, y por la
@@ -1144,6 +1192,15 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
     <span class="sub-etiqueta" data-t="apariencia">Apariencia</span>
     <div class="segmentado tres" id="temas"></div>
+
+    <!-- El número de pendientes en el ícono. El texto y el botón los pone
+         pintarInsignia() según el estado: no se puede / negado / sin
+         preguntar / activado. -->
+    <span class="sub-etiqueta" data-t="insignia">Número en el ícono</span>
+    <p class="nota" id="insigniaEstado"></p>
+    <div class="panel-botones">
+      <button class="btn-mini" id="btnInsignia" data-t="activarInsignia" hidden>Activar</button>
+    </div>
   </section>
 
   <!-- Cuenta. También solo en modo edición: entrar es algo que se hace
@@ -1229,6 +1286,12 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <div class="cal-grid" id="calGrid"></div>
 
       <p class="nota" id="calResumen"></p>
+
+      <!-- El mapa del año: una columna por semana, un cuadrito por día.
+           No se toca (a 5px no hay dedo que acierte): corregir se hace en el
+           mes de arriba. Los cuadritos los pone pintarAnio(). -->
+      <span class="sub-etiqueta anio-etiqueta" data-t="ultimoAnio">Último año</span>
+      <div class="anio-grid" id="anioGrid"></div>
 
       <!-- Estadísticas del hábito. Los números los pone JavaScript. -->
       <div class="stats" id="calStats"></div>
@@ -1351,6 +1414,12 @@ const TEXTOS = {
     eTotal: 'Días en total',
     aTotal: 'Todas las veces que has marcado este hábito, sumando su historia ' +
             'completa. Incluye los días que corrijas tocándolos en el calendario.',
+    eFuerza: 'Fuerza',
+    aFuerza: 'Qué tan asentado está el hábito, de 0 a 100. Cada día cumplido la ' +
+             'sube un poco y cada día fallado la baja un poco: a diferencia de ' +
+             'la racha, un mal día no te devuelve a cero. Un mes perfecto te deja ' +
+             'en 80; dos meses, en 96.',
+    ultimoAnio: 'Último año',
     ayudaPorDefecto: 'Toca una estadística para ver qué mide exactamente.',
 
     // --- Copia de seguridad ---
@@ -1363,6 +1432,11 @@ const TEXTOS = {
     copiaIlegible: 'Ese archivo no se puede leer. ¿Seguro que es una copia de Mis Hábitos?',
     copiaMalFormada: 'El archivo se lee, pero no tiene la forma de una copia de Mis Hábitos.',
     copiaRestaurada: 'Listo, copia restaurada.',
+    copiaNunca: 'Todavía no has guardado ninguna copia desde este teléfono.',
+    copiaHoy: 'Última copia: hoy.', copiaAyer: 'Última copia: ayer.',
+    copiaHaceDias: 'Última copia: hace %n días.',
+    exportarCSV: '↓ Tabla para Excel (.csv)',
+    csvFecha: 'fecha', csvHabito: 'habito', csvHecho: 'hecho',
     confirmImportar1: 'La copia tiene %h hábito(s) y %d día(s) de historial.',
     confirmImportar2: 'Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?',
 
@@ -1370,6 +1444,16 @@ const TEXTOS = {
     ajustes: 'Ajustes', tuNombre: 'Tu nombre', phNombre: 'Para el saludo de arriba',
     idioma: 'Idioma', apariencia: 'Apariencia',
     temaAuto: 'Automático', temaClaro: 'Claro', temaOscuro: 'Oscuro',
+    insignia: 'Número en el ícono', activarInsignia: 'Activar',
+    insigniaApagada: 'Muestra en el ícono de la app cuántos pendientes te faltan, ' +
+                     'como los correos sin leer. El iPhone te va a pedir permiso de ' +
+                     'notificaciones: la app no manda ninguna, es el permiso que ' +
+                     'Apple exige para poner el número.',
+    insigniaActiva: 'Activado. El número cambia cada vez que marcas o agregas un pendiente.',
+    insigniaBloqueada: 'El permiso quedó negado. Para activarlo: Ajustes del iPhone → ' +
+                       'Notificaciones → busca esta app.',
+    insigniaNoDisponible: 'Solo funciona con la app instalada en la pantalla de inicio ' +
+                          'del iPhone (iOS 16.4 o más nuevo).',
 
     // --- Cuenta y nube ---
     cuenta: 'Cuenta', entrar: 'Entrar', cerrarSesion: 'Cerrar sesión',
@@ -1449,6 +1533,12 @@ const TEXTOS = {
     eTotal: 'Total days',
     aTotal: "Every time you've checked this habit off, across its whole history. " +
             'It includes days you fix by tapping them on the calendar.',
+    eFuerza: 'Strength',
+    aFuerza: 'How settled the habit is, from 0 to 100. Every day you do it ' +
+             'nudges it up and every day you miss nudges it down: unlike the ' +
+             "streak, one bad day doesn't send you back to zero. A perfect " +
+             'month gets you to 80; two months, to 96.',
+    ultimoAnio: 'Last year',
     ayudaPorDefecto: 'Tap a stat to see exactly what it measures.',
 
     copiaSeguridad: 'Backup',
@@ -1460,12 +1550,27 @@ const TEXTOS = {
     copiaIlegible: "That file can't be read. Are you sure it's a My Habits backup?",
     copiaMalFormada: "The file reads fine, but it isn't shaped like a My Habits backup.",
     copiaRestaurada: 'Done, backup restored.',
+    copiaNunca: "You haven't saved a backup from this phone yet.",
+    copiaHoy: 'Last backup: today.', copiaAyer: 'Last backup: yesterday.',
+    copiaHaceDias: 'Last backup: %n days ago.',
+    exportarCSV: '↓ Table for Excel (.csv)',
+    csvFecha: 'date', csvHabito: 'habit', csvHecho: 'done',
     confirmImportar1: 'The backup has %h habit(s) and %d day(s) of history.',
     confirmImportar2: 'This REPLACES everything you have now. Continue?',
 
     ajustes: 'Settings', tuNombre: 'Your name', phNombre: 'For the greeting above',
     idioma: 'Language', apariencia: 'Appearance',
     temaAuto: 'Automatic', temaClaro: 'Light', temaOscuro: 'Dark',
+    insignia: 'Number on the icon', activarInsignia: 'Turn on',
+    insigniaApagada: "Shows on the app icon how many to-dos you have left, like " +
+                     "unread emails. Your iPhone will ask for notification " +
+                     "permission: the app doesn't send any, it's the permission " +
+                     'Apple requires to show the number.',
+    insigniaActiva: 'On. The number changes every time you check off or add a to-do.',
+    insigniaBloqueada: 'Permission was denied. To turn it on: iPhone Settings → ' +
+                       'Notifications → find this app.',
+    insigniaNoDisponible: 'Only works with the app installed on the iPhone Home Screen ' +
+                          '(iOS 16.4 or newer).',
 
     cuenta: 'Account', entrar: 'Sign in', cerrarSesion: 'Sign out',
     phCorreo: 'you@email.com', phClave: 'Password',
@@ -1543,11 +1648,12 @@ const CLAVE = 'habitos-app-v1';
 //   datos.tareas     = tu lista de cosas por hacer (lo que ves en pantalla)
 //   datos.pendientes = cambios que faltan por subir a Supabase (interno)
 //
-// "prefs" son los ajustes de ESTE dispositivo: idioma, tema y tu nombre. No
+// "prefs" son los ajustes de ESTE dispositivo: idioma, tema, tu nombre y el
+// día de la última copia de seguridad que se guardó desde aquí. No
 // son datos de hábitos, y por eso más abajo verás que ni se importan de una
 // copia ni se bajan de la nube: si entras desde el Mac en inglés y desde el
 // iPhone en español, cada uno se queda como lo dejaste.
-const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '' };
+const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia: '' };
 
 const datosPorDefecto = {
   version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
@@ -1772,6 +1878,74 @@ function calcularRacha(idHabito) {
     else break;
   }
   return racha;
+}
+
+/* La "fuerza" del hábito, de 0 a 100. La idea viene de Loop Habit Tracker.
+   (Es la idea, no su código: la fórmula es matemática pública y está escrita
+   aquí desde cero.)
+
+   El problema que resuelve: la racha es cruel. Llevas 40 días, fallas uno, y
+   vuelve a 0 como si los 40 no hubieran pasado. La fuerza, en cambio, tiene
+   memoria: cada día cumplido la sube un poco y cada día fallado la baja un poco.
+
+   En Excel sería una columna que se arrastra hacia abajo, un día por fila:
+       B2 = 0,948 * B1 + 0,052 * (hecho ? 1 : 0)
+   Cada celda es "casi todo lo que traías, más un poquito de hoy". Eso se llama
+   promedio móvil exponencial, y es la misma herramienta que se usa para
+   suavizar una serie de ventas o de temperaturas.
+
+   ¿Por qué 0,052? Porque con ese número un mes perfecto te deja en 80% y dos
+   meses en 96%. Hace falta constancia para llegar arriba, y un mal día apenas
+   te mueve de ahí.
+
+   Igual que la racha: si hoy todavía no lo marcas, hoy no cuenta. El día no
+   ha terminado y no se castiga a las 8am.                                    */
+const FUERZA_ALFA = 0.052;
+
+function fuerzaHabito(idHabito) {
+  const hasta = estaHecho(idHabito, hoy()) ? hoy() : haceNDias(1);
+  const [anio, mes, dia] = fechaInicio(idHabito).split('-').map(Number);
+
+  let fuerza = 0;
+  // Un día por vuelta, desde el primero del hábito hasta `hasta`. Es el
+  // "arrastrar la fórmula hacia abajo" de Excel.
+  for (let k = 0; ; k++) {
+    const fecha = claveFecha(new Date(anio, mes - 1, dia + k));
+    if (fecha > hasta) break;
+    const hecho = estaHecho(idHabito, fecha) ? 1 : 0;
+    fuerza = (1 - FUERZA_ALFA) * fuerza + FUERZA_ALFA * hecho;
+  }
+  return Math.round(fuerza * 100);
+}
+
+/* Las fechas del mapa del año, ya acomodadas en columnas.
+   Devuelve n semanas (columnas), cada una con 7 fechas de lunes a domingo.
+   La última columna es la semana de `fecha`; sus días futuros vienen como
+   null, para que la pantalla sepa que ahí no se dibuja nada.
+
+   Está aparte de la pantalla por lo mismo que todo lo de esta sección: el
+   cálculo de fechas es donde uno se equivoca (el lunes, el cambio de año, el
+   horario de verano), y aquí se puede probar.
+
+   Ojo con cómo se suman días: new Date(año, mes, día + k). Sumar 86400000
+   milisegundos parece lo mismo, pero el día del cambio de horario tiene 23 o
+   25 horas y te corre una fecha. El constructor con día + k lo resuelve solo. */
+function semanasHasta(fecha, n) {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const base = new Date(anio, mes - 1, dia);
+  const posicion = (base.getDay() + 6) % 7;          // 0 = lunes ... 6 = domingo
+  const primerLunes = dia - posicion - 7 * (n - 1);  // el lunes de la columna 1
+
+  const semanas = [];
+  for (let s = 0; s < n; s++) {
+    const semana = [];
+    for (let d = 0; d < 7; d++) {
+      const clave = claveFecha(new Date(anio, mes - 1, primerLunes + s * 7 + d));
+      semana.push(clave > fecha ? null : clave);     // el futuro no se dibuja
+    }
+    semanas.push(semana);
+  }
+  return semanas;
 }
 
 // Cuántas veces se marcó este hábito en un mes concreto.
@@ -2296,6 +2470,23 @@ function contarTareas(lista) {
   const hechas = todas.filter(tarea => tarea.hecha).length;
   return { total: todas.length, hechas: hechas, faltan: todas.length - hechas };
 }
+
+/* En qué estado está el número del ícono, como clave de texto (sección A0).
+   Son cuatro casos y cada uno le pide algo distinto a la pantalla:
+
+     no se puede    -> abierta en Safari o en un iPhone viejo: explicar por qué
+     permiso negado -> ya dijiste que no; solo se cambia desde los Ajustes del iPhone
+     sin preguntar  -> mostrar el botón Activar
+     concedido      -> ya está funcionando
+
+   Recibe los dos datos en vez de preguntarle al navegador: así se prueba sin
+   navegador, y la parte que toca `navigator` queda en una sola línea. */
+function estadoInsignia(sePuede, permiso) {
+  if (!sePuede)              return 'insigniaNoDisponible';
+  if (permiso === 'granted') return 'insigniaActiva';
+  if (permiso === 'denied')  return 'insigniaBloqueada';
+  return 'insigniaApagada';
+}
 /* ---------- fin D2 ---------- */
 
 /* ---------- E. PINTAR LA PANTALLA ----------
@@ -2647,20 +2838,22 @@ function nombreArchivo() {
   return `habitos-${hoy()}.json`;   // ej: habitos-2026-08-02.json
 }
 
-async function exportar() {
-  // JSON.stringify con "null, 2" al final = con saltos de línea y sangría,
-  // para que el archivo se pueda leer con los ojos si haces falta.
-  const texto = JSON.stringify(datos, null, 2);
-  const archivo = new File([texto], nombreArchivo(), { type: 'application/json' });
+/* Entrega un archivo: menú Compartir en el iPhone, descarga en el computador.
+   Devuelve true si el archivo salió, false si cancelaste.
 
+   Antes esto vivía dentro de exportar(). Con el CSV hubo un segundo archivo
+   que entregar, y copiar estas quince líneas habría dejado dos versiones que
+   con el tiempo se separan: arreglas un detalle en una y la otra se queda con
+   el bug. Cuando algo se necesita dos veces, se saca a una función.         */
+async function entregarArchivo(archivo) {
   // En el iPhone lo natural es el menú Compartir: te deja guardarlo en
   // Archivos, mandártelo por correo, subirlo a iCloud...
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
     try {
       await navigator.share({ files: [archivo], title: t('tituloCompartir') });
-      return;
+      return true;
     } catch (e) {
-      if (e.name === 'AbortError') return;   // cancelaste el menú, todo bien
+      if (e.name === 'AbortError') return false;   // cancelaste el menú, todo bien
       // cualquier otro error: seguimos al plan B de abajo
     }
   }
@@ -2669,9 +2862,88 @@ async function exportar() {
   const url = URL.createObjectURL(archivo);
   const enlace = document.createElement('a');
   enlace.href = url;
-  enlace.download = nombreArchivo();
+  enlace.download = archivo.name;
   enlace.click();
   URL.revokeObjectURL(url);
+  return true;
+}
+
+async function exportar() {
+  // JSON.stringify con "null, 2" al final = con saltos de línea y sangría,
+  // para que el archivo se pueda leer con los ojos si haces falta.
+  const texto = JSON.stringify(datos, null, 2);
+  const archivo = new File([texto], nombreArchivo(), { type: 'application/json' });
+
+  // Se anota el día de la copia para poder decirte "hace 12 días". Va en
+  // prefs porque es un dato de ESTE teléfono: la copia del Mac no cuenta
+  // como copia del iPhone.
+  if (await entregarArchivo(archivo)) {
+    datos.prefs.ultimaCopia = hoy();
+    guardar();
+    pintarUltimaCopia();
+  }
+}
+
+/* "Hace cuánto hiciste la última copia", en palabras. Recibe las dos fechas
+   en vez de preguntar por hoy() adentro: así la prueba puede fijar el "hoy"
+   que quiera, y la función no depende de qué día corras las pruebas.        */
+function textoUltimaCopia(ultima, fechaHoy) {
+  if (!ultima) return t('copiaNunca');
+  const dias = diasEntre(ultima, fechaHoy);
+  if (dias <= 0) return t('copiaHoy');
+  if (dias === 1) return t('copiaAyer');
+  return t('copiaHaceDias').replace('%n', dias);
+}
+
+/* ---- Exportar para Excel (CSV) ----
+   El .json de arriba es para que la APP lo vuelva a leer. El .csv es para que
+   lo leas TÚ, en Excel: una tabla con una fila por hábito y por día.
+
+       fecha       hábito        hecho
+       2026-08-01  📖 Leer        1
+       2026-08-01  💧 Agua        0
+
+   Cada día aparece aunque NO lo hayas marcado (con un 0). Eso es lo que hace
+   útil la tabla: con solo los días marcados, Excel no tendría con qué
+   calcular porcentajes. En SQL sería un CROSS JOIN entre hábitos y días, y
+   después un LEFT JOIN contra registros.
+
+   Ojo con hoy: si todavía no lo marcas, sale con 0. No es un fallo, es que
+   el día no ha terminado.                                                   */
+
+// Una celda de CSV. Si el texto trae coma, comillas o salto de línea, va
+// entre comillas, y las comillas de adentro se duplican. Sin esto, un hábito
+// llamado "Leer, 20 min" partiría su fila en dos columnas y correría todas
+// las demás.
+function celdaCSV(valor) {
+  const texto = String(valor);
+  return /[",\n\r]/.test(texto) ? '"' + texto.replace(/"/g, '""') + '"' : texto;
+}
+
+function aCSV() {
+  const filas = [[t('csvFecha'), t('csvHabito'), t('csvHecho')]];
+  datos.habitos.forEach(h => {
+    const [anio, mes, dia] = fechaInicio(h.id).split('-').map(Number);
+    for (let k = 0; ; k++) {
+      const fecha = claveFecha(new Date(anio, mes - 1, dia + k));
+      if (fecha > hoy()) break;
+      filas.push([fecha, `${h.emoji} ${h.nombre}`, estaHecho(h.id, fecha) ? 1 : 0]);
+    }
+  });
+  // \r\n y no solo \n: es el fin de línea que Excel espera de un CSV.
+  return filas.map(fila => fila.map(celdaCSV).join(',')).join('\r\n');
+}
+
+function nombreArchivoCSV() {
+  return `habitos-${hoy()}.csv`;
+}
+
+async function exportarCSV() {
+  // El ﻿ del principio es una marca invisible (se llama BOM) que le dice
+  // a Excel "este archivo está en UTF-8". Sin ella, Excel abre "Hábitos" como
+  // "HÃ¡bitos" y los emojis como basura.
+  const archivo = new File(['﻿' + aCSV()], nombreArchivoCSV(), { type: 'text/csv' });
+  await entregarArchivo(archivo);
 }
 
 // Nunca confíes en un archivo de afuera. Revisamos que tenga la forma
@@ -2758,9 +3030,35 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(e => console.log('SW:', e));
 }
 
+/* Pedirle al teléfono que no borre nuestros datos por su cuenta.
+
+   Por defecto, el navegador guarda lo de cada página en modo "si hace falta
+   espacio, esto se puede tirar". Con persist() pedimos el modo "esto es
+   importante, no lo borres sin preguntar". Hoy importa más que nunca: con la
+   nube en pausa, el localStorage del teléfono es la única copia viva.
+
+   Se pide cada vez que abre la app, pero solo si todavía no lo tiene: pedir
+   un permiso ya concedido no cambia nada.
+
+   Límite honesto: el navegador puede decir que no, y no avisa por qué. Si
+   dice que no, la app funciona igual que antes. Por eso el resultado solo
+   se anota en la consola y no se le muestra a nadie. */
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persisted()
+    .then(yaLoTiene => yaLoTiene || navigator.storage.persist())
+    .then(concedido => console.log('Almacenamiento persistente:', concedido))
+    .catch(e => console.log('persist:', e));
+}
+
 /* ---------- J. CONECTAR LOS BOTONES DE COPIA ---------- */
 
 document.getElementById('btnExportar').onclick = exportar;
+document.getElementById('btnExportarCSV').onclick = exportarCSV;
+
+function pintarUltimaCopia() {
+  document.getElementById('ultimaCopia').textContent =
+    textoUltimaCopia(datos.prefs.ultimaCopia, hoy());
+}
 
 // El botón bonito solo simula un clic en el input de archivo, que está oculto
 document.getElementById('btnImportar').onclick = () =>
@@ -2858,8 +3156,39 @@ function pintarCalendario() {
   document.getElementById('calResumen').textContent =
     `${hechos} ${t('de')} ${total} ${t('diasCorrige')}`;
 
-  // 4) Las estadísticas
+  // 4) El mapa del año
+  pintarAnio();
+
+  // 5) Las estadísticas
   pintarStats();
+}
+
+/* El mapa del año. Toda la aritmética de fechas la hace semanasHasta()
+   (sección C, probada); aquí solo se convierte cada fecha en un cuadrito.
+   Siempre muestra el año que termina HOY, no el del mes que estés viendo:
+   es una foto de conjunto, no otra forma de navegar. */
+const SEMANAS_ANIO = 53;
+
+function pintarAnio() {
+  const caja = document.getElementById('anioGrid');
+  caja.innerHTML = '';
+  // minmax(0, 1fr) y no solo 1fr: "cada columna mide lo mismo, y puede
+  // encoger hasta 0 si hace falta". Con 1fr a secas, una columna nunca
+  // encoge por debajo de lo que mide su contenido.
+  caja.style.gridTemplateColumns = `repeat(${SEMANAS_ANIO}, minmax(0, 1fr))`;
+  caja.style.aspectRatio = `${SEMANAS_ANIO} / 7`;
+  const inicio = fechaInicio(calHabitoId);
+
+  semanasHasta(hoy(), SEMANAS_ANIO).forEach(semana => {
+    semana.forEach(fecha => {
+      const cuadro = document.createElement('div');
+      cuadro.className = 'anio-dia';
+      if (fecha === null)                     cuadro.classList.add('vacio');
+      else if (estaHecho(calHabitoId, fecha)) cuadro.classList.add('hecho');
+      else if (fecha < inicio)                cuadro.classList.add('antes');
+      caja.appendChild(cuadro);
+    });
+  });
 }
 
 /* --- Las estadísticas del hábito abierto ---
@@ -2875,7 +3204,8 @@ const ESTADISTICAS = [
   { etiqueta: 'eRacha',      ayuda: 'aRacha',      calcular: id => calcularRacha(id) },
   { etiqueta: 'eMejorRacha', ayuda: 'aMejorRacha', calcular: id => mejorRacha(id) },
   { etiqueta: 'eUltimos30',  ayuda: 'aUltimos30',  calcular: id => porcentajeUltimos(id, 30) + '%' },
-  { etiqueta: 'eTotal',      ayuda: 'aTotal',      calcular: id => totalDias(id) }
+  { etiqueta: 'eTotal',      ayuda: 'aTotal',      calcular: id => totalDias(id) },
+  { etiqueta: 'eFuerza',     ayuda: 'aFuerza',     calcular: id => fuerzaHabito(id) }
 ];
 
 function pintarStats() {
@@ -3574,6 +3904,12 @@ function pintarLista() {
   document.getElementById('contadorTareas').textContent =
     faltanPendientes > 0 ? faltanPendientes : '';
 
+  // Y el mismo número en el ícono de la pantalla de inicio. Sale de la misma
+  // variable a propósito: el puntito y el ícono son dos vistas de un solo
+  // dato. Si cada uno contara por su lado, el día que cambies qué cuenta
+  // como "faltante" arreglarías uno y el otro seguiría diciendo otra cosa.
+  ponerInsignia(faltanPendientes);
+
   if (vista === 'habitos') return;
 
   const cuenta = contarTareas(vista);
@@ -3909,6 +4245,7 @@ function refrescarTodo() {
   pintarLista();
   pintarSesion();
   pintarAjustes();
+  pintarUltimaCopia();
 }
 
 /* Dibuja los dos grupos de botones. Se genera desde las listas IDIOMAS y TEMAS
@@ -3936,6 +4273,7 @@ function pintarAjustes() {
   });
 
   document.getElementById('ajusteNombre').value = datos.prefs.nombre || '';
+  pintarInsignia();
 }
 
 /* El nombre del saludo. Se guarda con 'input' (en cada tecla) y no al salir
@@ -3957,12 +4295,64 @@ window.matchMedia('(prefers-color-scheme: dark)')
         if ((datos.prefs.tema || 'auto') === 'auto') aplicarTema();
       });
 
+/* ---------- O. EL NÚMERO EN EL ÍCONO ----------
+   Como los correos sin leer: el ícono de la app muestra cuántos pendientes
+   te faltan. Es un recordatorio que no suena ni interrumpe: lo ves cada vez
+   que miras la pantalla de inicio.
+
+   Tres cosas de iOS que hay que saber:
+   1. Solo funciona con la app instalada en la pantalla de inicio (iOS 16.4
+      o más nuevo). Abierta en Safari no existe.
+   2. El número solo se VE si le das permiso de notificaciones. La app no
+      manda ninguna notificación: es el permiso que Apple exige para poner el
+      número, igual que en una app normal.
+   3. Ese permiso solo se puede pedir desde un toque tuyo (el botón Activar).
+      Si la app lo pidiera sola al abrir, iOS lo bloquearía.
+
+   Límite honesto: el número se actualiza cuando la app está abierta. Para
+   los pendientes da igual, porque solo cambian cuando tú los tocas. Para los
+   hábitos no serviría: "hoy te faltan 3" se vuelve falso a medianoche con
+   la app cerrada. Por eso el ícono cuenta pendientes y no hábitos.        */
+
+function insigniaSePuede() {
+  return 'setAppBadge' in navigator && typeof Notification !== 'undefined';
+}
+
+// Poner el número. Se llama siempre (desde pintarLista), haya permiso o no:
+// sin permiso iOS simplemente no lo muestra, y el día que lo actives el
+// número ya está puesto. El .catch es porque algunos navegadores rechazan la
+// llamada sin permiso en vez de ignorarla; un número que no sale no debe
+// romper la lista.
+function ponerInsignia(cuantos) {
+  if (!('setAppBadge' in navigator)) return;
+  const pedido = cuantos > 0 ? navigator.setAppBadge(cuantos) : navigator.clearAppBadge();
+  if (pedido && pedido.catch) pedido.catch(() => {});
+}
+
+function pintarInsignia() {
+  const permiso = typeof Notification !== 'undefined' ? Notification.permission : '';
+  const estado = estadoInsignia(insigniaSePuede(), permiso);
+  document.getElementById('insigniaEstado').textContent = t(estado);
+  document.getElementById('btnInsignia').hidden = estado !== 'insigniaApagada';
+}
+
+document.getElementById('btnInsignia').onclick = async () => {
+  try {
+    await Notification.requestPermission();
+  } catch (e) {
+    console.log('permiso:', e);
+  }
+  pintarLista();      // vuelve a poner el número, ahora que se puede ver
+  pintarInsignia();   // y cambia el texto: activado o negado
+};
+
 /* ---------- K. ARRANCAR ---------- */
 document.documentElement.lang = datos.prefs.idioma || 'es';
 aplicarTema();
 pintarAjustes();
 pintar();
 pintarLista();   // deja el contador de la pestaña puesto desde el arranque
+pintarUltimaCopia();
 </script>
 
 <!-- La librería de Supabase, directo desde un CDN.
@@ -3971,9 +4361,16 @@ pintarLista();   // deja el contador de la pestaña puesto desde el arranque
      final, después de que todo lo de arriba ya existe.
      Si el CDN no responde, este bloque entero no llega a ejecutarse y
      la app sigue funcionando con los datos del teléfono. Es justo lo
-     que queremos: la nube es un extra, no un requisito. -->
+     que queremos: la nube es un extra, no un requisito.
+
+     La versión va COMPLETA (2.117.1) y no solo "@2". Con "@2" el CDN entrega
+     la última 2.x que exista ese día: el código que corre con acceso a tu
+     sesión y a todos tus datos podía cambiar sin que tocaras nada, y si una
+     versión nueva traía un bug, la app se rompía sola. Con el número fijo,
+     solo cambia cuando tú lo cambias aquí — y lo pruebas.
+     Fijada el 23 de septiembre de 2026, era la más reciente ese día. -->
 <script type="module">
-  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.1';
   iniciarNube(createClient).catch(e => console.log('Nube:', e));
 </script>
 </body>
