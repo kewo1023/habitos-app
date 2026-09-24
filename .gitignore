@@ -30,3 +30,8 @@ habitos-*.csv
 
 # Contexto local: datos de la persona, no del software. Nunca se versiona.
 CONTEXTO-LOCAL.md
+
+# Configuración de las herramientas de Claude en este computador (por ejemplo,
+# cómo arrancar un servidor local para ver la app). Es de la herramienta, no de
+# la app: el iPhone no la necesita y cada computador tiene la suya.
+.claude/
