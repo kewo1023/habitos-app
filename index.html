@@ -198,8 +198,14 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   background: var(--fondo);
   color: var(--texto);
-  /* padding extra arriba/abajo para el "notch" del iPhone */
-  padding: max(20px, env(safe-area-inset-top)) 18px calc(110px + env(safe-area-inset-bottom));
+  /* padding extra arriba/abajo para el "notch" del iPhone.
+     Arriba: la zona segura (env) MÁS 24px. Hasta la v21 era la zona segura
+     a secas, y bastaba porque arriba solo había una fecha. Con "Editar" en
+     esa esquina se vio en el iPhone (iOS 26) que justo debajo de la barra
+     de estado hay una franja donde el contenido sale borroso y el botón no
+     responde. Apple no lo documenta; 24px lo deja fuera de esa franja. En el
+     Mac env() vale 0, así que ahí queda en 24px, casi lo mismo que antes. */
+  padding: calc(env(safe-area-inset-top) + 24px) 18px calc(110px + env(safe-area-inset-bottom));
   max-width: 620px;
   margin: 0 auto;
   min-height: 100vh;
@@ -1116,7 +1122,11 @@ body.editando .mover { display: none; }
   color: var(--acento);
   font-family: inherit;
   font-size: 15px; font-weight: 600;
-  padding: 6px 0 6px 12px;     /* área de toque más grande que la palabra */
+  /* El área de toque es más grande que la palabra: 44px de alto, el mínimo
+     que recomienda Apple para un dedo. El margin negativo devuelve ese
+     espacio extra, para que la fila no crezca y nada se mueva de sitio. */
+  padding: 13px 0 13px 16px;
+  margin: -7px 0;
   cursor: pointer;
 }
 
