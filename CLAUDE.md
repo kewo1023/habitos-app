@@ -509,7 +509,7 @@ web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
 `VERSION` publicada: `v20` (fuerza del hábito, mapa del año, tabla para Excel
 y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
-vivo. Falta probarla en el iPhone.
+vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

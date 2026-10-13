@@ -1464,7 +1464,7 @@ tipo "¿ya hiciste tal hábito?". Conclusión de la evaluación:
       servidor después (24 de septiembre).
 - [x] **Publicar la `v20`**: publicada el 24 de septiembre (commit `23bde48`).
       Mensaje sugerido: `v20: fuerza del hábito, mapa del año, tabla para Excel`.
-- [ ] En el iPhone: que el mapa del año se vea bien (a 5px por día), que
+- [x] En el iPhone: que el mapa del año se vea bien (a 5px por día), que
       "Tabla para Excel" abra el menú Compartir, y que el CSV abierto en Excel
       muestre bien acentos y emojis. Si Excel lo pone todo en una columna, es
       que espera punto y coma: avisar.
@@ -1505,7 +1505,7 @@ preguntarse quién lo va a actualizar.
 
 - [x] Publicar la `v20`: publicada el 24 de septiembre, comprobada en el sitio
       en vivo.
-- [ ] En el iPhone: Activar el número y aceptar el
+- [x] En el iPhone: Activar el número y aceptar el
       permiso; comprobar que aparece el número y que baja al marcar.
 - [ ] Montar las automatizaciones de Atajos.
 - [ ] Usar las dos cosas 2-3 semanas y evaluar C (push con servidor). La
@@ -1513,6 +1513,29 @@ preguntarse quién lo va a actualizar.
       ya hiciste el hábito.
 - [ ] Lo demás sigue igual que en la entrada del 23 de septiembre
       (reactivar Supabase antes del 14 de diciembre, botón → de las ideas).
+
+## 2026-10-13 — Cierre: la v20 probada en el iPhone
+
+**Hecho**
+
+- Kev probó la `v20` en el iPhone y funciona. Con eso queda cerrada la
+  versión: publicada el 24 de septiembre y confirmada en el teléfono.
+
+**Pendiente / siguiente** (en orden de urgencia)
+
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Quedan unas
+      ocho semanas. La lista ordenada (Pasos 6 y 7, SQL antes que app) está
+      en la entrada del 15 de septiembre.
+- [ ] **Evaluar C (notificaciones push con servidor).** Ya pasaron las 2-3
+      semanas de uso que se acordaron el 24 de septiembre. La pregunta para
+      decidirlo: ¿los avisos de Atajos se ignoran porque suenan aunque el
+      hábito ya está hecho? C depende de reactivar Supabase, así que conviene
+      evaluarlo junto con lo de arriba.
+- [ ] Sin confirmar todavía: que las automatizaciones de Atajos estén
+      montadas, y que se haya guardado una copia desde el teléfono (la línea
+      de "Última copia" lo dice).
+- [ ] Siguen abiertos: el botón → de las ideas y su nota huérfana (sin
+      decidir), y que `orden` deje de recalcularse al borrar (prioridad baja).
 
 ---
 
