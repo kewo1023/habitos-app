@@ -545,8 +545,9 @@ de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
 `VERSION` publicada: `v20` (fuerza del hábito, mapa del año, tabla para Excel
 y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
 vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
-`sw.js` ya está en `v21` (ideas de Habitz, Fase 3.11), **sin publicar** al
-13 de octubre. No necesita SQL.
+**Publicada después: `v21`** (ideas de Habitz, Fase 3.11), commit `43eee9d`,
+el 13 de octubre de 2026. Comprobado en el sitio en vivo; **falta probarla en
+el iPhone**. No necesitó SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

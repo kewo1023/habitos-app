@@ -1550,7 +1550,7 @@ No se pudo ver la app por dentro: no hay video de muestra ni en la App Store
 ni en Google Play, y la página solo trae imágenes fijas. Las animaciones de
 Habitz no se copiaron; se diseñaron a partir de lo que se ve en las capturas.
 
-**Hecho (v21, sin publicar)**
+**Hecho (v21, publicada el mismo día)**
 
 - **Hitos de racha** (7, 30, 100, 365 días): medalla con el número dentro de
   un anillo de puntos que gira, y confeti que estalla desde el centro.
@@ -1609,9 +1609,9 @@ otro dispositivo los colores pueden salir distintos.
 
 **Pendiente / siguiente**
 
-- [ ] **Publicar la `v21`.** No hay SQL. Mensaje sugerido:
-      `v21: hitos de racha, mapa por meses, barra de abajo y color por hábito`.
-- [ ] En el iPhone: que el vidrio de la barra desenfoque la lista al hacer
+- [x] **Publicar la `v21`**: commit `43eee9d`, subido el 13 de octubre.
+      Comprobado en el sitio en vivo (`sw.js` sirve `v21`). No hubo SQL.
+- [ ] **Falta probarla en el iPhone**: que el vidrio de la barra desenfoque la lista al hacer
       scroll; que la barra no brinque al abrir el teclado (escribir un
       pendiente, "Tu nombre" en Ajustes); que la píldora se deslice al
       cambiar de pestaña; que el mapa del año se lea bien.
