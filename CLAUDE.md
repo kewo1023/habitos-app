@@ -586,8 +586,9 @@ el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQ
 **`v22`** (encuadre de "Editar"), commit `34afa39`, publicada el mismo día.
 **`v23`** ("no logrado", Fase 3.12), commit `dcd93fb`, probada en el iPhone.
 **`v24`** (tres colores y 7 puntos), commit `f1c2c81`, probada en el iPhone.
-**`v25`** (racha a 0 con hoy en ✗): `sw.js` ya en `v25`, **sin publicar**.
-No necesita SQL.
+**`v25`** (racha a 0 con hoy en ✗), commit `57f2e58`, publicada el 13 de
+octubre de 2026 y comprobada en el sitio en vivo; falta probarla en el iPhone.
+Ninguna de las v21 a v25 necesitó SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

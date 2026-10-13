@@ -1708,10 +1708,32 @@ va es verlo en el teléfono.
 
 **Pendiente / siguiente**
 
-- [ ] **Publicar la `v25`.** No hay SQL. Mensaje sugerido:
-      `v25: la racha cae a 0 si hoy está marcado como no logrado`.
+- [x] **Publicar la `v25`**: commit `57f2e58`, comprobado en el sitio en
+      vivo.
 - [ ] **Reactivar Supabase antes del 14 de diciembre** (sigue siendo lo
       más urgente; ver la entrada del 15 de septiembre).
+
+## 2026-10-13 — Cierre de la sesión (v21 a v25)
+
+**Hecho**
+
+- En un día salieron cinco versiones, todas publicadas y sin SQL:
+  `v21` ideas de Habitz, `v22` encuadre de "Editar", `v23` "no logrado",
+  `v24` tres colores y 7 puntos, `v25` racha a 0 con un ✗ hoy. Las v21 a
+  v24 están probadas en el iPhone; la v25, comprobada en el sitio en vivo.
+- Pruebas al cerrar: **443** y **172**, todas en verde. Árbol de git limpio.
+
+**Pendiente / siguiente** (en orden de urgencia)
+
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Lo más
+      urgente. La lista ordenada (Pasos 6 y 7, SQL antes que app) está en la
+      entrada del 15 de septiembre. Al reactivarlo, decidir si los ✗ viajan a
+      la nube (sería el Paso 8).
+- [ ] Probar la `v25` en el iPhone: un ✗ hoy debe quitar el 🔥 y poner la
+      racha actual en 0.
+- [ ] Ver una medalla de hito de verdad (7, 30, 100 o 365 días).
+- [ ] Abiertos sin prisa: la tabla para Excel no distingue ✗ de vacío;
+      evaluar C (notificaciones push); el botón → de las ideas.
 
 ---
 
