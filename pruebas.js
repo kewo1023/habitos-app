@@ -39,7 +39,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,colorLibre,ponerColores,esColor,COLORES_HABITO,esFallo,ponerFallo,ciclarFecha}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1292,62 +1292,18 @@ ok('llegar a 30 con otro hábito sin marcar celebra igual',
    global.hitosCelebrados.join() === '30' && !ctx.diaCompleto(ctx.hoy()));
 
 // ============================================================
-//  EL COLOR DE CADA HÁBITO (v21)
+//  EL COLOR DE CADA HÁBITO: quitado en la v24
 // ============================================================
 
-ok('hay seis colores', ctx.COLORES_HABITO === 6);
-ok('cada color tiene su variable en los DOS temas (--habito-0 a --habito-5)',
-   [0,1,2,3,4,5].every(i => (variables.match(new RegExp(`--habito-${i}:`, 'g')) || []).length === 2));
-ok('esColor acepta del 0 al 5', [0,1,2,3,4,5].every(ctx.esColor));
-ok('y rechaza lo demás (incluido "2" como texto)',
-   ![-1, 6, 2.5, '2', null, undefined].some(ctx.esColor));
-
-ok('sin hábitos, el color libre es el 0', ctx.colorLibre([]) === 0);
-ok('si el 0 está usado, el siguiente es el 1', ctx.colorLibre([{ color: 0 }]) === 1);
-ok('el que se libera se vuelve a usar primero',
-   ctx.colorLibre([{ color: 0 }, { color: 2 }]) === 1);
-ok('con los seis usados, vuelve a empezar por el menos repetido',
-   ctx.colorLibre([0,1,2,3,4,5,0,1].map(c => ({ color: c }))) === 2);
-ok('un color inválido no cuenta como usado', ctx.colorLibre([{ color: 'rojo' }]) === 0);
-
-limpio();
-for (const n of ['A','B','C','D','E','F']) ctx.agregarHabito(n, '⭐');
-ok('seis hábitos nuevos, seis colores distintos',
-   new Set(ctx.datos.habitos.map(h => h.color)).size === 6);
-ctx.agregarHabito('G', '⭐');
-ok('el séptimo ya repite uno (no hay más)', ctx.esColor(ctx.datos.habitos[6].color));
-
-// El color es de este teléfono: NO sube a la nube (no hace falta SQL).
-const filaConColor = ctx.habitoAFila(ctx.datos.habitos[0], 0, 'u1');
-ok('habitoAFila no manda el color a Postgres', !('color' in filaConColor));
-
-// ponerColores: conserva los que hay, rellena los que faltan.
-let lista = ctx.ponerColores([{ id: 'a', color: 3 }, { id: 'b' }, { id: 'c' }]);
-ok('ponerColores respeta un color que ya estaba', lista[0].color === 3);
-ok('y rellena los que faltan sin repetir',
-   new Set(lista.map(h => h.color)).size === 3);
-lista = ctx.ponerColores([{ id: 'a' }, { id: 'b' }], [{ id: 'b', color: 4 }]);
-ok('si el hábito ya tenía color aquí, lo recupera (lo que hace al bajar de la nube)',
-   lista[1].color === 4);
-ok('y al otro le da uno libre que no choque', lista[0].color === 0);
-
-// Restaurar una copia de antes de la v21 (sin colores) conserva los tuyos.
+// Los datos de las v21 a v23 traen un campo `color` que ya nada usa.
+store['habitos-app-v1'] = JSON.stringify({ version: 1, registros: {},
+  habitos: [{ id: 'a', nombre: 'Leer', emoji: '📖', color: 3 }] });
+const sinColor = ctx.cargar();
+ok('al cargar, el color viejo se borra', !('color' in sinColor.habitos[0]));
+ok('y el hábito sigue ahí', sinColor.habitos[0].nombre === 'Leer');
 limpio();
 ctx.agregarHabito('Leer', '📖');
-ctx.agregarHabito('Agua', '💧');
-const [hLeerColor, hAguaColor] = ctx.datos.habitos;
-hAguaColor.color = 5;
-ctx.importar(JSON.stringify({
-  habitos: [{ id: hLeerColor.id, nombre: 'Leer', emoji: '📖' },
-            { id: hAguaColor.id, nombre: 'Agua', emoji: '💧' },
-            { id: 'nuevo',       nombre: 'Correr', emoji: '🏃' }],
-  registros: {}
-}));
-ok('importar una copia sin colores conserva los que tenías',
-   ctx.datos.habitos[0].color === hLeerColor.color && ctx.datos.habitos[1].color === 5);
-ok('y al hábito nuevo de la copia le da uno libre',
-   ctx.esColor(ctx.datos.habitos[2].color) &&
-   ![hLeerColor.color, 5].includes(ctx.datos.habitos[2].color));
+ok('un hábito nuevo ya no lleva color', !('color' in ctx.datos.habitos[0]));
 
 // ============================================================
 //  NO LOGRADO (v23): ciclarFecha()

@@ -1649,13 +1649,47 @@ scroll).
 
 **Pendiente / siguiente**
 
-- [ ] **Publicar la `v23`.** No hay SQL. Mensaje sugerido:
-      `v23: marcar un día como no logrado desde el calendario`.
-- [ ] Probar en el iPhone que "Editar" ya responde (v22).
+- [x] **Publicar la `v23`**: commit `dcd93fb`. Kev la probó en el iPhone
+      y funciona, igual que "Editar" (v22).
 - [ ] Decidir: con hoy en ✗, ¿la racha debe caer a 0 en el momento? Hoy
       sigue contando hasta ayer, igual que con hoy vacío.
 - [ ] Más adelante: que la tabla para Excel distinga ✗ de vacío, y que los
       fallos viajen a la nube al reactivar Supabase (sería el Paso 8).
+
+## 2026-10-13 — Tres colores, como Habitz (v24)
+
+**Hecho**
+
+- Kev confirmó en el iPhone que la v22 y la v23 funcionan.
+- **v24** (sin publicar), a pedido de Kev con una captura de Habitz:
+  - **Tres colores en las tarjetas:** la normal por defecto (blanca en
+    claro, gris oscuro en oscuro), **verde** al completarse y **rojo** si es
+    no logrado. El hecho ya no se "hunde" ni se tacha: se pinta de verde, y
+    su cuadrito de emoji también. El no logrado tacha el nombre, pinta el
+    círculo de rojo suave y dice "No logrado" donde va la racha.
+  - **Fuera los colores por hábito de la v21:** las seis variables, las
+    funciones `esColor`, `colorLibre` y `ponerColores`, y el campo `color`.
+    `cargar()` borra ese campo de los datos viejos. Nunca subió a la nube,
+    así que allá no hay nada que limpiar.
+  - **7 puntos en vez de 14** (`for (let i = 6; ...)`). Era un ajuste de Kev
+    y él mismo lo cambió.
+  - Pruebas: **440** y **172** (bajaron porque se fueron las del color).
+    La prueba de arrancar con datos viejos se quedó, adaptada: ahora
+    comprueba que el `color` viejo se limpia. Tres sabotajes, los tres en rojo.
+  - `sw.js`: `VERSION` a `'v24'`.
+
+**Lo que hay que recordar de esto**
+
+Los colores por hábito duraron un día. No fue tiempo perdido: con ellos
+puestos se vio que competían con el verde de "hecho", que es la única señal
+que importa en la lista. A veces la forma más rápida de saber que algo no
+va es verlo en el teléfono.
+
+**Pendiente / siguiente**
+
+- [ ] **Publicar la `v24`.** No hay SQL. Mensaje sugerido:
+      `v24: tres colores en las tarjetas y 7 puntos`.
+- [ ] Sigue abierto: con hoy en ✗, ¿la racha debe caer a 0 en el momento?
 
 ---
 

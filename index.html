@@ -121,18 +121,6 @@
   --prio-baja:    #7f9cc4;
   --prio-ninguna: #454e5f;   /* callado, pero visible: si no se ve, no invita a tocarla */
 
-  /* El color de cada hábito (v21). Seis tonos, y ninguno es verde a
-     propósito: en esta app el verde significa "hecho", y una tarjeta verde
-     sin marcar diría dos cosas a la vez (la misma regla que la importancia
-     baja de los pendientes). Se usan muy rebajados, como tinte de fondo; a
-     toda intensidad, seis tarjetas de colores serían un arcoíris. */
-  --habito-0:     #6c8cff;   /* azul */
-  --habito-1:     #b18cff;   /* lila */
-  --habito-2:     #ff7eb3;   /* rosa */
-  --habito-3:     #ffd84d;   /* amarillo (era ámbar: junto al coral no se distinguían) */
-  --habito-4:     #ff8a65;   /* coral */
-  --habito-5:     #4cc9f0;   /* celeste */
-
   /* El "no logrado" (v23). Rojo, porque es lo contrario del verde de
      "hecho". Pero nunca va solo: siempre lleva una ✗ dibujada, para que se
      distinga también sin ver bien el rojo. */
@@ -186,14 +174,6 @@
   --prio-media:   #b45309;
   --prio-baja:    #5470a3;
   --prio-ninguna: #c2c8d4;
-
-  /* Los mismos seis, más oscuros: sobre blanco, un tinte claro se perdería. */
-  --habito-0:     #3b5bdb;
-  --habito-1:     #7c3aed;
-  --habito-2:     #db2777;
-  --habito-3:     #ca8a04;
-  --habito-4:     #ea580c;
-  --habito-5:     #0891b2;
 
   --fallo:        #c0392b;
 }
@@ -265,18 +245,8 @@ header { margin-bottom: 22px; }
 }
 
 /* ---------- 4. TARJETA DE HÁBITO ---------- */
-/* El tinte de color de cada hábito (v21). --tinte lo pone pintar() en cada
-   tarjeta y apunta a una de las seis --habito-N.
-   color-mix mezcla dos colores como mezclarías pintura: "9% del color del
-   hábito y el resto de la tarjeta normal". Así el tinte se ve en los dos
-   temas sin un valor aparte para cada uno.
-   La primera línea de background es el plan B: un iPhone con un Safari
-   anterior a color-mix (iOS 16.2) no entiende la segunda, la ignora y se
-   queda con la primera. En CSS, una línea que no se entiende no rompe nada:
-   simplemente no cuenta. */
 .habito {
   background: var(--tarjeta);
-  background: color-mix(in srgb, var(--tinte, var(--tarjeta)) 9%, var(--tarjeta));
   border: 1px solid var(--borde);
   border-radius: 18px;
   padding: 14px 16px;
@@ -289,21 +259,38 @@ header { margin-bottom: 22px; }
 
 .habito:active { transform: scale(0.98); }
 
-/* Cuando el hábito ya está hecho hoy.
-   Cuatro señales a la vez, para que se note de un vistazo sin leer:
-     1. fondo más oscuro -> la tarjeta se hunde en vez de resaltar
-     2. barra verde a la izquierda (box-shadow "inset" = sombra por dentro;
-        la usamos en vez de un border para que no mueva el contenido)
-     3. borde verdoso tenue
-     4. toda la tarjeta un poco desvanecida */
+/* Los tres estados de una tarjeta (v24), como en Habitz:
+     - por defecto: la tarjeta normal (blanca en claro, gris en oscuro)
+     - hecho hoy:   verde
+     - no logrado:  la tarjeta normal con la ✗ y el nombre tachado en rojo
+   Hasta la v23 cada hábito tenía además su propio color, y el hecho se
+   "hundía" (más oscuro y desvanecido). Con tres colores la lista se lee de
+   un vistazo: el verde es lo que ya está, y nada más compite con él.
+
+   color-mix mezcla dos colores como mezclarías pintura: "14% de verde y el
+   resto, la tarjeta". Así el verde se ve suave en los dos temas sin un
+   valor aparte para cada uno. La primera línea de background es el plan B:
+   un Safari anterior a color-mix (iOS 16.2) no entiende la segunda, la
+   ignora y se queda con la primera. */
 .habito.hecho {
   background: var(--tarjeta-hecha);
+  background: color-mix(in srgb, var(--exito) 14%, var(--tarjeta));
   border-color: var(--exito-borde);
-  box-shadow: inset 3px 0 0 var(--exito);
-  opacity: .72;
 }
 
-.habito.hecho .habito-nombre { color: var(--texto-suave); text-decoration: line-through; }
+/* El cuadrito del emoji también se tiñe al completarse, un poco más fuerte
+   que la tarjeta: es lo primero que mira el ojo. */
+.habito.hecho .habito-emoji {
+  background: color-mix(in srgb, var(--exito) 22%, var(--tarjeta));
+  border-color: var(--exito-borde);
+}
+
+/* No logrado hoy: el nombre tachado y apagado. Lo que dice "no" es el
+   círculo rojo; el nombre solo se retira. */
+.habito.fallo .habito-nombre { color: var(--texto-suave); text-decoration: line-through; }
+
+/* "No logrado", en rojo, donde normalmente va la racha. */
+.racha.fallo-texto { color: var(--fallo); font-weight: 600; }
 
 .habito-emoji {
   font-size: 26px;
@@ -311,9 +298,6 @@ header { margin-bottom: 22px; }
   display: grid; place-items: center;
   border-radius: 14px;
   background: var(--tarjeta-alta);
-  /* El cuadrito del emoji lleva el color más fuerte que la tarjeta: es
-     donde el ojo busca para reconocer el hábito sin leer el nombre. */
-  background: color-mix(in srgb, var(--tinte, var(--tarjeta-alta)) 24%, var(--tarjeta));
   flex-shrink: 0;
 }
 
@@ -342,12 +326,6 @@ header { margin-bottom: 22px; }
   border-radius: 50%;
   background: var(--borde);
 }
-
-/* Sobre una tarjeta teñida (v21), el gris de los puntos vacíos casi
-   desaparecía: el fondo se había acercado a su mismo tono. Mezclarles un
-   poco del color del hábito los separa del fondo otra vez. Si no hay
-   --tinte (no debería pasar), se quedan en el gris de siempre. */
-.dia { background: color-mix(in srgb, var(--tinte, var(--borde)) 30%, var(--borde)); }
 
 .dia.lleno { background: var(--exito); }
 
@@ -385,20 +363,17 @@ header { margin-bottom: 22px; }
   color: transparent;
 }
 
-/* Lo mismo con el círculo de marcar, que es lo que más se toca de la app:
-   si no se ve, no invita al dedo. En las tarjetas de pendientes no hay
-   --tinte, así que ahí queda el borde gris de siempre. */
-.check { border-color: color-mix(in srgb, var(--tinte, var(--borde)) 50%, var(--borde)); }
-
 .habito.hecho .check {
   background: var(--exito);
   border-color: var(--exito);
   color: var(--sobre-exito);
 }
 
-/* Hoy "no logrado" (v23): el círculo muestra la ✗ en rojo. */
+/* Hoy "no logrado" (v23): el círculo muestra la ✗ en rojo, con un fondo
+   rojo muy suave (v24) para que pese lo mismo que el verde de "hecho". */
 .habito.fallo .check {
   border-color: var(--fallo);
+  background: color-mix(in srgb, var(--fallo) 14%, var(--tarjeta));
   color: var(--fallo);
 }
 
@@ -1762,6 +1737,7 @@ const TEXTOS = {
     dias: 'días',
     tocaDia: 'Toca un día: ✓ hecho, otra vez ✗ no logrado, otra vez vacío.',
     fallosMes: '%n sin lograr',
+    noLogrado: 'No logrado',
     eRacha: 'Racha actual',
     aRacha: 'Días seguidos cumpliendo, contando hasta hoy. Si todavía no has ' +
             'marcado hoy, la racha de ayer sigue en pie: no se rompe hasta que ' +
@@ -1884,6 +1860,7 @@ const TEXTOS = {
     dias: 'days',
     tocaDia: 'Tap a day: ✓ done, again ✗ missed, again empty.',
     fallosMes: '%n missed',
+    noLogrado: 'Missed',
     eRacha: 'Current streak',
     aRacha: "Days in a row, counting up to today. If you haven't checked today " +
             "off yet, yesterday's streak still stands: it doesn't break until " +
@@ -2054,9 +2031,10 @@ function cargar() {
     // fábrica sin borrar las que ya elegiste.
     leidos.prefs = { ...PREFS_POR_DEFECTO, ...(leidos.prefs || {}) };
 
-    // Y en la v21, el color de los hábitos. Los que ya tenías no traen uno:
-    // se les reparte aquí, una sola vez, y desde entonces quedan guardados.
-    if (Array.isArray(leidos.habitos)) ponerColores(leidos.habitos);
+    // La v21 le dio a cada hábito un campo `color`, y la v24 lo quitó. Se
+    // borra al leer para no arrastrar un dato que ya nada usa. (Nunca subió
+    // a la nube, así que allá no hay nada que limpiar.)
+    if (Array.isArray(leidos.habitos)) leidos.habitos.forEach(h => { delete h.color; });
 
     // Y en la v23, los días "no logrados". Nadie los tenía antes.
     if (!leidos.fallos || typeof leidos.fallos !== 'object') leidos.fallos = {};
@@ -2086,21 +2064,6 @@ function encolar(pendiente) {
   guardar();
   if (typeof pedirSincronizar === 'function') pedirSincronizar();
 }
-
-/* Cuántos colores de hábito hay (--habito-0 a --habito-5 en el CSS). Las
-   funciones que los reparten están en la sección C, pero esta constante
-   tiene que vivir AQUÍ, antes de la línea de abajo, y no allá.
-
-   El motivo es una regla de JavaScript que pilla a todo el mundo: las
-   funciones (function ...) existen desde que arranca el script, estén donde
-   estén; las constantes (const ...) solo desde que el script pasa por su
-   línea. cargar() corre en la línea de abajo y ya reparte colores. Con la
-   constante más abajo, eso daba error, el try/catch de cargar() lo atrapaba
-   y la app arrancaba VACÍA, como si no tuvieras hábitos. Pasó en la v21 y
-   se vio en el navegador, no en las pruebas: todas arrancaban con el
-   almacenamiento vacío. Desde entonces pruebas-app.js arranca una vez más
-   la app con hábitos de antes de la v21 (sección 12). */
-const COLORES_HABITO = 6;
 
 let datos = cargar();
 
@@ -2302,55 +2265,6 @@ function hitoDeRacha(antes, despues) {
   return HITOS.find(hito => antes < hito && despues >= hito) || 0;
 }
 
-/* --- El color de cada hábito (v21) ---
-   Cada hábito guarda un número del 0 al 5 en `color`, y ese número elige una
-   de las seis variables --habito-0 ... --habito-5 del CSS. Se guarda el
-   NÚMERO y no el color, por la misma razón que TEXTOS_LISTA guarda claves y
-   no frases: el color real cambia con el tema, el número no.
-
-   El color vive solo en este teléfono: habitoAFila() no lo sube a la nube,
-   así que no hace falta tocar Postgres. Si algún día se quiere que viaje, es
-   una columna más (y su paso de SQL).
-
-   Por qué se guarda en vez de calcularse del id: se probó la cuenta. Sacar el
-   color "al azar" del id hace que, con 6 hábitos y 6 colores, la probabilidad
-   de que ninguno se repita sea del 1,5%. Casi siempre habría dos iguales, que
-   es justo lo que el color venía a evitar. Guardado, se reparte a propósito. */
-// COLORES_HABITO no vive aquí sino en la sección A, justo antes de
-// `let datos = cargar()`. Ver la nota de allí.
-
-function esColor(valor) {
-  return Number.isInteger(valor) && valor >= 0 && valor < COLORES_HABITO;
-}
-
-// El color menos usado ahora mismo. En un empate, el de número más bajo.
-// Así, hasta el sexto hábito no se repite ninguno; el séptimo empieza a
-// repetir el que menos aparezca.
-// En Excel: un CONTAR.SI por cada color, y quedarse con el mínimo.
-function colorLibre(habitos) {
-  const usos = Array(COLORES_HABITO).fill(0);
-  habitos.forEach(h => { if (esColor(h.color)) usos[h.color]++; });
-  return usos.indexOf(Math.min(...usos));
-}
-
-// Les pone color a los hábitos que no traen uno: los de antes de la v21, los
-// que bajan de la nube (que no guarda colores) y los de una copia vieja.
-// `previos` son los hábitos que había antes de reemplazar la lista: si uno ya
-// tenía color aquí, lo conserva. Sin eso, cada vez que bajaran datos de la
-// nube los colores se volverían a repartir y cambiarían solos.
-// Ojo: esta SÍ modifica la lista que recibe (y la devuelve, por comodidad).
-function ponerColores(habitos, previos = []) {
-  habitos.forEach(h => {
-    if (esColor(h.color)) return;
-    const antes = previos.find(p => p.id === h.id);
-    if (antes && esColor(antes.color)) h.color = antes.color;
-  });
-  // Segunda vuelta, para los que siguen sin color. Va aparte de la primera
-  // para que los colores conservados ya cuenten al buscar uno libre.
-  habitos.forEach(h => { if (!esColor(h.color)) h.color = colorLibre(habitos); });
-  return habitos;
-}
-
 /* La "fuerza" del hábito, de 0 a 100. La idea viene de Loop Habit Tracker.
    (Es la idea, no su código: la fórmula es matemática pública y está escrita
    aquí desde cero.)
@@ -2540,8 +2454,7 @@ function alternarHoy(idHabito) {
 
 function agregarHabito(nombre, emoji) {
   const id = crypto.randomUUID();   // un identificador único, como una PRIMARY KEY
-  datos.habitos.push({ id: id, nombre: nombre, emoji: emoji, creado: hoy(),
-                      color: colorLibre(datos.habitos) });
+  datos.habitos.push({ id: id, nombre: nombre, emoji: emoji, creado: hoy() });
 
   encolar({ tipo: 'guardarHabito', id: id });
   guardar();
@@ -3115,9 +3028,10 @@ function pintar() {
     const esPrimero = indice === 0;
     const esUltimo  = indice === datos.habitos.length - 1;
 
-    // Los 7 puntitos: de hace 6 días hasta hoy
     let puntos = '';
-    for (let i = 13; i >= 0; i--) {
+    // 7 puntos: de hace 6 días hasta hoy. Fueron 14 desde un ajuste de Kev;
+    // el 13 de octubre de 2026 él mismo los volvió a bajar a 7.
+    for (let i = 6; i >= 0; i--) {
       const fecha = haceNDias(i);
       let estado = '';
       if (estaHecho(h.id, fecha))    estado = 'lleno';
@@ -3131,17 +3045,15 @@ function pintar() {
     // final lo hiciste, lo hiciste.
     const falloHoy = !hecho && esFallo(h.id, hoy());
     tarjeta.className = 'habito' + (hecho ? ' hecho' : '') + (falloHoy ? ' fallo' : '');
-    // El color del hábito llega al CSS como variable (--tinte). La tarjeta no
-    // sabe qué color es: solo sabe "el mío es el número tal", y el tema decide
-    // cómo se ve ese número en claro y en oscuro.
-    tarjeta.style.setProperty('--tinte', `var(--habito-${h.color})`);
     tarjeta.innerHTML = `
       <div class="habito-emoji">${h.emoji}</div>
       <div class="habito-info">
         <div class="habito-nombre">${h.nombre}</div>
         <div class="semana">
           ${puntos}
-          <span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>
+          ${falloHoy
+            ? `<span class="racha fallo-texto">${t('noLogrado')}</span>`
+            : `<span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>`}
         </div>
       </div>
       <div class="check">${falloHoy ? '✗' : '✓'}</div>
@@ -3656,9 +3568,7 @@ function importar(texto) {
 
   datos = {
     version: 1,
-    // Una copia de antes de la v21 no trae colores. Si el hábito ya existe
-    // aquí, conserva el suyo; si no, se le da uno libre.
-    habitos: ponerColores(copia.habitos, datos.habitos),
+    habitos: copia.habitos,
     registros: copia.registros,
     // Una copia de antes de la v23 no trae días "no logrados".
     fallos: copia.fallos && typeof copia.fallos === 'object' ? copia.fallos : {},
@@ -4379,8 +4289,7 @@ async function bajarTodo() {
     console.warn('La nube vino vacía. Copia de emergencia guardada.');
   }
 
-  // La nube no guarda colores (v21): se conservan los de este teléfono.
-  datos.habitos   = ponerColores(filasAHabitos(filasHabitos), datos.habitos);
+  datos.habitos   = filasAHabitos(filasHabitos);
   datos.registros = filasARegistros(filasRegistros);
   // Desde la v16 las tareas también bajan. Se puede reemplazar sin miedo por
   // la misma razón que los hábitos: solo se llega aquí con la cola vacía, o

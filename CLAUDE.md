@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 455 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 171 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 440 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 172 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -508,7 +508,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     al bajar a Ajustes. `alternarEdicion()` es la única que entra y sale.
     El "Liquid Glass" de iOS no se puede imitar desde la web: esto es
     vidrio esmerilado (`backdrop-filter`).
-  - **Color por hábito:** seis tonos `--habito-0..5`, **ninguno verde**
+  - ~~**Color por hábito**~~ — **quitado en la v24** a pedido de Kev (ver
+    Fase 3.12). Lo que sigue queda como historia: seis tonos `--habito-0..5`, **ninguno verde**
     (el verde es "hecho"). Campo `color` (0-5) **solo en este teléfono**:
     `habitoAFila()` no lo sube. `colorLibre()` da el menos usado;
     `ponerColores()` lo reparte al cargar, y lo conserva al bajar de la nube
@@ -543,6 +544,13 @@ pantalla, agregarlo a `pruebas-app.js`.
     Paso 8). Sí entran en la copia de seguridad.
   - El ✗ siempre lleva símbolo, no solo color (`--fallo`): ✗ en los puntos y
     el mapa (dos degradados cruzados), número tachado en el calendario.
+  - **v24 — Tres colores, como Habitz** (pedido de Kev, con captura):
+    blanco por defecto (la tarjeta normal; en oscuro, gris oscuro), **verde**
+    al completarse y **rojo** si es no logrado. Se quitaron los colores por
+    hábito de la v21 (paleta, `colorLibre`, `ponerColores`, el campo `color`;
+    `cargar()` borra el campo de los datos viejos). El hecho ya no se "hunde"
+    ni se tacha: se pinta de verde. Lo tachado es el no logrado, que además
+    dice "No logrado" donde va la racha. Y los puntos bajaron de 14 a 7.
   - **Abierto:** con hoy en ✗, la racha sigue contando hasta ayer (igual que
     con hoy vacío). Si Kev prefiere que un ✗ hoy la ponga en 0 al instante,
     es una línea en `calcularRacha()`. La tabla para Excel tampoco distingue
@@ -574,7 +582,8 @@ vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
 **Publicada después: `v21`** (ideas de Habitz, Fase 3.11), commit `43eee9d`,
 el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQL.
 **`v22`** (encuadre de "Editar"), commit `34afa39`, publicada el mismo día.
-**`v23`** ("no logrado", Fase 3.12): `sw.js` ya en `v23`, **sin publicar**.
+**`v23`** ("no logrado", Fase 3.12), commit `dcd93fb`, probada en el iPhone.
+**`v24`** (tres colores y 7 puntos): `sw.js` ya en `v24`, **sin publicar**.
 No necesita SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
@@ -620,7 +629,8 @@ sesión está el navegador — GitHub autoriza con esa, no con `git config`.
 Kev ya edita el código él mismo. Cambios suyos que hay que respetar y no revertir
 al tocar `index.html`:
 
-- Muestra **14 días** de historial, no 7 (`for (let i = 13; i >= 0; i--)`).
+- Muestra **7 días** de historial (`for (let i = 6; i >= 0; i--)`). Fueron 14
+  por un ajuste suyo; el 13 de octubre de 2026 él mismo lo bajó a 7.
 - Puntos del historial a `11px` (`.dia`), no 9. Ahora es `flex: 0 1 11px`:
   los 11px siguen siendo su medida, pero pueden encoger para que la racha
   quepa en la misma línea. Si cambia ese valor, que siga siendo el `flex-basis`.

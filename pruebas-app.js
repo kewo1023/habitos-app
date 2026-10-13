@@ -250,9 +250,11 @@ app.cambiarVista('habitos');
 // ===========================================================================
 // 5b. La barra de abajo (v21)
 // ===========================================================================
-ok('cada tarjeta de hábito lleva su tinte de color (v21)',
-   $('lista').children.length > 0 &&
-   $('lista').children.every(c => /^var\(--habito-[0-5]\)$/.test(c.style['--tinte'])));
+// v24: sin colores por hábito, y 7 puntos en vez de 14.
+ok('ninguna tarjeta lleva tinte de color propio',
+   $('lista').children.length > 0 && $('lista').children.every(c => !c.style['--tinte']));
+ok('cada tarjeta muestra 7 puntos (la última semana)',
+   $('lista').children.every(c => c.querySelectorAll('.dia').length === 7));
 
 app.cambiarVista('ideas');
 ok('la píldora viaja hasta la tercera pestaña', $('pestanas').style['--i'] === '2');
@@ -458,6 +460,8 @@ ok('en la lista, la tarjeta de hoy queda como no logrado', tarjetaIngles().class
 ok('y su círculo muestra la ✗', tarjetaIngles().innerHTML.includes('<div class="check">✗</div>'));
 const puntosIngles = tarjetaIngles().querySelectorAll('.dia');
 ok('el último puntito (hoy) es una ✗', puntosIngles[puntosIngles.length - 1].classList.contains('fallo'));
+ok('y donde va la racha dice "No logrado" (v24)',
+   tarjetaIngles().innerHTML.includes('<span class="racha fallo-texto">No logrado</span>'));
 
 app.cambiarIdioma('en');
 app.abrirCalendario(idIngles);
@@ -466,7 +470,8 @@ app.cambiarIdioma('es');
 
 tarjetaIngles().querySelector('.check').click();   // si al final lo hiciste...
 ok('tocar el círculo de un no logrado lo marca hecho', app.estaHecho(idIngles, app.hoy()));
-ok('y la tarjeta deja de estar en rojo', !tarjetaIngles().classList.contains('fallo') &&
+ok('la tarjeta pasa a verde (hecho)', tarjetaIngles().classList.contains('hecho'));
+ok('y deja de estar en rojo', !tarjetaIngles().classList.contains('fallo') &&
    tarjetaIngles().innerHTML.includes('<div class="check">✓</div>'));
 
 app.abrirCalendario(idIngles);
@@ -739,14 +744,9 @@ async function pruebasDeCarrera() {
 
   // Caso tranquilo: nadie toca nada mientras baja. Debe aplicarse.
   app.datos.pendientes.length = 0;
-  const colorDeMeditar = app.datos.habitos.find(h => h.id === idMeditar).color;
   app.nube = nubeDeMentira({ habitos: [filaMeditar], registros: [], tareas: [] });
   alBajar = null;
   ok('con nadie tocando, lo bajado se aplica', (await app.bajarTodo()) === true);
-  // La nube no guarda colores (v21). Si bajarTodo() no los conservara, cada
-  // sincronización repartiría colores nuevos y cambiarían solos.
-  ok('lo bajado conserva el color que el hábito tenía aquí',
-     app.datos.habitos[0].color === colorDeMeditar);
 
   // Caso de la carrera: marcas justo mientras los datos viajan. La nube trae
   // una foto sin esa marca; si se aplicara, el hábito se vería desmarcarse
@@ -783,14 +783,15 @@ async function pruebasDeCarrera() {
 // Todas las pruebas de arriba arrancan la app con el almacenamiento vacío. En
 // la v21 eso escondió un error serio: cargar() usaba una constante declarada
 // más abajo y, CON hábitos guardados, la app arrancaba vacía. Sin hábitos no
-// se notaba, porque no había nada a lo que repartirle colores.
+// se notaba. (El código de aquel error se quitó en la v24; la prueba se queda,
+// porque arrancar con datos viejos es justo lo que pasa en el iPhone.)
 // Aquí se arranca la app una segunda vez, con datos como los del iPhone.
 // ===========================================================================
 function pruebasDeArranque() {
   almacen['habitos-app-v1'] = JSON.stringify({
     version: 1, registros: {}, tareas: [], pendientes: [], prefs: {},
-    habitos: [   // tal como estaban antes de la v21: sin color
-      { id: 'v1', nombre: 'Leer',     emoji: '📖', creado: '2026-01-01' },
+    habitos: [   // uno con el `color` de las v21-v23, dos de antes
+      { id: 'v1', nombre: 'Leer',     emoji: '📖', creado: '2026-01-01', color: 2 },
       { id: 'v2', nombre: 'Agua',     emoji: '💧', creado: '2026-01-01' },
       { id: 'v3', nombre: 'Entrenar', emoji: '💪', creado: '2026-01-01' }
     ]
@@ -805,10 +806,8 @@ function pruebasDeArranque() {
 
   ok('arrancar con hábitos guardados no da errores al leerlos', errores.length === 0);
   ok('y no los pierde: siguen los tres', datosAlArrancar.habitos.length === 3);
-  ok('a los hábitos de antes se les reparte color',
-     datosAlArrancar.habitos.every(h => Number.isInteger(h.color)));
-  ok('y ninguno repite',
-     new Set(datosAlArrancar.habitos.map(h => h.color)).size === 3);
+  ok('y el campo `color` que ya no se usa queda limpio',
+     datosAlArrancar.habitos.every(h => !('color' in h)));
 }
 
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeArranque).then(() => {
