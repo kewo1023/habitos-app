@@ -1620,6 +1620,43 @@ otro dispositivo los colores pueden salir distintos.
 - [ ] Lo de la entrada anterior sigue igual (Supabase antes del 14 de
       diciembre, evaluar C, botón → de las ideas).
 
+## 2026-10-13 — Encuadre (v22) y "no logrado" (v23)
+
+**Hecho**
+
+- La `v21` llegó al iPhone (captura de Kev). En la captura, la fecha y
+  "Editar" salían borrosos bajo la barra de estado y el botón no respondía.
+- **v22** (commit `34afa39`, publicada): la cabecera baja 24px más que la
+  zona segura (`body`, sección 2) y "Editar" tiene 44px de zona de toque.
+  No se encontró documentación de Apple sobre esa franja de iOS 26; el
+  arreglo no depende de la causa.
+- **v23, "no logrado"** (sin publicar). Se evaluó antes de construir. Kev
+  eligió: **fallo honesto** (rompe la racha como un día vacío) y **marcarlo
+  en el calendario**.
+  - `esFallo()` en C; `ponerFallo()` y `ciclarFecha()` en D. Tocar un día
+    del calendario: vacío → ✓ → ✗ → vacío. Marcar desde la lista borra el ✗.
+  - `datos.fallos` aparte de `registros`, solo local; migración en
+    `cargar()`, entra y sale con las copias, se borra con el hábito.
+  - Se ve en los puntos y el mapa (✗ dibujada), en el calendario (número
+    tachado), en el círculo de hoy (✗) y en el resumen ("5 sin lograr").
+  - Pruebas: **455** y **171**. Siete sabotajes, los siete en rojo.
+  - `sw.js`: `VERSION` a `'v23'`.
+
+**Descartado:** el descanso que no rompe la racha (tocaba casi todas las
+fórmulas), y marcar ✗ con el círculo de la lista o manteniéndolo presionado
+(más fricción diaria, o un gesto que nadie descubre y que choca con el
+scroll).
+
+**Pendiente / siguiente**
+
+- [ ] **Publicar la `v23`.** No hay SQL. Mensaje sugerido:
+      `v23: marcar un día como no logrado desde el calendario`.
+- [ ] Probar en el iPhone que "Editar" ya responde (v22).
+- [ ] Decidir: con hoy en ✗, ¿la racha debe caer a 0 en el momento? Hoy
+      sigue contando hasta ayer, igual que con hoy vacío.
+- [ ] Más adelante: que la tabla para Excel distinga ✗ de vacío, y que los
+      fallos viajen a la nube al reactivar Supabase (sería el Paso 8).
+
 ---
 
 <!-- Plantilla para la próxima entrada:

@@ -132,6 +132,11 @@
   --habito-3:     #ffd84d;   /* amarillo (era ámbar: junto al coral no se distinguían) */
   --habito-4:     #ff8a65;   /* coral */
   --habito-5:     #4cc9f0;   /* celeste */
+
+  /* El "no logrado" (v23). Rojo, porque es lo contrario del verde de
+     "hecho". Pero nunca va solo: siempre lleva una ✗ dibujada, para que se
+     distinga también sin ver bien el rojo. */
+  --fallo:        #ff7a7a;
 }
 
 /* El tema claro. No es "el oscuro con los números al revés": el fondo no es
@@ -189,6 +194,8 @@
   --habito-3:     #ca8a04;
   --habito-4:     #ea580c;
   --habito-5:     #0891b2;
+
+  --fallo:        #c0392b;
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -344,6 +351,18 @@ header { margin-bottom: 22px; }
 
 .dia.lleno { background: var(--exito); }
 
+/* Un día "no logrado" (v23) es una ✗ en vez de un punto. La ✗ son dos
+   rayas diagonales hechas con dos degradados: cada linear-gradient pinta
+   transparente, luego una franja de color (del 40% al 60%) y otra vez
+   transparente, en ángulo de 45 y de -45 grados. Cruzadas dan la ✗, sin
+   imagen ni texto. Sirve igual para los puntos y para el mapa del año. */
+.dia.fallo,
+.anio-dia.fallo {
+  background:
+    linear-gradient( 45deg, transparent 40%, var(--fallo) 40% 60%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, var(--fallo) 40% 60%, transparent 60%);
+}
+
 .racha {
   font-size: 12px;
   color: var(--texto-suave);
@@ -375,6 +394,12 @@ header { margin-bottom: 22px; }
   background: var(--exito);
   border-color: var(--exito);
   color: var(--sobre-exito);
+}
+
+/* Hoy "no logrado" (v23): el círculo muestra la ✗ en rojo. */
+.habito.fallo .check {
+  border-color: var(--fallo);
+  color: var(--fallo);
 }
 
 /* --- La celebración al marcar un hábito ---
@@ -1280,6 +1305,14 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 }
 
 .cal-dia.hecho   { background: var(--exito); color: var(--sobre-exito); }
+
+/* El día "no logrado": borde y número en rojo, y el número tachado. El
+   tachado es la ✗ de este cuadro: el número tiene que seguir leyéndose. */
+.cal-dia.fallo {
+  border-color: var(--fallo);
+  color: var(--fallo);
+  text-decoration: line-through;
+}
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
 
@@ -1726,7 +1759,9 @@ const TEXTOS = {
 
     // --- Calendario y estadísticas ---
     letrasDias: ['L','M','M','J','V','S','D'],
-    diasCorrige: 'días. Toca un día para corregirlo.',
+    dias: 'días',
+    tocaDia: 'Toca un día: ✓ hecho, otra vez ✗ no logrado, otra vez vacío.',
+    fallosMes: '%n sin lograr',
     eRacha: 'Racha actual',
     aRacha: 'Días seguidos cumpliendo, contando hasta hoy. Si todavía no has ' +
             'marcado hoy, la racha de ayer sigue en pie: no se rompe hasta que ' +
@@ -1846,7 +1881,9 @@ const TEXTOS = {
     // Lunes primero, igual que en español: la app no cambia de calendario,
     // solo de letras.
     letrasDias: ['M','T','W','T','F','S','S'],
-    diasCorrige: 'days. Tap a day to fix it.',
+    dias: 'days',
+    tocaDia: 'Tap a day: ✓ done, again ✗ missed, again empty.',
+    fallosMes: '%n missed',
     eRacha: 'Current streak',
     aRacha: "Days in a row, counting up to today. If you haven't checked today " +
             "off yet, yesterday's streak still stands: it doesn't break until " +
@@ -1985,7 +2022,7 @@ const CLAVE = 'habitos-app-v1';
 const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia: '' };
 
 const datosPorDefecto = {
-  version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
+  version: 1, habitos: [], registros: {}, fallos: {}, tareas: [], pendientes: [],
   prefs: { ...PREFS_POR_DEFECTO }
 };
 
@@ -2020,6 +2057,9 @@ function cargar() {
     // Y en la v21, el color de los hábitos. Los que ya tenías no traen uno:
     // se les reparte aquí, una sola vez, y desde entonces quedan guardados.
     if (Array.isArray(leidos.habitos)) ponerColores(leidos.habitos);
+
+    // Y en la v23, los días "no logrados". Nadie los tenía antes.
+    if (!leidos.fallos || typeof leidos.fallos !== 'object') leidos.fallos = {};
 
     return leidos;
   } catch (e) {
@@ -2123,6 +2163,24 @@ function esFutura(fecha) {
 function estaHecho(idHabito, fecha) {
   const delDia = datos.registros[fecha] || [];
   return delDia.includes(idHabito);
+}
+
+// ¿Este hábito quedó como "no logrado" en esta fecha? (v23)
+//
+// Los fallos viven en datos.fallos, aparte de datos.registros y con la misma
+// forma ({ fecha: [ids] }). Aparte a propósito, por dos motivos:
+//   1. registros es la copia exacta de la tabla de Postgres, y bajarTodo()
+//      la reemplaza entera. Los fallos todavía no viajan a la nube; si
+//      vivieran dentro de registros, la próxima bajada se los llevaría.
+//   2. Ninguna fórmula cambia. Un fallo cuenta como "no hecho" para la
+//      racha, el porcentaje y la fuerza, exactamente igual que un día sin
+//      marcar. Lo único que añade es la diferencia entre "se me olvidó
+//      marcar" y "no lo hice".
+function esFallo(idHabito, fecha) {
+  // `datos.fallos &&` por si los datos llegaron sin el campo (unos datos
+  // armados a mano, una ruta futura que no pase por cargar()). Sin fallos
+  // guardados, la respuesta correcta es "no", no un error.
+  return ((datos.fallos && datos.fallos[fecha]) || []).includes(idHabito);
 }
 
 // ¿Están marcados TODOS los hábitos en esta fecha?
@@ -2393,6 +2451,9 @@ function alternarFecha(idHabito, fecha) {
   const posicion = datos.registros[fecha].indexOf(idHabito);
   const marcando = posicion === -1;
   if (marcando) {
+    // Un día no puede ser "hecho" y "no logrado" a la vez. Marcar gana:
+    // si lo hiciste al final, lo hiciste.
+    ponerFallo(idHabito, fecha, false);
     datos.registros[fecha].push(idHabito);                      // marcar
     encolar({ tipo: 'marcar', id: idHabito, fecha: fecha });
   } else {
@@ -2431,6 +2492,44 @@ function alternarFecha(idHabito, fecha) {
   } else if (deHoy && !estabaCompleto && diaCompleto(fecha)) {
     celebrarDiaCompleto();
   }
+  return true;
+}
+
+// Pone (si = true) o quita (si = false) la marca de "no logrado".
+// Solo toca datos.fallos: guardar y repintar le toca a quien la llame.
+function ponerFallo(idHabito, fecha, si) {
+  if (!datos.fallos) datos.fallos = {};
+  const delDia = (datos.fallos[fecha] || []).filter(x => x !== idHabito);
+  if (si) delDia.push(idHabito);
+  // Igual que en registros: un día sin nada no se guarda.
+  if (delDia.length) datos.fallos[fecha] = delDia;
+  else delete datos.fallos[fecha];
+}
+
+/* Lo que pasa al tocar un día en el calendario (v23): da la vuelta a tres
+   estados, siempre en el mismo orden:
+
+       vacío  →  ✓ hecho  →  ✗ no logrado  →  vacío ...
+
+   Hecho va primero porque es lo que más se marca: corregir un día que sí
+   hiciste sigue costando un toque, como antes. El ✗ cuesta dos.
+
+   Marcar y desmarcar pasan por alternarFecha(), y no por un atajo, para no
+   saltarse lo que ya hace: subir el cambio a la nube, celebrar si toca. El
+   fallo en sí NO se sube: todavía no tiene tabla en Postgres. */
+function ciclarFecha(idHabito, fecha) {
+  if (esFutura(fecha)) return false;
+
+  if (estaHecho(idHabito, fecha)) {            // ✓ → ✗
+    alternarFecha(idHabito, fecha);
+    ponerFallo(idHabito, fecha, true);
+  } else if (esFallo(idHabito, fecha)) {       // ✗ → vacío
+    ponerFallo(idHabito, fecha, false);
+  } else {                                      // vacío → ✓
+    return alternarFecha(idHabito, fecha);     // ya guarda y repinta
+  }
+  guardar();
+  pintar();
   return true;
 }
 
@@ -2517,6 +2616,8 @@ function borrarHabito(idHabito) {
   for (const fecha in datos.registros) {
     datos.registros[fecha] = datos.registros[fecha].filter(x => x !== idHabito);
   }
+  // Y sus días "no logrados" (v23).
+  for (const fecha in datos.fallos) ponerFallo(idHabito, fecha, false);
 
   // En la nube basta con borrar el hábito: el "on delete cascade" de la
   // tabla registros se lleva su historial solo. Ese bucle de arriba existe
@@ -3017,12 +3118,19 @@ function pintar() {
     // Los 7 puntitos: de hace 6 días hasta hoy
     let puntos = '';
     for (let i = 13; i >= 0; i--) {
-      const lleno = estaHecho(h.id, haceNDias(i)) ? 'lleno' : '';
-      puntos += `<div class="dia ${lleno}"></div>`;
+      const fecha = haceNDias(i);
+      let estado = '';
+      if (estaHecho(h.id, fecha))    estado = 'lleno';
+      else if (esFallo(h.id, fecha)) estado = 'fallo';
+      puntos += `<div class="dia ${estado}"></div>`;
     }
 
     const tarjeta = document.createElement('div');
-    tarjeta.className = 'habito' + (hecho ? ' hecho' : '');
+    // Si hoy quedó como "no logrado" (desde el calendario), el círculo lo
+    // dice con una ✗. Tocarlo lo marca como hecho igual que siempre: si al
+    // final lo hiciste, lo hiciste.
+    const falloHoy = !hecho && esFallo(h.id, hoy());
+    tarjeta.className = 'habito' + (hecho ? ' hecho' : '') + (falloHoy ? ' fallo' : '');
     // El color del hábito llega al CSS como variable (--tinte). La tarjeta no
     // sabe qué color es: solo sabe "el mío es el número tal", y el tema decide
     // cómo se ve ese número en claro y en oscuro.
@@ -3036,7 +3144,7 @@ function pintar() {
           <span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>
         </div>
       </div>
-      <div class="check">✓</div>
+      <div class="check">${falloHoy ? '✗' : '✓'}</div>
       <div class="acciones">
         <button class="subir"  ${esPrimero ? 'disabled' : ''}>↑</button>
         <button class="bajar"  ${esUltimo  ? 'disabled' : ''}>↓</button>
@@ -3552,6 +3660,8 @@ function importar(texto) {
     // aquí, conserva el suyo; si no, se le da uno libre.
     habitos: ponerColores(copia.habitos, datos.habitos),
     registros: copia.registros,
+    // Una copia de antes de la v23 no trae días "no logrados".
+    fallos: copia.fallos && typeof copia.fallos === 'object' ? copia.fallos : {},
     // Si la copia es vieja y no trae tareas, entra con la lista vacía.
     tareas: Array.isArray(copia.tareas) ? copia.tareas : [],
     pendientes: Array.isArray(copia.pendientes) ? copia.pendientes : [],
@@ -3686,14 +3796,16 @@ function pintarCalendario() {
     const celda = document.createElement('button');
     celda.className = 'cal-dia';
     if (estaHecho(calHabitoId, fecha)) celda.classList.add('hecho');
+    if (esFallo(calHabitoId, fecha))   celda.classList.add('fallo');
     if (fecha === hoy())               celda.classList.add('hoy');
     if (esFutura(fecha))               celda.classList.add('futuro');
     celda.textContent = d;
 
-    // Tocar un día lo corrige. alternarFecha devuelve false si es futuro,
-    // así que ahí no repintamos nada: el toque simplemente no hace efecto.
+    // Tocar un día le da la vuelta: vacío → ✓ → ✗ → vacío (ver
+    // ciclarFecha). Devuelve false si es futuro, así que ahí no repintamos
+    // nada: el toque simplemente no hace efecto.
     celda.onclick = () => {
-      if (alternarFecha(calHabitoId, fecha)) pintarCalendario();
+      if (ciclarFecha(calHabitoId, fecha)) pintarCalendario();
     };
 
     grid.appendChild(celda);
@@ -3702,8 +3814,15 @@ function pintarCalendario() {
   // 3) El resumen de abajo
   const hechos = contarMes(calHabitoId, calAnio, calMes);
   const total = diasDelMes(calAnio, calMes);
+  // Los "no logrados" solo se mencionan si hay alguno: "0 sin lograr" en
+  // cada mes sería ruido.
+  let fallosMes = 0;
+  for (let d = 1; d <= total; d++) {
+    if (esFallo(calHabitoId, claveDe(calAnio, calMes, d))) fallosMes++;
+  }
+  const deFallos = fallosMes ? ` · ${t('fallosMes').replace('%n', fallosMes)}` : '';
   document.getElementById('calResumen').textContent =
-    `${hechos} ${t('de')} ${total} ${t('diasCorrige')}`;
+    `${hechos} ${t('de')} ${total} ${t('dias')}${deFallos}. ${t('tocaDia')}`;
 
   // 4) El mapa del año
   pintarAnio();
@@ -3744,6 +3863,7 @@ function pintarAnio() {
       cuadro.className = 'anio-dia';
       if (fecha === null)                     cuadro.classList.add('relleno');
       else if (estaHecho(calHabitoId, fecha)) cuadro.classList.add('hecho');
+      else if (esFallo(calHabitoId, fecha))   cuadro.classList.add('fallo');
       else if (esFutura(fecha))               cuadro.classList.add('futuro');
       else if (fecha < inicio)                cuadro.classList.add('antes');
       dias.appendChild(cuadro);

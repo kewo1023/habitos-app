@@ -39,7 +39,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,colorLibre,ponerColores,esColor,COLORES_HABITO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,colorLibre,ponerColores,esColor,COLORES_HABITO,esFallo,ponerFallo,ciclarFecha}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1348,6 +1348,94 @@ ok('importar una copia sin colores conserva los que tenías',
 ok('y al hábito nuevo de la copia le da uno libre',
    ctx.esColor(ctx.datos.habitos[2].color) &&
    ![hLeerColor.color, 5].includes(ctx.datos.habitos[2].color));
+
+// ============================================================
+//  NO LOGRADO (v23): ciclarFecha()
+//  vacío → ✓ → ✗ → vacío. Un fallo es "no hecho" para todas las fórmulas.
+// ============================================================
+
+limpio();
+ctx.agregarHabito('Inglés', '🧠');
+const hIng = ctx.datos.habitos[0].id;
+const ayer = ctx.haceNDias(1);
+
+ctx.ciclarFecha(hIng, ayer);
+ok('primer toque: hecho', ctx.estaHecho(hIng, ayer) && !ctx.esFallo(hIng, ayer));
+ctx.ciclarFecha(hIng, ayer);
+ok('segundo toque: no logrado (y ya no hecho)', !ctx.estaHecho(hIng, ayer) && ctx.esFallo(hIng, ayer));
+ctx.ciclarFecha(hIng, ayer);
+ok('tercer toque: vacío otra vez', !ctx.estaHecho(hIng, ayer) && !ctx.esFallo(hIng, ayer));
+ok('y el día vacío no deja una lista vacía guardada', !(ayer in ctx.datos.fallos));
+
+ok('el futuro no se toca', ctx.ciclarFecha(hIng, '2999-01-01') === false &&
+   !ctx.esFallo(hIng, '2999-01-01'));
+
+// Nunca las dos cosas a la vez: marcar desde la lista gana sobre el fallo.
+ctx.ciclarFecha(hIng, ctx.hoy());
+ctx.ciclarFecha(hIng, ctx.hoy());                 // hoy: no logrado
+ok('hoy quedó no logrado', ctx.esFallo(hIng, ctx.hoy()));
+ctx.alternarHoy(hIng);                             // el círculo de la lista
+ok('tocar el círculo lo marca como hecho', ctx.estaHecho(hIng, ctx.hoy()));
+ok('y borra el no logrado: un día no es las dos cosas', !ctx.esFallo(hIng, ctx.hoy()));
+
+// Un fallo rompe la racha igual que un día vacío: ninguna fórmula cambia.
+limpio();
+ctx.agregarHabito('Inglés', '🧠');
+const hRacha = ctx.datos.habitos[0].id;
+marcarDias(hRacha, 5, 1);                          // 5 seguidos hasta ayer
+ok('con 5 seguidos la racha es 5', ctx.calcularRacha(hRacha) === 5);
+ctx.ciclarFecha(hRacha, ctx.haceNDias(3));         // ✓ → ✗ hace 3 días
+ok('un no logrado en medio corta la racha', ctx.calcularRacha(hRacha) === 2);
+const conFallo = [ctx.porcentajeUltimos(hRacha, 30), ctx.fuerzaHabito(hRacha),
+                  ctx.mejorRacha(hRacha), ctx.totalDias(hRacha)];
+ctx.ciclarFecha(hRacha, ctx.haceNDias(3));         // ✗ → vacío
+const vacio = [ctx.porcentajeUltimos(hRacha, 30), ctx.fuerzaHabito(hRacha),
+               ctx.mejorRacha(hRacha), ctx.totalDias(hRacha)];
+ok('porcentaje, fuerza, mejor racha y total dan lo mismo con ✗ que con vacío',
+   conFallo.join() === vacio.join());
+
+// Pasar de ✓ a ✗ sí avisa a la nube (se desmarcó); el fallo en sí no viaja.
+limpio();
+ctx.agregarHabito('Inglés', '🧠');
+const hCola = ctx.datos.habitos[0].id;
+ctx.ciclarFecha(hCola, ayer);
+ctx.datos.pendientes.length = 0;
+ctx.ciclarFecha(hCola, ayer);                      // ✓ → ✗
+ok('pasar de ✓ a ✗ encola un "desmarcar" para la nube',
+   ctx.datos.pendientes.length === 1 && ctx.datos.pendientes[0].tipo === 'desmarcar');
+ctx.ciclarFecha(hCola, ayer);                      // ✗ → vacío
+ok('y de ✗ a vacío no manda nada (los fallos no viajan todavía)',
+   ctx.datos.pendientes.length === 1);
+
+// Marcar desde el calendario sigue celebrando lo que tocaba celebrar.
+limpio();
+ctx.agregarHabito('Inglés', '🧠');
+ctx.ciclarFecha(ctx.datos.habitos[0].id, ctx.hoy());
+ok('completar hoy desde el calendario lanza el confeti', global.confetisLanzados === 1);
+
+// Borrar el hábito se lleva también sus días no logrados.
+limpio();
+ctx.agregarHabito('Inglés', '🧠');
+ctx.agregarHabito('Agua', '💧');
+const [hBorrar, hQueda] = ctx.datos.habitos.map(h => h.id);
+ctx.ponerFallo(hBorrar, ayer, true);
+ctx.ponerFallo(hQueda, ayer, true);
+ctx.borrarHabito(hBorrar);
+ok('borrar un hábito borra sus no logrados', !ctx.esFallo(hBorrar, ayer));
+ok('pero no los de los demás', ctx.esFallo(hQueda, ayer));
+
+// Datos de antes de la v23, copias y datos armados sin el campo.
+store['habitos-app-v1'] = JSON.stringify({ version: 1, habitos: [], registros: {} });
+ok('los datos de antes arrancan con fallos vacíos', JSON.stringify(ctx.cargar().fallos) === '{}');
+ctx.datos = { version: 1, habitos: [], registros: {}, tareas: [], pendientes: [],
+              prefs: { ...ctx.PREFS_POR_DEFECTO } };   // sin "fallos"
+ok('sin el campo, esFallo responde que no (no se rompe)', ctx.esFallo('x', ayer) === false);
+ctx.importar(JSON.stringify({ habitos: [{ id: 'a', nombre: 'Leer' }], registros: {},
+                              fallos: { [ayer]: ['a'] } }));
+ok('importar una copia trae sus no logrados', ctx.esFallo('a', ayer));
+ctx.importar(JSON.stringify({ habitos: [{ id: 'a', nombre: 'Leer' }], registros: {} }));
+ok('y una copia vieja, sin ellos, entra con la lista vacía',
+   JSON.stringify(ctx.datos.fallos) === '{}');
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 435 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 160 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 455 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 171 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -521,6 +521,32 @@ pantalla, agregarlo a `pruebas-app.js`.
     vigila la sección 12 de `pruebas-app.js`, que arranca la app con datos
     de antes. **Regla que se lleva:** probar también el arranque con datos
     viejos, no solo con el almacenamiento vacío.
+- **Fase 3.12 — Encuadre y "no logrado" (v22 y v23)**
+  - **v22:** en iOS 26, justo bajo la barra de estado hay una franja donde el
+    contenido sale borroso y "Editar" no respondía (captura de Kev). Apple no
+    lo documenta. La cabecera baja 24px más que la zona segura y "Editar"
+    tiene 44px de zona de toque.
+  - **v23 — "No logrado":** un fallo honesto ("no lo hice"), no un descanso.
+    **Decisión clave (de Kev):** rompe la racha igual que un día vacío;
+    **ninguna fórmula cambia**. Lo que añade es distinguir "se me olvidó
+    marcar" de "no lo hice". La alternativa B (descanso que no rompe la
+    racha, el *Skipped* de Habitz) se descartó: tocaba casi todas las
+    fórmulas.
+  - **Decisión clave:** se marca **en el calendario**: tocar un día cicla
+    vacío → ✓ → ✗ → vacío (`ciclarFecha`). El gesto diario de la lista no
+    cambia; el círculo de la lista sigue siendo solo ✓, y tocarlo sobre un
+    ✗ lo marca hecho (si al final lo hiciste, lo hiciste).
+  - **Decisión clave:** `datos.fallos` aparte de `datos.registros`, con la
+    misma forma. `registros` es la copia de Postgres y `bajarTodo()` la
+    reemplaza; aparte, los fallos sobreviven. **Solo local**: no viajan a la
+    nube todavía. Al reactivar Supabase se puede agregar su tabla (sería el
+    Paso 8). Sí entran en la copia de seguridad.
+  - El ✗ siempre lleva símbolo, no solo color (`--fallo`): ✗ en los puntos y
+    el mapa (dos degradados cruzados), número tachado en el calendario.
+  - **Abierto:** con hoy en ✗, la racha sigue contando hasta ayer (igual que
+    con hoy vacío). Si Kev prefiere que un ✗ hoy la ponga en 0 al instante,
+    es una línea en `calcularRacha()`. La tabla para Excel tampoco distingue
+    todavía ✗ de vacío (los dos salen 0).
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -546,8 +572,10 @@ de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
 y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
 vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
 **Publicada después: `v21`** (ideas de Habitz, Fase 3.11), commit `43eee9d`,
-el 13 de octubre de 2026. Comprobado en el sitio en vivo; **falta probarla en
-el iPhone**. No necesitó SQL.
+el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQL.
+**`v22`** (encuadre de "Editar"), commit `34afa39`, publicada el mismo día.
+**`v23`** ("no logrado", Fase 3.12): `sw.js` ya en `v23`, **sin publicar**.
+No necesita SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

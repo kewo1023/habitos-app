@@ -282,7 +282,7 @@ const idHabito = app.datos.habitos[0].id;
 app.alternarHoy(idHabito);
 app.abrirCalendario(idHabito);
 ok('el calendario se abre', $('modalCal').classList.contains('abierto'));
-ok('el resumen está en español', /Toca un día para corregirlo\.$/.test($('calResumen').textContent));
+ok('el resumen está en español', $('calResumen').textContent.endsWith('otra vez ✗ no logrado, otra vez vacío.'));
 ok('las estadísticas están en español',
    $('calStats').textContent.includes('Racha actual'));
 ok('la ayuda por defecto está en español',
@@ -433,6 +433,49 @@ app.cambiarVista('habitos');
 app.pintar();
 ok('el hábito sigue en su sitio', $('lista').textContent.includes('Leer'));
 ok('y sigue marcado como hecho hoy', $('progresoTexto').textContent === '1 de 1');
+
+// ===========================================================================
+// 8b. No logrado (v23): se marca en el calendario y se ve en todas partes
+// ===========================================================================
+app.agregarHabito('Inglés', '🧠');
+const idIngles = app.datos.habitos[app.datos.habitos.length - 1].id;
+const diaHoy = String(new Date().getDate());
+const celdaDeHoy = () => $('calGrid').children.find(c => c.textContent === diaHoy);
+
+app.abrirCalendario(idIngles);
+celdaDeHoy().click();                       // vacío → ✓
+celdaDeHoy().click();                       // ✓ → ✗
+ok('dos toques en el calendario dejan el día como no logrado',
+   celdaDeHoy().classList.contains('fallo') && !celdaDeHoy().classList.contains('hecho'));
+ok('el resumen del mes lo cuenta', $('calResumen').textContent.includes('1 sin lograr'));
+ok('el mapa del año lo pinta',
+   $('anioGrid').children.flatMap(b => b.children[1].children)
+     .filter(c => c.classList.contains('fallo')).length === 1);
+
+const tarjetaIngles = () => $('lista').children[$('lista').children.length - 1];
+ok('en la lista, la tarjeta de hoy queda como no logrado', tarjetaIngles().classList.contains('fallo'));
+// mini-dom no guarda el texto de lo que entra por innerHTML: se mira el HTML.
+ok('y su círculo muestra la ✗', tarjetaIngles().innerHTML.includes('<div class="check">✗</div>'));
+const puntosIngles = tarjetaIngles().querySelectorAll('.dia');
+ok('el último puntito (hoy) es una ✗', puntosIngles[puntosIngles.length - 1].classList.contains('fallo'));
+
+app.cambiarIdioma('en');
+app.abrirCalendario(idIngles);
+ok('el resumen se traduce', $('calResumen').textContent.includes('1 missed'));
+app.cambiarIdioma('es');
+
+tarjetaIngles().querySelector('.check').click();   // si al final lo hiciste...
+ok('tocar el círculo de un no logrado lo marca hecho', app.estaHecho(idIngles, app.hoy()));
+ok('y la tarjeta deja de estar en rojo', !tarjetaIngles().classList.contains('fallo') &&
+   tarjetaIngles().innerHTML.includes('<div class="check">✓</div>'));
+
+app.abrirCalendario(idIngles);
+celdaDeHoy().click();                       // ✓ → ✗
+celdaDeHoy().click();                       // ✗ → vacío
+ok('el tercer toque lo deja vacío', !celdaDeHoy().classList.contains('fallo') &&
+   !celdaDeHoy().classList.contains('hecho'));
+ok('y sin no logrados, el resumen no los menciona', !$('calResumen').textContent.includes('sin lograr'));
+app.cerrarCalendario && app.cerrarCalendario();
 
 // ===========================================================================
 // 9. El confeti del día completo
