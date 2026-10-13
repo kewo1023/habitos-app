@@ -2239,7 +2239,13 @@ function porcentajeUltimos(idHabito, n) {
 
 // Cuántos días seguidos lleva. Si hoy todavía no lo marca, la racha
 // de ayer hacia atrás sigue contando (no lo castigamos a las 8am).
+//
+// Pero si hoy lo marcaste como "no logrado" (v25), la racha es 0 en el
+// acto. Es la diferencia entre "todavía no" y "hoy no": la primera deja la
+// puerta abierta hasta medianoche, la segunda la cierra porque tú lo dijiste.
+// Si al final sí lo haces, tocar el círculo borra el ✗ y la racha vuelve.
 function calcularRacha(idHabito) {
+  if (esFallo(idHabito, hoy())) return 0;
   let racha = 0;
   let inicio = estaHecho(idHabito, hoy()) ? 0 : 1;
   for (let i = inicio; i < 3650; i++) {

@@ -165,7 +165,7 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 440 tests de la lógica pura (fórmulas, fechas, datos).
+1. `node pruebas.js` — 443 tests de la lógica pura (fórmulas, fechas, datos).
 2. `node pruebas-app.js` — 172 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
@@ -551,10 +551,12 @@ pantalla, agregarlo a `pruebas-app.js`.
     `cargar()` borra el campo de los datos viejos). El hecho ya no se "hunde"
     ni se tacha: se pinta de verde. Lo tachado es el no logrado, que además
     dice "No logrado" donde va la racha. Y los puntos bajaron de 14 a 7.
-  - **Abierto:** con hoy en ✗, la racha sigue contando hasta ayer (igual que
-    con hoy vacío). Si Kev prefiere que un ✗ hoy la ponga en 0 al instante,
-    es una línea en `calcularRacha()`. La tabla para Excel tampoco distingue
-    todavía ✗ de vacío (los dos salen 0).
+  - **v25 — Con hoy en ✗, la racha es 0 en el acto** (decisión de Kev).
+    Hoy vacío sigue contando hasta ayer ("todavía no"); hoy en ✗ la cierra
+    ("hoy no"). Es una línea al principio de `calcularRacha()`. Si al final
+    lo marca hecho, el ✗ se borra y la racha vuelve.
+  - **Abierto:** la tabla para Excel no distingue ✗ de vacío (los dos salen
+    0), y los ✗ no viajan a la nube (sería el Paso 8 al reactivar Supabase).
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -583,7 +585,8 @@ vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
 el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQL.
 **`v22`** (encuadre de "Editar"), commit `34afa39`, publicada el mismo día.
 **`v23`** ("no logrado", Fase 3.12), commit `dcd93fb`, probada en el iPhone.
-**`v24`** (tres colores y 7 puntos): `sw.js` ya en `v24`, **sin publicar**.
+**`v24`** (tres colores y 7 puntos), commit `f1c2c81`, probada en el iPhone.
+**`v25`** (racha a 0 con hoy en ✗): `sw.js` ya en `v25`, **sin publicar**.
 No necesita SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.

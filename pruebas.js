@@ -1342,6 +1342,13 @@ marcarDias(hRacha, 5, 1);                          // 5 seguidos hasta ayer
 ok('con 5 seguidos la racha es 5', ctx.calcularRacha(hRacha) === 5);
 ctx.ciclarFecha(hRacha, ctx.haceNDias(3));         // ✓ → ✗ hace 3 días
 ok('un no logrado en medio corta la racha', ctx.calcularRacha(hRacha) === 2);
+// v25: un ✗ HOY pone la racha en 0 en el acto (antes contaba hasta ayer).
+ctx.ponerFallo(hRacha, ctx.hoy(), true);
+ok('un no logrado hoy pone la racha en 0 en el momento', ctx.calcularRacha(hRacha) === 0);
+ctx.alternarHoy(hRacha);                           // al final sí lo hizo
+ok('y si al final lo marcas hecho, la racha vuelve (y suma hoy)', ctx.calcularRacha(hRacha) === 3);
+ctx.alternarHoy(hRacha);                           // lo dejamos como estaba
+ok('hoy vacío (sin ✗) sigue contando hasta ayer, como siempre', ctx.calcularRacha(hRacha) === 2);
 const conFallo = [ctx.porcentajeUltimos(hRacha, 30), ctx.fuerzaHabito(hRacha),
                   ctx.mejorRacha(hRacha), ctx.totalDias(hRacha)];
 ctx.ciclarFecha(hRacha, ctx.haceNDias(3));         // ✗ → vacío

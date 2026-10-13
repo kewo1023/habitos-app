@@ -1687,9 +1687,31 @@ va es verlo en el teléfono.
 
 **Pendiente / siguiente**
 
-- [ ] **Publicar la `v24`.** No hay SQL. Mensaje sugerido:
-      `v24: tres colores en las tarjetas y 7 puntos`.
-- [ ] Sigue abierto: con hoy en ✗, ¿la racha debe caer a 0 en el momento?
+- [x] **Publicar la `v24`**: commit `f1c2c81`, probada en el iPhone.
+- [x] Con hoy en ✗, la racha cae a 0: Kev dijo que sí (v25, abajo).
+
+## 2026-10-13 — La racha cae a 0 con un ✗ hoy (v25)
+
+**Hecho**
+
+- Kev probó la `v24` en el iPhone: funciona.
+- **v25** (sin publicar): `calcularRacha()` devuelve 0 si hoy está marcado
+  como no logrado. Hoy vacío sigue contando hasta ayer, como siempre: es
+  la diferencia entre "todavía no" y "hoy no". Si al final lo haces, tocar
+  el círculo borra el ✗ y la racha vuelve. Decisión de Kev.
+- Pruebas: **443** y **172**. El sabotaje (quitar la línea nueva) pone en
+  rojo `pruebas.js`. Se agregó también una prueba en `pruebas-app.js` y se
+  **quitó**: seguía en verde con el sabotaje, porque el hábito de esa
+  prueba se crea hoy y su racha es 0 de todos modos. Una prueba que no puede
+  fallar no vigila nada.
+- `sw.js`: `VERSION` a `'v25'`.
+
+**Pendiente / siguiente**
+
+- [ ] **Publicar la `v25`.** No hay SQL. Mensaje sugerido:
+      `v25: la racha cae a 0 si hoy está marcado como no logrado`.
+- [ ] **Reactivar Supabase antes del 14 de diciembre** (sigue siendo lo
+      más urgente; ver la entrada del 15 de septiembre).
 
 ---
 
