@@ -91,6 +91,20 @@
      falta uno cálido para que los papelitos no parezcan más de lo mismo. */
   --celebrar:      #f2c14e;
 
+  /* La sombra de lo que flota encima de todo (la medalla del hito, la barra
+     de abajo). En oscuro tiene que ser casi negra para notarse; en claro, la
+     misma sombra parecería una mancha sucia. */
+  --sombra:        rgba(0,0,0,.55);
+
+  /* El vidrio de la barra de abajo (v21). Medio transparente para que el
+     desenfoque deje adivinar la lista que pasa por detrás. El borde y el
+     brillo son blancos casi invisibles: en oscuro, el canto de un vidrio
+     se ve porque refleja luz, no porque tenga color. */
+  --vidrio:        rgba(30,33,41,.72);
+  --vidrio-borde:  rgba(255,255,255,.08);
+  --vidrio-brillo: rgba(255,255,255,.10);
+  --vidrio-activo: rgba(255,255,255,.10);
+
   /* La importancia de un pendiente (v18). Tres decisiones detrás de estos
      cuatro colores:
 
@@ -106,6 +120,18 @@
   --prio-media:   #f2b544;
   --prio-baja:    #7f9cc4;
   --prio-ninguna: #454e5f;   /* callado, pero visible: si no se ve, no invita a tocarla */
+
+  /* El color de cada hábito (v21). Seis tonos, y ninguno es verde a
+     propósito: en esta app el verde significa "hecho", y una tarjeta verde
+     sin marcar diría dos cosas a la vez (la misma regla que la importancia
+     baja de los pendientes). Se usan muy rebajados, como tinte de fondo; a
+     toda intensidad, seis tarjetas de colores serían un arcoíris. */
+  --habito-0:     #6c8cff;   /* azul */
+  --habito-1:     #b18cff;   /* lila */
+  --habito-2:     #ff7eb3;   /* rosa */
+  --habito-3:     #ffd84d;   /* amarillo (era ámbar: junto al coral no se distinguían) */
+  --habito-4:     #ff8a65;   /* coral */
+  --habito-5:     #4cc9f0;   /* celeste */
 }
 
 /* El tema claro. No es "el oscuro con los números al revés": el fondo no es
@@ -139,6 +165,15 @@
      casi desaparece. Es el mismo ajuste que hubo que hacerle al verde. */
   --celebrar:      #d99e10;
 
+  --sombra:        rgba(15,17,21,.16);
+
+  /* En claro el vidrio es blanco y lo que marca el canto es una línea
+     oscura muy tenue; el brillo de arriba, blanco casi puro. */
+  --vidrio:        rgba(255,255,255,.72);
+  --vidrio-borde:  rgba(15,17,21,.08);
+  --vidrio-brillo: rgba(255,255,255,.90);
+  --vidrio-activo: rgba(15,17,21,.06);
+
   /* Los cuatro de la importancia, oscurecidos. Un color pensado para brillar
      sobre fondo negro se lava sobre fondo blanco: es el mismo ajuste que ya
      hubo que hacerle al verde, al azul y al amarillo del confeti. */
@@ -146,6 +181,14 @@
   --prio-media:   #b45309;
   --prio-baja:    #5470a3;
   --prio-ninguna: #c2c8d4;
+
+  /* Los mismos seis, más oscuros: sobre blanco, un tinte claro se perdería. */
+  --habito-0:     #3b5bdb;
+  --habito-1:     #7c3aed;
+  --habito-2:     #db2777;
+  --habito-3:     #ca8a04;
+  --habito-4:     #ea580c;
+  --habito-5:     #0891b2;
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -209,8 +252,18 @@ header { margin-bottom: 22px; }
 }
 
 /* ---------- 4. TARJETA DE HÁBITO ---------- */
+/* El tinte de color de cada hábito (v21). --tinte lo pone pintar() en cada
+   tarjeta y apunta a una de las seis --habito-N.
+   color-mix mezcla dos colores como mezclarías pintura: "9% del color del
+   hábito y el resto de la tarjeta normal". Así el tinte se ve en los dos
+   temas sin un valor aparte para cada uno.
+   La primera línea de background es el plan B: un iPhone con un Safari
+   anterior a color-mix (iOS 16.2) no entiende la segunda, la ignora y se
+   queda con la primera. En CSS, una línea que no se entiende no rompe nada:
+   simplemente no cuenta. */
 .habito {
   background: var(--tarjeta);
+  background: color-mix(in srgb, var(--tinte, var(--tarjeta)) 9%, var(--tarjeta));
   border: 1px solid var(--borde);
   border-radius: 18px;
   padding: 14px 16px;
@@ -245,6 +298,9 @@ header { margin-bottom: 22px; }
   display: grid; place-items: center;
   border-radius: 14px;
   background: var(--tarjeta-alta);
+  /* El cuadrito del emoji lleva el color más fuerte que la tarjeta: es
+     donde el ojo busca para reconocer el hábito sin leer el nombre. */
+  background: color-mix(in srgb, var(--tinte, var(--tarjeta-alta)) 24%, var(--tarjeta));
   flex-shrink: 0;
 }
 
@@ -274,6 +330,12 @@ header { margin-bottom: 22px; }
   background: var(--borde);
 }
 
+/* Sobre una tarjeta teñida (v21), el gris de los puntos vacíos casi
+   desaparecía: el fondo se había acercado a su mismo tono. Mezclarles un
+   poco del color del hábito los separa del fondo otra vez. Si no hay
+   --tinte (no debería pasar), se quedan en el gris de siempre. */
+.dia { background: color-mix(in srgb, var(--tinte, var(--borde)) 30%, var(--borde)); }
+
 .dia.lleno { background: var(--exito); }
 
 .racha {
@@ -297,6 +359,11 @@ header { margin-bottom: 22px; }
   font-size: 16px;
   color: transparent;
 }
+
+/* Lo mismo con el círculo de marcar, que es lo que más se toca de la app:
+   si no se ve, no invita al dedo. En las tarjetas de pendientes no hay
+   --tinte, así que ahí queda el borde gris de siempre. */
+.check { border-color: color-mix(in srgb, var(--tinte, var(--borde)) 50%, var(--borde)); }
 
 .habito.hecho .check {
   background: var(--exito);
@@ -371,6 +438,120 @@ header { margin-bottom: 22px; }
   100% { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--giro)); opacity: 0; }
 }
 
+/* --- El estallido del hito de racha ---
+   Los mismos papelitos, otro movimiento. El día completo LLUEVE desde arriba;
+   el hito ESTALLA desde el centro, detrás de la medalla. Si las dos
+   celebraciones se movieran igual, el hito parecería un día completo más. */
+.papelito.estallido {
+  animation-name: estallar;
+  animation-timing-function: cubic-bezier(.1,.75,.3,1);
+}
+
+@keyframes estallar {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(.5); opacity: 1; }
+  75%  { opacity: 1; }
+  100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--giro)) scale(1); opacity: 0; }
+}
+
+/* --- La medalla del hito ---
+   Una capa fija que tapa toda la pantalla y centra la medalla. Igual que el
+   confeti, pointer-events: none la vuelve invisible al dedo: si tocas otro
+   hábito mientras está en pantalla, el toque pasa de largo y llega.
+
+   Para esconderla no basta con opacity: 0, porque VoiceOver seguiría leyendo
+   lo que hay dentro. visibility: hidden sí la saca. El truco del "0s linear
+   .35s" es retrasar ese hidden hasta que termine el desvanecido; sin él, la
+   medalla desaparecería de golpe en vez de apagarse. */
+.hito {
+  position: fixed;
+  inset: 0;
+  z-index: 101;               /* encima del confeti (100): los papelitos salen DETRÁS */
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .35s ease, visibility 0s linear .35s;
+}
+
+.hito.visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .2s ease;
+}
+
+.hito-tarjeta {
+  width: 210px;
+  padding: 26px 18px 22px;
+  border-radius: 28px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  box-shadow: 0 20px 60px var(--sombra);
+  text-align: center;
+}
+
+/* Entra con un rebote: el 1.25 de la curva hace que se pase un poco de su
+   tamaño y vuelva. Es lo que separa "aparecer" de "llegar". */
+.hito.visible .hito-tarjeta { animation: hito-entra .5s cubic-bezier(.2,.9,.3,1.25); }
+
+@keyframes hito-entra {
+  from { transform: scale(.6); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+
+/* El círculo del número, con su anillo de puntos alrededor (la idea viene
+   de la tarjeta de racha de Habitz). */
+.hito-circulo {
+  position: relative;
+  width: 128px; height: 128px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+}
+
+/* El anillo son dos capas de CSS, sin imágenes:
+     1. repeating-conic-gradient pinta "rebanadas de pizza" alternas: 3 grados
+        de color, 6 de nada, y así toda la vuelta. Eso da los puntos.
+     2. La máscara deja ver solo un aro de 6px en el borde y tapa el centro.
+   Los "black" y "transparent" de la máscara NO son colores que se vean: una
+   máscara solo lee si cada punto es opaco o no. El color de verdad sale de
+   --celebrar, como el confeti. */
+.hito-anillo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(var(--celebrar) 0deg 3deg, transparent 3deg 9deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), black calc(100% - 6px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 7px), black calc(100% - 6px));
+  animation: girar 9s linear infinite;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.hito-numero {
+  font-size: 50px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--texto-fuerte);
+  font-variant-numeric: tabular-nums;
+}
+
+.hito-etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--celebrar);
+}
+
+.hito-nombre {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* Hay gente a la que el movimiento en pantalla le produce mareo, y iOS tiene
    un ajuste para pedir que se reduzca (Accesibilidad > Movimiento). Respetarlo
    es parte de hacer las cosas bien, no un extra. El confeti además se apaga
@@ -379,7 +560,10 @@ header { margin-bottom: 22px; }
   .check.celebrar,
   .check.celebrar::after,
   .papelito,
-  .tarea.recien-movida { animation: none; }
+  .tarea.recien-movida,
+  .hito.visible .hito-tarjeta,
+  .hito-anillo { animation: none; }
+  .pestana-indicador { transition: none; }
 }
 
 /* Botones de mover y borrar. Solo aparecen en modo edición, donde
@@ -509,74 +693,111 @@ body.editando .panel-datos { display: block; }
    Aquí abajo está todo lo visual de las hojas de listas (Pendientes,
    Ideas y Compras comparten esta misma hoja; solo cambian las palabras). */
 
-/* Las pestañas de arriba */
+/* --- Las pestañas (v21: abajo, dentro de la barra flotante) ---
+   Cada pestaña es un ícono con su nombre debajo, como la barra de pestañas
+   de cualquier app de iPhone. Con cuatro pestañas Y el botón "+" en la
+   misma fila, el nombre solo ya no cabía a 14px; el ícono hace el trabajo
+   de reconocerla y el nombre, pequeño, el de confirmarla.
+
+   Fondo de vidrio: un color medio transparente (--vidrio) más
+   backdrop-filter, que DESENFOCA lo que pasa por detrás. Es la parte que
+   da el efecto: la lista se ve borrosa a través de la barra al hacer
+   scroll. El "Liquid Glass" de iOS 26 hace además que el vidrio doble la
+   luz; eso es un material nativo y desde una página web no se puede imitar.
+   Esto es la versión web: vidrio esmerilado.
+
+   -webkit-backdrop-filter va repetido a propósito: Safari lo pedía con ese
+   prefijo hasta hace poco, y un iPhone sin actualizar ignoraría el otro. */
 .pestanas {
+  position: relative;          /* el indicador se coloca respecto a esto */
+  flex: 1;
+  min-width: 0;
   display: flex;
-  gap: 6px;
-  background: var(--tarjeta);
-  border: 1px solid var(--borde);
-  border-radius: 14px;
-  padding: 4px;
-  margin-top: 16px;
+  padding: 5px;
+  border-radius: 26px;
+  background: var(--vidrio);
+  border: 1px solid var(--vidrio-borde);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+          backdrop-filter: blur(20px) saturate(170%);
+  /* Dos sombras: una línea de luz por dentro arriba (el borde del vidrio que
+     brilla) y la sombra de verdad por fuera, que la despega de la lista. */
+  box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 8px 30px var(--sombra);
 }
 
 .pestana {
-  position: relative;        /* para poder colgarle la línea de abajo */
+  position: relative;          /* encima del indicador, y para colgarle el contador */
+  z-index: 1;
   flex: 1;
-  min-width: 0;              /* deja que encojan si el texto es largo */
-  /* Con cuatro pestañas en un iPhone de 375px cada una tiene ~78px. Se midió:
-     a 14px "Pendientes" cabe justo (~74px) si el padding lateral es de 2px,
-     y por eso el contador ya no va AL LADO del nombre sino encima, como
-     puntito. El padding de arriba es 3px más alto que el de abajo para
-     dejarle sitio al puntito sin que tape la palabra. Si se cambia la
-     letra o el padding, medir otra vez a 375px. */
-  padding: 13px 2px 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 0 6px;
   border: none;
-  border-radius: 10px;
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 14px; font-weight: 600;
-  white-space: nowrap;       /* "Pendientes" nunca se parte en dos líneas */
+  /* Medido a 375px: cada pestaña tiene 69px y "Pendientes" a 10.5px mide
+     59px. Si se cambia la letra o se agrega una quinta, medir otra vez. */
+  font-size: 10.5px; font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background .18s ease, color .18s ease;
+  transition: color .2s ease;
 }
 
-/* La pestaña en la que estás parado. Es la única pista de "dónde estoy", así
-   que lleva CUATRO señales pequeñas a la vez en vez de una grande: fondo más
-   claro, blanco puro (las otras son grises), negrilla y una línea de acento
-   debajo. El mismo criterio que usamos con los hábitos ya cumplidos: varias
-   señales suaves se leen mejor y más rápido que una sola señal fuerte. */
+/* El ícono. Es un cuadrito pintado con el color del texto (currentColor) y
+   recortado con la forma del dibujo (mask). Así el ícono cambia de color
+   solo cuando la pestaña se activa, sin una segunda imagen, y en los dos
+   temas sin hacer nada. El dibujo de cada pestaña va en --icono, abajo.
+   (Los "black" dentro de los SVG no se ven nunca: una máscara solo lee
+   dónde hay trazo y dónde no.) */
+.pestana::before {
+  content: '';
+  width: 22px; height: 22px;
+  background: currentColor;
+  -webkit-mask: var(--icono) center / contain no-repeat;
+          mask: var(--icono) center / contain no-repeat;
+}
+
+#pestanaHabitos { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l2.7 2.7L16 9.8'/%3E%3C/svg%3E"); }
+#pestanaTareas  { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h10M10 12h10M10 18h10'/%3E%3Cpath d='M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17'/%3E%3C/svg%3E"); }
+#pestanaIdeas   { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 18h5M10.5 21h3'/%3E%3Cpath d='M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E"); }
+#pestanaCompras { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9.5' cy='20' r='1.2'/%3E%3Ccircle cx='17.5' cy='20' r='1.2'/%3E%3Cpath d='M2.5 3.5h2.8l2.3 11a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.4-1.1L21 8H6.3'/%3E%3C/svg%3E"); }
+
+/* La pestaña en la que estás parado: color de acento y negrilla. La píldora
+   de fondo la pone el indicador. */
 .pestana.activa {
-  background: var(--tarjeta-alta);
-  color: var(--texto-fuerte);
+  color: var(--acento);
   font-weight: 700;
 }
 
-/* La línea azul. Va como pseudo-elemento y no como border-bottom para que no
-   empuje el texto ni un píxel al aparecer y desaparecer: está posicionada
-   encima, no dentro del flujo. */
-.pestana.activa::after {
-  content: '';
+/* La píldora que viaja detrás de la pestaña activa.
+   Mide un cuarto del ancho útil (sin los 5px de cada lado) y se desplaza
+   con translateX en múltiplos de su propio ancho: --i = 0, 1, 2 o 3, que lo
+   pone cambiarVista(). translateX(100%) es "córrete lo que mides", así que
+   no hace falta saber cuántos píxeles tiene cada pestaña.
+
+   La curva cubic-bezier(.3, 1.35, .5, 1) se pasa un poco del destino y
+   vuelve (ese 1.35): es lo que hace que se sienta como una gota que se
+   desliza y no como un bloque que se teletransporta. */
+.pestana-indicador {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 6px;
-  width: 20px; height: 2px;
-  border-radius: 2px;
-  background: var(--acento);
+  top: 5px; bottom: 5px; left: 5px;
+  width: calc((100% - 10px) / 4);
+  border-radius: 21px;
+  background: var(--vidrio-activo);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform .4s cubic-bezier(.3, 1.35, .5, 1);
 }
 
-/* El contador de pendientes ahí mismo, en la pestaña. Así sabes si hay
-   algo esperándote sin tener que entrar a mirar.
-   Desde la v19 es un puntito con número en la esquina, no un texto al lado:
-   con cuatro pestañas ya no había sitio para "Pendientes 4" en un iPhone.
-   Va posicionado encima (absolute) para no empujar el nombre ni un píxel,
-   igual que la línea de la pestaña activa. Cuando está vacío no se dibuja:
-   el :empty evita un círculo azul sin nada dentro. */
+/* El contador de pendientes, como puntito en la esquina del ícono.
+   Va posicionado encima (absolute) para no empujar nada, y cuando está
+   vacío no se dibuja: el :empty evita un círculo azul sin nada dentro. */
 .pestana .cuantas {
   position: absolute;
-  top: -1px; right: 0;
+  top: 3px;
+  left: calc(50% + 5px);       /* desde el centro del ícono, un poco a la derecha */
   min-width: 15px; height: 15px;
   padding: 0 4px;
   border-radius: 8px;
@@ -833,14 +1054,70 @@ body.editando .mover { display: none; }
 
 .vacio-emoji { font-size: 44px; margin-bottom: 14px; }
 
-/* ---------- 6. BOTONES DE ABAJO ---------- */
+/* ---------- 6. LA BARRA DE ABAJO (v21) ----------
+   Flota: no toca los bordes de la pantalla (12px a cada lado y 10px
+   encima de la rayita de inicio del iPhone). Las pestañas ocupan lo que
+   sobra y el "+" mide fijo.
+
+   left + right + max-width + margin: auto = "pégate a 12px de cada lado,
+   pero si la pantalla es muy ancha (un iPad, el Mac) no pases de 596px y
+   céntrate". Es el mismo ancho máximo que el resto de la app. */
 .barra-inferior {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
-  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--fondo) 65%, transparent);
-  display: flex; gap: 10px;
-  max-width: 620px; margin: 0 auto;
+  left: 12px; right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  max-width: 596px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+}
+
+/* El botón redondo. 56px porque es el gesto principal de la pantalla y
+   tiene que poder tocarse sin mirar. */
+.btn-mas {
+  flex: 0 0 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--acento);
+  color: var(--sobre-acento);
+  font-family: inherit;
+  font-size: 30px; font-weight: 400; line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 24px var(--sombra);
+  transition: transform .15s ease, background .2s ease;
+}
+
+.btn-mas:active { transform: scale(.92); }
+
+/* En modo edición el "+" se vuelve "✓" y sirve para salir. Los paneles de
+   Ajustes y copia aparecen al final de la lista, y el "Listo" de arriba
+   quedaría fuera de la pantalla justo cuando terminas de usarlos. */
+.btn-mas.listo {
+  background: var(--exito);
+  color: var(--sobre-exito);
+  font-size: 24px; font-weight: 700;
+}
+
+/* "Editar", arriba a la derecha. Texto de color, sin caja: es lo que hace
+   iOS con las acciones secundarias de una cabecera. */
+.cabecera-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn-editar {
+  background: none;
+  border: none;
+  color: var(--acento);
+  font-family: inherit;
+  font-size: 15px; font-weight: 600;
+  padding: 6px 0 6px 12px;     /* área de toque más grande que la palabra */
+  cursor: pointer;
 }
 
 .btn {
@@ -997,41 +1274,56 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 .cal-dia.futuro  { opacity: .25; cursor: default; }
 
 /* ---------- 8b. EL MAPA DEL AÑO ----------
-   53 columnas (una por semana) y 7 filas (lunes arriba, domingo abajo).
-   grid-auto-flow: column es la clave: le dice a la cuadrícula que se llene
-   de arriba hacia abajo y después pase a la siguiente columna, que es justo
-   el orden en que vienen los días. Sin eso, los llenaría por filas y la
-   semana quedaría acostada.
-   Las 53 columnas NO se declaran aquí sino en pintarAnio(), desde
-   SEMANAS_ANIO: así el número vive en un solo sitio. Y tienen que ser
-   explícitas: se probó dejar que la cuadrícula las creara sola
-   (grid-auto-columns) y cada columna creció a 120px en vez de repartirse
-   el ancho.
-   Tampoco se le pone aspect-ratio a cada cuadrito: se probó, y las filas
-   se estiraban cientos de píxeles (el cuadrito espera a saber el alto de
-   la fila y la fila espera a saber el del cuadrito). En vez de eso, la
-   proporción la lleva la cuadrícula ENTERA (53 de ancho por 7 de alto) y
-   las 7 filas se reparten ese alto. Mismo resultado, sin la espera mutua.
-   Medido a 375px: 335px de ancho / 53 columnas = unos 6px por día, gap
-   incluido. Si se ve demasiado chico en el teléfono, bajar a 26 semanas en
-   pintarAnio() antes que achicar el gap. */
-.anio-etiqueta { display: block; margin-top: 14px; margin-bottom: 6px; }
+   Doce mini-calendarios en una cuadrícula de 3 columnas (la idea viene de
+   Habitz). Cada mes es otra cuadrícula de 7 columnas, igual que el
+   calendario grande de arriba: lunes a la izquierda.
+
+   Hasta la v20 era una franja de 53 semanas, y ahí hubo dos trampas que
+   obligaron a declarar las columnas desde JS y a ponerle la proporción a la
+   cuadrícula entera. Aquí no hacen falta: las columnas son fijas (7) y van
+   declaradas en el CSS, así que cada cuadrito puede llevar su propio
+   aspect-ratio, igual que .cal-dia. Las dos trampas venían de dejar que la
+   cuadrícula INVENTARA columnas, y aquí no inventa ninguna.
+
+   Medido a 375px: 335px de ancho / 3 meses = ~103px por mes = ~13px por día.
+   Si se ve demasiado grande, pasar a 4 columnas (~9px por día). */
+.anio-etiqueta { display: block; margin-top: 18px; margin-bottom: 8px; }
 
 .anio-grid {
   display: grid;
-  grid-template-rows: repeat(7, minmax(0, 1fr));
-  grid-auto-flow: column;
-  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.anio-mes-nombre {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  margin-bottom: 5px;
+}
+
+.anio-mes-dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
 }
 
 .anio-dia {
-  border-radius: 1.5px;
+  aspect-ratio: 1;
+  border-radius: 3px;
   background: var(--borde);
 }
 
-.anio-dia.hecho { background: var(--exito); }
-.anio-dia.antes { opacity: .35; }         /* antes de que existiera el hábito */
-.anio-dia.vacio { background: none; }     /* el futuro de esta semana */
+.anio-dia.hecho  { background: var(--exito); }
+.anio-dia.antes  { opacity: .35; }        /* antes de que existiera el hábito */
+.anio-dia.futuro { opacity: .2; }         /* lo que queda de este mes */
+.anio-dia.relleno { background: none; }   /* los huecos antes del día 1 */
+
+/* Ojo con el nombre: se llamaba .vacio y estiraba la primera fila de cada
+   mes hasta 120px. Ya existía otra clase .vacio (sección 5, el "todavía no
+   hay hábitos") con padding: 60px 20px, y el cuadrito se la quedaba. Dos
+   cosas distintas con el mismo nombre de clase se mezclan en silencio: el
+   CSS no avisa, aplica las dos. */
 
 /* Con el calendario y las estadísticas, la ventana creció.
    Esto evita que se salga de la pantalla en teléfonos pequeños. */
@@ -1102,8 +1394,22 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
        solo adorno. -->
   <div class="confeti" id="confeti" aria-hidden="true"></div>
 
+  <!-- La medalla del hito de racha (7, 30, 100, 365 días). Fuera de la lista
+       por lo mismo que el confeti. Esta SÍ tiene información, así que no va
+       aria-hidden: role="status" hace que VoiceOver lea "30 días seguidos"
+       en voz alta cuando aparece, sin robarle el foco a lo que estabas
+       tocando. -->
+  <div class="hito" id="hito" role="status" aria-live="polite"></div>
+
   <header>
-    <div class="fecha" id="fecha"></div>
+    <!-- "Editar" vive aquí arriba desde la v21, en la esquina, como en las
+         apps de iOS. Abajo quedó la barra de pestañas, que es lo de cada día;
+         editar se usa poco, y lo que se usa poco puede quedar donde el pulgar
+         llega peor. -->
+    <div class="cabecera-fila">
+      <div class="fecha" id="fecha"></div>
+      <button class="btn-editar" id="btnEditar" data-t="editar">Editar</button>
+    </div>
     <div class="titulo">Mis Hábitos</div>
 
     <div class="progreso-caja" id="cajaProgreso">
@@ -1112,17 +1418,6 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
         <span id="progresoTexto">0 de 0</span>
       </div>
       <div class="progreso-fondo"><div class="progreso-barra" id="barra"></div></div>
-    </div>
-
-    <!-- Las cuatro secciones de la app, todas al mismo nivel: un toque para
-         llegar a cualquiera. Solo Pendientes lleva contador — una idea sin
-         hacer no es una deuda, y doce cosas por comprar tampoco, así que no
-         deben pesarte con un número. -->
-    <div class="pestanas">
-      <button class="pestana activa" id="pestanaHabitos" data-t="habitos">Hábitos</button>
-      <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span><span class="cuantas" id="contadorTareas"></span></button>
-      <button class="pestana" id="pestanaIdeas" data-t="ideas">Ideas</button>
-      <button class="pestana" id="pestanaCompras" data-t="compras">Compras</button>
     </div>
   </header>
 
@@ -1235,10 +1530,29 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <p class="sesion-estado" id="sesionEstado"></p>
   </section>
 
-  <div class="barra-inferior">
-    <button class="btn btn-principal"  id="btnAgregar">+ Nuevo hábito</button>
-    <button class="btn btn-secundario" id="btnEditar" data-t="editar">Editar</button>
-  </div>
+  <!-- La barra de abajo (v21): las pestañas y el botón de agregar, flotando
+       encima de la lista con efecto vidrio. Abajo porque es donde llega el
+       pulgar sosteniendo el teléfono con una mano.
+
+       Las cuatro secciones siguen al mismo nivel: un toque para llegar a
+       cualquiera. Solo Pendientes lleva contador — una idea sin hacer no es
+       una deuda, y doce cosas por comprar tampoco.
+
+       El indicador es la "píldora" que se desliza detrás de la pestaña
+       activa. Es un elemento aparte, y no el fondo de cada pestaña, porque
+       así puede VIAJAR de una a otra en vez de apagarse y encenderse. -->
+  <nav class="barra-inferior">
+    <div class="pestanas" id="pestanas">
+      <span class="pestana-indicador" aria-hidden="true"></span>
+      <button class="pestana activa" id="pestanaHabitos" data-t="habitos">Hábitos</button>
+      <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span><span class="cuantas" id="contadorTareas"></span></button>
+      <button class="pestana" id="pestanaIdeas" data-t="ideas">Ideas</button>
+      <button class="pestana" id="pestanaCompras" data-t="compras">Compras</button>
+    </div>
+    <!-- El "+" agrega lo que toque según la sección. Su nombre para VoiceOver
+         (aria-label) lo pone pintarBotonMas(), porque cambia con la sección. -->
+    <button class="btn-mas" id="btnAgregar">+</button>
+  </nav>
 
   <!-- Ventana emergente para crear un hábito -->
   <div class="fondo-modal" id="modal">
@@ -1287,15 +1601,18 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
       <p class="nota" id="calResumen"></p>
 
-      <!-- El mapa del año: una columna por semana, un cuadrito por día.
-           No se toca (a 5px no hay dedo que acierte): corregir se hace en el
-           mes de arriba. Los cuadritos los pone pintarAnio(). -->
-      <span class="sub-etiqueta anio-etiqueta" data-t="ultimoAnio">Último año</span>
-      <div class="anio-grid" id="anioGrid"></div>
-
       <!-- Estadísticas del hábito. Los números los pone JavaScript. -->
       <div class="stats" id="calStats"></div>
       <p class="cal-ayuda" id="calAyuda"></p>
+
+      <!-- El mapa del año: doce mini-calendarios, un cuadrito por día. Va
+           DEBAJO de las estadísticas desde la v21: mes por mes ocupa más alto
+           que la franja de antes, y no debía empujar los números (que es lo
+           que más se mira) fuera de la pantalla.
+           No se toca: corregir se hace en el mes grande de arriba. Los
+           cuadritos los pone pintarAnio(). -->
+      <span class="sub-etiqueta anio-etiqueta" data-t="ultimoAnio">Último año</span>
+      <div class="anio-grid" id="anioGrid"></div>
 
       <button class="btn btn-secundario" id="calCerrar" data-t="cerrar"
               style="width:100%; flex:none; margin-top:16px">Cerrar</button>
@@ -1420,6 +1737,7 @@ const TEXTOS = {
              'la racha, un mal día no te devuelve a cero. Un mes perfecto te deja ' +
              'en 80; dos meses, en 96.',
     ultimoAnio: 'Último año',
+    hitoDias: 'días seguidos',
     ayudaPorDefecto: 'Toca una estadística para ver qué mide exactamente.',
 
     // --- Copia de seguridad ---
@@ -1539,6 +1857,7 @@ const TEXTOS = {
              "streak, one bad day doesn't send you back to zero. A perfect " +
              'month gets you to 80; two months, to 96.',
     ultimoAnio: 'Last year',
+    hitoDias: 'days in a row',
     ayudaPorDefecto: 'Tap a stat to see exactly what it measures.',
 
     copiaSeguridad: 'Backup',
@@ -1688,6 +2007,10 @@ function cargar() {
     // fábrica sin borrar las que ya elegiste.
     leidos.prefs = { ...PREFS_POR_DEFECTO, ...(leidos.prefs || {}) };
 
+    // Y en la v21, el color de los hábitos. Los que ya tenías no traen uno:
+    // se les reparte aquí, una sola vez, y desde entonces quedan guardados.
+    if (Array.isArray(leidos.habitos)) ponerColores(leidos.habitos);
+
     return leidos;
   } catch (e) {
     // Si algo se corrompe, mejor arrancar limpio que romperse
@@ -1713,6 +2036,21 @@ function encolar(pendiente) {
   guardar();
   if (typeof pedirSincronizar === 'function') pedirSincronizar();
 }
+
+/* Cuántos colores de hábito hay (--habito-0 a --habito-5 en el CSS). Las
+   funciones que los reparten están en la sección C, pero esta constante
+   tiene que vivir AQUÍ, antes de la línea de abajo, y no allá.
+
+   El motivo es una regla de JavaScript que pilla a todo el mundo: las
+   funciones (function ...) existen desde que arranca el script, estén donde
+   estén; las constantes (const ...) solo desde que el script pasa por su
+   línea. cargar() corre en la línea de abajo y ya reparte colores. Con la
+   constante más abajo, eso daba error, el try/catch de cargar() lo atrapaba
+   y la app arrancaba VACÍA, como si no tuvieras hábitos. Pasó en la v21 y
+   se vio en el navegador, no en las pruebas: todas arrancaban con el
+   almacenamiento vacío. Desde entonces pruebas-app.js arranca una vez más
+   la app con hábitos de antes de la v21 (sección 12). */
+const COLORES_HABITO = 6;
 
 let datos = cargar();
 
@@ -1880,6 +2218,71 @@ function calcularRacha(idHabito) {
   return racha;
 }
 
+/* Los hitos de racha: los días seguidos que merecen una celebración propia.
+   Son pocos a propósito. El confeti del día completo sale casi a diario; un
+   hito sale un puñado de veces al año, y por eso se siente distinto. Si
+   agregaras el 3, el 5 y el 10, volverías a tener confeti cada semana. */
+const HITOS = [7, 30, 100, 365];
+
+// ¿Cruzó la racha un hito? Recibe la racha de antes y la de después del toque
+// y devuelve el hito cruzado (7, 30...) o 0 si no cruzó ninguno.
+//
+// Pregunta por el CRUCE (antes < hito <= después) y no por "¿después es
+// igual a un hito?". Es la misma idea que estabaCompleto en alternarFecha():
+// lo que se celebra es el momento de llegar, no el hecho de estar ahí.
+function hitoDeRacha(antes, despues) {
+  return HITOS.find(hito => antes < hito && despues >= hito) || 0;
+}
+
+/* --- El color de cada hábito (v21) ---
+   Cada hábito guarda un número del 0 al 5 en `color`, y ese número elige una
+   de las seis variables --habito-0 ... --habito-5 del CSS. Se guarda el
+   NÚMERO y no el color, por la misma razón que TEXTOS_LISTA guarda claves y
+   no frases: el color real cambia con el tema, el número no.
+
+   El color vive solo en este teléfono: habitoAFila() no lo sube a la nube,
+   así que no hace falta tocar Postgres. Si algún día se quiere que viaje, es
+   una columna más (y su paso de SQL).
+
+   Por qué se guarda en vez de calcularse del id: se probó la cuenta. Sacar el
+   color "al azar" del id hace que, con 6 hábitos y 6 colores, la probabilidad
+   de que ninguno se repita sea del 1,5%. Casi siempre habría dos iguales, que
+   es justo lo que el color venía a evitar. Guardado, se reparte a propósito. */
+// COLORES_HABITO no vive aquí sino en la sección A, justo antes de
+// `let datos = cargar()`. Ver la nota de allí.
+
+function esColor(valor) {
+  return Number.isInteger(valor) && valor >= 0 && valor < COLORES_HABITO;
+}
+
+// El color menos usado ahora mismo. En un empate, el de número más bajo.
+// Así, hasta el sexto hábito no se repite ninguno; el séptimo empieza a
+// repetir el que menos aparezca.
+// En Excel: un CONTAR.SI por cada color, y quedarse con el mínimo.
+function colorLibre(habitos) {
+  const usos = Array(COLORES_HABITO).fill(0);
+  habitos.forEach(h => { if (esColor(h.color)) usos[h.color]++; });
+  return usos.indexOf(Math.min(...usos));
+}
+
+// Les pone color a los hábitos que no traen uno: los de antes de la v21, los
+// que bajan de la nube (que no guarda colores) y los de una copia vieja.
+// `previos` son los hábitos que había antes de reemplazar la lista: si uno ya
+// tenía color aquí, lo conserva. Sin eso, cada vez que bajaran datos de la
+// nube los colores se volverían a repartir y cambiarían solos.
+// Ojo: esta SÍ modifica la lista que recibe (y la devuelve, por comodidad).
+function ponerColores(habitos, previos = []) {
+  habitos.forEach(h => {
+    if (esColor(h.color)) return;
+    const antes = previos.find(p => p.id === h.id);
+    if (antes && esColor(antes.color)) h.color = antes.color;
+  });
+  // Segunda vuelta, para los que siguen sin color. Va aparte de la primera
+  // para que los colores conservados ya cuenten al buscar uno libre.
+  habitos.forEach(h => { if (!esColor(h.color)) h.color = colorLibre(habitos); });
+  return habitos;
+}
+
 /* La "fuerza" del hábito, de 0 a 100. La idea viene de Loop Habit Tracker.
    (Es la idea, no su código: la fórmula es matemática pública y está escrita
    aquí desde cero.)
@@ -1918,34 +2321,35 @@ function fuerzaHabito(idHabito) {
   return Math.round(fuerza * 100);
 }
 
-/* Las fechas del mapa del año, ya acomodadas en columnas.
-   Devuelve n semanas (columnas), cada una con 7 fechas de lunes a domingo.
-   La última columna es la semana de `fecha`; sus días futuros vienen como
-   null, para que la pantalla sepa que ahí no se dibuja nada.
+/* Las fechas del mapa del año, acomodadas mes por mes (v21).
+   Devuelve los n meses que terminan en el mes de `fecha`, del más viejo al
+   más nuevo. Cada mes trae sus celdas en el orden en que se dibujan: primero
+   unos null de relleno (para que el día 1 caiga en su columna, igual que en
+   el calendario de arriba) y después una fecha por cada día del mes.
 
-   Está aparte de la pantalla por lo mismo que todo lo de esta sección: el
-   cálculo de fechas es donde uno se equivoca (el lunes, el cambio de año, el
-   horario de verano), y aquí se puede probar.
+   Hasta la v20 el mapa era una franja de 53 semanas con cuadritos de 5px.
+   Mes por mes se leen a unos 12px y, sobre todo, se sabe qué mes es cuál.
 
-   Ojo con cómo se suman días: new Date(año, mes, día + k). Sumar 86400000
-   milisegundos parece lo mismo, pero el día del cambio de horario tiene 23 o
-   25 horas y te corre una fecha. El constructor con día + k lo resuelve solo. */
-function semanasHasta(fecha, n) {
-  const [anio, mes, dia] = fecha.split('-').map(Number);
-  const base = new Date(anio, mes - 1, dia);
-  const posicion = (base.getDay() + 6) % 7;          // 0 = lunes ... 6 = domingo
-  const primerLunes = dia - posicion - 7 * (n - 1);  // el lunes de la columna 1
+   Los días que todavía no llegan SÍ vienen como fecha: el mes se dibuja
+   entero, y el que decide pintarlos apagados es pintarAnio() con esFutura().
 
-  const semanas = [];
-  for (let s = 0; s < n; s++) {
-    const semana = [];
-    for (let d = 0; d < 7; d++) {
-      const clave = claveFecha(new Date(anio, mes - 1, primerLunes + s * 7 + d));
-      semana.push(clave > fecha ? null : clave);     // el futuro no se dibuja
-    }
-    semanas.push(semana);
+   Ojo con cómo se retrocede de mes: new Date(año, mes - 1 - k, 1). Si
+   mes - 1 - k da -1, JavaScript entiende "diciembre del año anterior" y
+   resuelve solo el cambio de año. Es el mismo truco que diasDelMes(). */
+function mesesHasta(fecha, n) {
+  const [anio, mes] = fecha.split('-').map(Number);
+  const meses = [];
+  for (let k = n - 1; k >= 0; k--) {
+    const primero = new Date(anio, mes - 1 - k, 1);
+    const a = primero.getFullYear();
+    const m = primero.getMonth() + 1;              // de vuelta a 1-12
+
+    const celdas = [];
+    for (let i = 0; i < columnaInicio(a, m); i++) celdas.push(null);
+    for (let d = 1; d <= diasDelMes(a, m); d++) celdas.push(claveDe(a, m, d));
+    meses.push({ anio: a, mes: m, celdas: celdas });
   }
-  return semanas;
+  return meses;
 }
 
 // Cuántas veces se marcó este hábito en un mes concreto.
@@ -1970,6 +2374,9 @@ function alternarFecha(idHabito, fecha) {
   // esta foto no hay forma de distinguir las dos cosas, y el confeti saldría
   // cada vez que tocaras cualquier hábito de un día ya terminado.
   const estabaCompleto = diaCompleto(fecha);
+  // La misma foto, para la racha: sin ella no se sabe si este toque CRUZÓ
+  // un hito o si ya estabas del otro lado.
+  const rachaAntes = calcularRacha(idHabito);
 
   if (!datos.registros[fecha]) datos.registros[fecha] = [];
 
@@ -2002,7 +2409,16 @@ function alternarFecha(idHabito, fecha) {
   //   fecha === hoy()    -> corregir un martes pasado desde el calendario no
   //                         es "quedar al día"; es arreglar el pasado
   //   !estabaCompleto    -> la transición, no el estado
-  if (marcando && fecha === hoy() && !estabaCompleto && diaCompleto(fecha)) {
+  //
+  // Y por encima de las dos, el hito de racha (las mismas dos primeras
+  // condiciones). Si un mismo toque llega a 30 días Y completa el día, sale
+  // solo el hito: dos celebraciones a la vez se pisan y ninguna se lee. Y el
+  // hito es el más raro de los dos, así que es el que no hay que perderse.
+  const deHoy = marcando && fecha === hoy();
+  const hito = deHoy ? hitoDeRacha(rachaAntes, calcularRacha(idHabito)) : 0;
+  if (hito) {
+    celebrarHito(idHabito, hito);
+  } else if (deHoy && !estabaCompleto && diaCompleto(fecha)) {
     celebrarDiaCompleto();
   }
   return true;
@@ -2015,7 +2431,8 @@ function alternarHoy(idHabito) {
 
 function agregarHabito(nombre, emoji) {
   const id = crypto.randomUUID();   // un identificador único, como una PRIMARY KEY
-  datos.habitos.push({ id: id, nombre: nombre, emoji: emoji, creado: hoy() });
+  datos.habitos.push({ id: id, nombre: nombre, emoji: emoji, creado: hoy(),
+                      color: colorLibre(datos.habitos) });
 
   encolar({ tipo: 'guardarHabito', id: id });
   guardar();
@@ -2554,10 +2971,10 @@ function pintar() {
   const nombre = (datos.prefs.nombre || '').trim();
   document.querySelector('.titulo').textContent = nombre ? `${saludo}, ${nombre}` : saludo;
 
-  // El botón grande de abajo depende de la sección; en Hábitos siempre dice
-  // lo mismo. Va aquí para que también se actualice al cambiar de idioma.
+  // El botón "+" de abajo depende de la sección y del modo edición. Va aquí
+  // para que también se actualice al cambiar de idioma.
+  pintarBotonMas();
   if (vista === 'habitos') {
-    document.getElementById('btnAgregar').textContent = t('nuevoHabito');
     document.getElementById('progresoEtiqueta').textContent = t('hoy');
   }
 
@@ -2596,6 +3013,10 @@ function pintar() {
 
     const tarjeta = document.createElement('div');
     tarjeta.className = 'habito' + (hecho ? ' hecho' : '');
+    // El color del hábito llega al CSS como variable (--tinte). La tarjeta no
+    // sabe qué color es: solo sabe "el mío es el número tal", y el tema decide
+    // cómo se ve ese número en claro y en oscuro.
+    tarjeta.style.setProperty('--tinte', `var(--habito-${h.color})`);
     tarjeta.innerHTML = `
       <div class="habito-emoji">${h.emoji}</div>
       <div class="habito-info">
@@ -2725,6 +3146,91 @@ function celebrarDiaCompleto() {
   setTimeout(() => { capaConfeti.innerHTML = ''; }, 3000);
 }
 
+/* ---------- E3. LA MEDALLA DEL HITO DE RACHA ----------
+   Mismo reparto que el confeti: la DECISIÓN de cuándo sale vive en
+   hitoDeRacha() (sección C, probada) y aquí solo está el dibujo.            */
+
+const capaHito = document.getElementById('hito');
+const DURACION_HITO = 2600;   // ms en pantalla: lo justo para leer "30 días seguidos"
+let temporizadorHito = null;
+
+function celebrarHito(idHabito, dias) {
+  const h = datos.habitos.find(x => x.id === idHabito);
+  if (!h) return;
+
+  // La medalla se arma con createElement + textContent, no con innerHTML.
+  // El nombre del hábito lo escribiste tú, y si algún día llevara un "<",
+  // innerHTML intentaría leerlo como una etiqueta de HTML. textContent lo
+  // trata siempre como texto y punto.
+  const tarjeta  = document.createElement('div');
+  const circulo  = document.createElement('div');
+  const anillo   = document.createElement('div');
+  const numero   = document.createElement('div');
+  const etiqueta = document.createElement('div');
+  const nombre   = document.createElement('div');
+  tarjeta.className  = 'hito-tarjeta';
+  circulo.className  = 'hito-circulo';
+  anillo.className   = 'hito-anillo';
+  numero.className   = 'hito-numero';
+  etiqueta.className = 'hito-etiqueta';
+  nombre.className   = 'hito-nombre';
+  numero.textContent   = dias;
+  etiqueta.textContent = t('hitoDias');
+  nombre.textContent   = `${h.emoji} ${h.nombre}`;
+  circulo.append(anillo, numero);
+  tarjeta.append(circulo, etiqueta, nombre);
+
+  // Rehacer el contenido reinicia la animación de entrada, así que dos hitos
+  // seguidos (dos hábitos que llegan a 7 el mismo día) se ven los dos.
+  capaHito.innerHTML = '';
+  capaHito.appendChild(tarjeta);
+  capaHito.classList.add('visible');
+
+  // Si ya había una medalla en pantalla, su temporizador se cancela: si no,
+  // el viejo escondería la nueva antes de tiempo.
+  clearTimeout(temporizadorHito);
+  temporizadorHito = setTimeout(() => capaHito.classList.remove('visible'), DURACION_HITO);
+
+  // La medalla sale siempre, también con "reducir movimiento": tiene
+  // información (cuántos días llevas), no es solo adorno. El estallido sí es
+  // adorno, y ese se lo salta lanzarEstallido().
+  lanzarEstallido();
+}
+
+function lanzarEstallido() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const colores = coloresConfeti();
+  capaConfeti.innerHTML = '';
+
+  for (let i = 0; i < PAPELITOS; i++) {
+    const papel = document.createElement('div');
+    papel.className = 'papelito estallido';
+
+    // Todos nacen en el centro de la pantalla, detrás de la medalla.
+    papel.style.left         = '50vw';
+    papel.style.top          = '45vh';
+    papel.style.background   = colores[i % colores.length];
+    papel.style.borderRadius = Math.random() < .35 ? '50%' : '2px';
+
+    // Cada uno sale en una dirección distinta. Seno y coseno convierten
+    // "un ángulo y una distancia" en "cuánto a la derecha y cuánto abajo":
+    // es la misma cuenta que pasar de coordenadas polares a las de Excel
+    // (columna, fila). El +90 del final es la gravedad: todos acaban un
+    // poco más abajo de donde los mandó el ángulo.
+    const angulo    = entre(0, Math.PI * 2);
+    const distancia = entre(110, 240);
+    papel.style.setProperty('--dx',   Math.cos(angulo) * distancia + 'px');
+    papel.style.setProperty('--dy',   Math.sin(angulo) * distancia + 90 + 'px');
+    papel.style.setProperty('--giro', entre(-540, 540) + 'deg');
+    papel.style.setProperty('--dur',  entre(1.1, 1.8) + 's');
+
+    capaConfeti.appendChild(papel);
+  }
+
+  setTimeout(() => { capaConfeti.innerHTML = ''; }, 2000);
+}
+
 /* ---------- F0. EMOJIS (lógica pura, se prueba) ----------
    Un emoji no es "un carácter". Para JavaScript, 👨‍👩‍👧 son cinco piezas
    pegadas con un carácter invisible, y 🇨🇴 son dos. Si cortaras el texto
@@ -2778,9 +3284,14 @@ EMOJIS.forEach((e, i) => {
 });
 
 document.getElementById('btnAgregar').onclick = () => {
-  // El botón grande de abajo hace lo que toque según la sección en la que
-  // estés. En Pendientes no abre ninguna ventana: solo salta al campo de
-  // escribir, que ya está ahí arriba. Un toque, no tres.
+  // En modo edición el botón es "✓": sirve para salir (ver pintarBotonMas).
+  if (document.body.classList.contains('editando')) {
+    alternarEdicion();
+    return;
+  }
+  // El botón de abajo hace lo que toque según la sección en la que estés.
+  // En Pendientes no abre ninguna ventana: solo salta al campo de escribir,
+  // que ya está ahí arriba. Un toque, no tres.
   if (vista !== 'habitos') {
     document.getElementById('tareaNueva').focus();
     return;
@@ -2824,10 +3335,36 @@ document.getElementById('nombre').addEventListener('keydown', ev => {
 });
 
 /* ---------- G. MODO EDICIÓN ---------- */
-document.getElementById('btnEditar').onclick = (ev) => {
+// Desde la v21 hay dos sitios para salir del modo edición: "Listo" arriba y
+// el "✓" de abajo. Los dos llaman a esta misma función, para que nunca
+// puedan quedar diciendo cosas distintas.
+function alternarEdicion() {
   document.body.classList.toggle('editando');
-  ev.target.textContent = document.body.classList.contains('editando') ? t('listo') : t('editar');
-};
+  document.getElementById('btnEditar').textContent =
+    document.body.classList.contains('editando') ? t('listo') : t('editar');
+  pintarBotonMas();
+}
+
+document.getElementById('btnEditar').onclick = alternarEdicion;
+
+/* El botón redondo de abajo. Tres caras según dónde estés:
+     - en Hábitos, "+" para crear un hábito
+     - en una lista, "+" para escribir en esa lista
+     - en modo edición, "✓" para salir
+   Como el botón solo muestra un símbolo, VoiceOver necesita que alguien le
+   diga qué hace: eso es el aria-label. Sale del mismo texto que antes se veía
+   en el botón ("+ Nuevo hábito"), sin el "+": leído en voz alta, "más nuevo
+   hábito" sobra. */
+function pintarBotonMas() {
+  const boton = document.getElementById('btnAgregar');
+  const editando = document.body.classList.contains('editando');
+  let clave = 'listo';
+  if (!editando) clave = vista === 'habitos' ? 'nuevoHabito' : TEXTOS_LISTA[vista].boton;
+
+  boton.textContent = editando ? '✓' : '+';
+  boton.setAttribute('aria-label', t(clave).replace(/^\+\s*/, ''));
+  boton.classList.toggle('listo', editando);
+}
 
 /* ---------- H. COPIA DE SEGURIDAD ----------
    Exportar = convertir nuestros datos a un archivo .json y entregártelo.
@@ -3001,7 +3538,9 @@ function importar(texto) {
 
   datos = {
     version: 1,
-    habitos: copia.habitos,
+    // Una copia de antes de la v21 no trae colores. Si el hábito ya existe
+    // aquí, conserva el suyo; si no, se le da uno libre.
+    habitos: ponerColores(copia.habitos, datos.habitos),
     registros: copia.registros,
     // Si la copia es vieja y no trae tareas, entra con la lista vacía.
     tareas: Array.isArray(copia.tareas) ? copia.tareas : [],
@@ -3163,31 +3702,45 @@ function pintarCalendario() {
   pintarStats();
 }
 
-/* El mapa del año. Toda la aritmética de fechas la hace semanasHasta()
+/* El mapa del año. Toda la aritmética de fechas la hace mesesHasta()
    (sección C, probada); aquí solo se convierte cada fecha en un cuadrito.
-   Siempre muestra el año que termina HOY, no el del mes que estés viendo:
-   es una foto de conjunto, no otra forma de navegar. */
-const SEMANAS_ANIO = 53;
+   Siempre muestra los 12 meses que terminan HOY, no los del mes que estés
+   viendo arriba: es una foto de conjunto, no otra forma de navegar. */
+const MESES_MAPA = 12;
 
 function pintarAnio() {
   const caja = document.getElementById('anioGrid');
   caja.innerHTML = '';
-  // minmax(0, 1fr) y no solo 1fr: "cada columna mide lo mismo, y puede
-  // encoger hasta 0 si hace falta". Con 1fr a secas, una columna nunca
-  // encoge por debajo de lo que mide su contenido.
-  caja.style.gridTemplateColumns = `repeat(${SEMANAS_ANIO}, minmax(0, 1fr))`;
-  caja.style.aspectRatio = `${SEMANAS_ANIO} / 7`;
   const inicio = fechaInicio(calHabitoId);
 
-  semanasHasta(hoy(), SEMANAS_ANIO).forEach(semana => {
-    semana.forEach(fecha => {
+  mesesHasta(hoy(), MESES_MAPA).forEach((m, i) => {
+    const bloque = document.createElement('div');
+    bloque.className = 'anio-mes';
+
+    // El año solo se escribe donde hace falta para no perderse: en el primer
+    // mes y en cada enero. Ponerlo en los doce sería ruido.
+    // Va con cuatro cifras a propósito: en inglés "Nov 25" se lee como
+    // "25 de noviembre". "Nov 2025" no se puede confundir con nada.
+    const nombre = document.createElement('div');
+    nombre.className = 'anio-mes-nombre';
+    const conAnio = i === 0 || m.mes === 1;
+    nombre.textContent = new Date(m.anio, m.mes - 1, 1).toLocaleDateString(
+      localeFechas(), conAnio ? { month: 'short', year: 'numeric' } : { month: 'short' });
+
+    const dias = document.createElement('div');
+    dias.className = 'anio-mes-dias';
+    m.celdas.forEach(fecha => {
       const cuadro = document.createElement('div');
       cuadro.className = 'anio-dia';
-      if (fecha === null)                     cuadro.classList.add('vacio');
+      if (fecha === null)                     cuadro.classList.add('relleno');
       else if (estaHecho(calHabitoId, fecha)) cuadro.classList.add('hecho');
+      else if (esFutura(fecha))               cuadro.classList.add('futuro');
       else if (fecha < inicio)                cuadro.classList.add('antes');
-      caja.appendChild(cuadro);
+      dias.appendChild(cuadro);
     });
+
+    bloque.append(nombre, dias);
+    caja.appendChild(bloque);
   });
 }
 
@@ -3696,7 +4249,8 @@ async function bajarTodo() {
     console.warn('La nube vino vacía. Copia de emergencia guardada.');
   }
 
-  datos.habitos   = filasAHabitos(filasHabitos);
+  // La nube no guarda colores (v21): se conservan los de este teléfono.
+  datos.habitos   = ponerColores(filasAHabitos(filasHabitos), datos.habitos);
   datos.registros = filasARegistros(filasRegistros);
   // Desde la v16 las tareas también bajan. Se puede reemplazar sin miedo por
   // la misma razón que los hábitos: solo se llega aquí con la cola vacía, o
@@ -3794,6 +4348,11 @@ async function sincronizar() {
 // deduce de ella.
 let vista = 'habitos';
 
+// Las secciones en el orden en que salen las pestañas. La píldora de la barra
+// de abajo usa la posición en esta lista para saber hasta dónde viajar. Si
+// algún día se reordenan las pestañas en el HTML, esta lista va igual.
+const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras'];
+
 // Las tres listas comparten pantalla y solo cambian las palabras y unas pocas
 // reglas de comportamiento. Tenerlas aquí en una tabla, en vez de repartidas
 // en ifs por todo el código, significa que agregar una lista es agregar un
@@ -3872,10 +4431,15 @@ function cambiarVista(nueva) {
   document.getElementById('pestanaIdeas').classList.toggle('activa', vista === 'ideas');
   document.getElementById('pestanaCompras').classList.toggle('activa', vista === 'compras');
 
+  // Y la píldora viaja hasta la pestaña nueva. Solo se le dice a cuál (0 a 3);
+  // el CSS calcula cuánto moverse y anima el viaje.
+  document.getElementById('pestanas').style.setProperty('--i', VISTAS.indexOf(vista));
+
   // Salir del modo edición al cambiar de sección: si te quedaras dentro,
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
   document.body.classList.remove('editando');
   document.getElementById('btnEditar').textContent = t('editar');
+  pintarBotonMas();
 
   if (enHabitos) {
     pintar();   // pintar() ya pone el botón grande y la etiqueta "Hoy"
@@ -3886,7 +4450,6 @@ function cambiarVista(nueva) {
   // "palabras" y no "t" porque t() es ahora la función que traduce, y una
   // variable con el mismo nombre la taparía dentro de esta función.
   const palabras = TEXTOS_LISTA[vista];
-  document.getElementById('btnAgregar').textContent = t(palabras.boton);
   document.getElementById('progresoEtiqueta').textContent = t(palabras.etiqueta);
   campoTarea.placeholder = t(palabras.placeholder);
   campoTarea.value = '';          // lo que ibas a escribir era para la otra lista

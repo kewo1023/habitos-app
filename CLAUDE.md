@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 400 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 131 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 435 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 160 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -424,7 +424,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     igual que Pendientes. La alternativa —que se *reinicie*: los ítems se
     quedan y un botón desmarca todos— se dejó para cuando el uso real la pida.
     Sería `reiniciarLista('compras')`, ~10 líneas, sin tocar el modelo.
-  - **Cuatro pestañas en 375px:** se midió. "Pendientes 4" como texto no cabía
+  - **Cuatro pestañas en 375px:** se midió. *(Desde la v21 las pestañas
+    están abajo, con ícono y nombre a 10.5px: ver Fase 3.11.)* "Pendientes 4" como texto no cabía
     (necesitaba 93px y había 78). El contador pasó a ser un **puntito en la
     esquina** (`.cuantas`, posicionado encima) y el padding lateral bajó a
     2px. Si se cambia la letra de las pestañas, volver a medir.
@@ -455,7 +456,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     racha, no la reemplaza. La idea es de Loop (GPL-3.0): se reimplementó la
     fórmula, **no se copió código**. `.stats` bajó a `minmax(56px)` para que
     quepan cinco en una fila de iPhone; con una sexta, volver a medir.
-  - **Mapa del año** en el calendario: 53 semanas × 7 días. La aritmética vive
+  - **Mapa del año** en el calendario: 53 semanas × 7 días. *(Reemplazado
+    en la v21 por 12 meses: ver Fase 3.11.)* La aritmética vive
     en `semanasHasta(fecha, n)` (sección C, probada); `pintarAnio()` solo
     dibuja. No se toca: a 5px no hay dedo que acierte, corregir sigue siendo
     en el mes. **Dos trampas de CSS que se encontraron midiendo:** columnas
@@ -486,6 +488,39 @@ pantalla, agregarlo a `pruebas-app.js`.
     que solo avisa de lo que falta). Se evalúa después de usar el ícono y
     Atajos unas semanas. Depende de reactivar Supabase. Ver `BITACORA.md`,
     23 y 24 de septiembre.
+- **Fase 3.11 — Ideas de Habitz ✅ (v21)** Salió de revisar
+  habitz-tracker.app. Se evaluaron cuatro cosas y Kev pidió las cuatro.
+  **No hay SQL que correr.**
+  - **Hitos de racha** (7, 30, 100, 365): medalla con anillo de puntos y
+    confeti que estalla desde el centro. `hitoDeRacha(antes, despues)` en C
+    (el cruce, no el estado), dibujo en E3. **Decisión clave:** si un toque
+    llega al hito y completa el día, sale solo el hito. Con "reducir
+    movimiento" la medalla sale igual (es información); el estallido no.
+  - **Mapa del año por meses:** `mesesHasta(fecha, n)` reemplazó a
+    `semanasHasta()`. 3 columnas, ~13px por día. Va debajo de las
+    estadísticas. Los huecos se llaman `.relleno`: **`.vacio` ya es el
+    estado vacío de la app** (60px de padding) y estiraba las filas.
+  - **Barra de abajo flotante con vidrio:** pestañas con ícono (SVG como
+    `mask` en el CSS, color con `currentColor`), píldora que viaja
+    (`VISTAS` + `--i`), botón redondo "+". "Editar" subió a la esquina de
+    arriba. **Decisión clave:** en modo edición el "+" se vuelve "✓" y
+    sale del modo, porque el "Listo" de arriba queda fuera de la pantalla
+    al bajar a Ajustes. `alternarEdicion()` es la única que entra y sale.
+    El "Liquid Glass" de iOS no se puede imitar desde la web: esto es
+    vidrio esmerilado (`backdrop-filter`).
+  - **Color por hábito:** seis tonos `--habito-0..5`, **ninguno verde**
+    (el verde es "hecho"). Campo `color` (0-5) **solo en este teléfono**:
+    `habitoAFila()` no lo sube. `colorLibre()` da el menos usado;
+    `ponerColores()` lo reparte al cargar, y lo conserva al bajar de la nube
+    y al importar. **Decisión clave:** se guarda en vez de calcularse del
+    id, porque calculado se repetían casi siempre (6 hábitos y 6 colores:
+    1,5% de que ninguno repita).
+  - **Trampa que se encontró:** `COLORES_HABITO` tiene que estar **antes**
+    de `let datos = cargar()`. Un `const` no existe hasta que el script pasa
+    por su línea; con la constante más abajo la app arrancaba vacía. Lo
+    vigila la sección 12 de `pruebas-app.js`, que arranca la app con datos
+    de antes. **Regla que se lleva:** probar también el arranque con datos
+    viejos, no solo con el almacenamiento vacío.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -510,6 +545,8 @@ de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
 `VERSION` publicada: `v20` (fuerza del hábito, mapa del año, tabla para Excel
 y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
 vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
+`sw.js` ya está en `v21` (ideas de Habitz, Fase 3.11), **sin publicar** al
+13 de octubre. No necesita SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

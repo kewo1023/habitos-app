@@ -1537,6 +1537,89 @@ preguntarse quién lo va a actualizar.
 - [ ] Siguen abiertos: el botón → de las ideas y su nota huérfana (sin
       decidir), y que `orden` deje de recalcularse al borrar (prioridad baja).
 
+## 2026-10-13 — Ideas de Habitz y la v21
+
+**De dónde salió**
+
+Kev pidió analizar habitz-tracker.app (app nativa de iOS/Android) para ver
+qué diseño y animaciones replicar. Se revisaron la página y sus 9 capturas,
+y se evaluaron cuatro candidatos con los cuatro ejes. Kev pidió construir
+los cuatro.
+
+No se pudo ver la app por dentro: no hay video de muestra ni en la App Store
+ni en Google Play, y la página solo trae imágenes fijas. Las animaciones de
+Habitz no se copiaron; se diseñaron a partir de lo que se ve en las capturas.
+
+**Hecho (v21, sin publicar)**
+
+- **Hitos de racha** (7, 30, 100, 365 días): medalla con el número dentro de
+  un anillo de puntos que gira, y confeti que estalla desde el centro.
+  `HITOS` + `hitoDeRacha(antes, despues)` en la sección C;
+  `celebrarHito()` + `lanzarEstallido()` en la nueva sección E3. Si un toque
+  llega al hito y además completa el día, sale solo el hito. Con "reducir
+  movimiento" la medalla sale igual (tiene información) y el estallido no.
+- **Mapa del año por meses:** 12 mini-calendarios en 3 columnas, ~13px por
+  día (antes 5px). `mesesHasta(fecha, n)` reemplaza a `semanasHasta()`, que
+  se borró con sus pruebas. Va debajo de las estadísticas.
+- **Barra de pestañas abajo, flotante y con vidrio:** ícono + nombre,
+  píldora que se desliza a la pestaña activa (`VISTAS`, `--i`), botón
+  redondo "+" al lado. "Editar" subió a la esquina de arriba. En modo
+  edición el "+" se vuelve "✓" para salir (`alternarEdicion()`,
+  `pintarBotonMas()`).
+- **Color por hábito:** seis tonos (`--habito-0` a `--habito-5`, ninguno
+  verde), como tinte de la tarjeta y del cuadrito del emoji. Campo `color`
+  en cada hábito, **solo local**: `habitoAFila()` no lo sube, así que **no
+  hay SQL que correr**. `colorLibre()` da el menos usado; `ponerColores()`
+  reparte a los hábitos viejos al cargar y conserva los colores al bajar de
+  la nube y al importar.
+- Pruebas: **435** y **160**. Regla de la v18 cumplida: once sabotajes,
+  los once pusieron algo en rojo.
+- `sw.js`: `VERSION` a `'v21'`.
+
+**Cambio respecto a lo que se propuso**
+
+El color se había propuesto "sacado del id, sin guardarlo". Al construirlo
+se hizo la cuenta: con 6 hábitos y 6 colores, la probabilidad de que
+ninguno se repita es 6!/6⁶ ≈ 1,5%. Se cambió a guardarlo en el teléfono,
+repartido a propósito. Sigue sin tocar la nube; lo que se pierde es que en
+otro dispositivo los colores pueden salir distintos.
+
+**Lo que hay que recordar de esto**
+
+1. **Un `const` no existe hasta que el script pasa por su línea.**
+   `cargar()` corre arriba de todo, y al repartir colores usaba
+   `COLORES_HABITO`, declarada más abajo. Con hábitos guardados, la app
+   arrancaba vacía (el `try/catch` se tragaba el error), y el siguiente
+   `guardar()` habría escrito esa lista vacía encima. Las pruebas no lo
+   vieron porque todas arrancaban con el almacenamiento vacío; se vio en el
+   navegador. Ahora `pruebas-app.js` arranca la app una segunda vez con
+   datos de antes (sección 12), y esa prueba se puso en rojo al volver a
+   meter el error a propósito.
+2. **Dos clases con el mismo nombre se mezclan sin avisar.** Los huecos
+   del mapa se llamaban `.vacio`, igual que el estado "todavía no hay
+   hábitos", que tiene `padding: 60px 20px`. Resultado: la primera fila de
+   cada mes medía 120px. Se renombró a `.relleno`. *Posible:* en la v20 las
+   filas "se estiraban cientos de píxeles" y se le echó la culpa a
+   `aspect-ratio`; la franja vieja también usaba `.vacio`, así que pudo ser
+   lo mismo. No se comprobó.
+3. **La vista previa del navegador de Claude congela las animaciones**
+   (`currentTime` se queda en 0). Para verlas se adelantan a mano con
+   `document.getAnimations()`. No es un error de la app: el confeti viejo,
+   que funciona en el iPhone, hace lo mismo ahí.
+
+**Pendiente / siguiente**
+
+- [ ] **Publicar la `v21`.** No hay SQL. Mensaje sugerido:
+      `v21: hitos de racha, mapa por meses, barra de abajo y color por hábito`.
+- [ ] En el iPhone: que el vidrio de la barra desenfoque la lista al hacer
+      scroll; que la barra no brinque al abrir el teclado (escribir un
+      pendiente, "Tu nombre" en Ajustes); que la píldora se deslice al
+      cambiar de pestaña; que el mapa del año se lea bien.
+- [ ] Ver una medalla de verdad: el próximo hábito que llegue a 7 días.
+- [ ] Opcional: cambiar el color de un hábito a mano (hoy se asigna solo).
+- [ ] Lo de la entrada anterior sigue igual (Supabase antes del 14 de
+      diciembre, evaluar C, botón → de las ideas).
+
 ---
 
 <!-- Plantilla para la próxima entrada:

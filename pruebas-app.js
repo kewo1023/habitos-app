@@ -120,7 +120,7 @@ eval(script + `
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
-    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar
+    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -172,11 +172,14 @@ ok('el botón del tema activo se resalta', botonesTema.includes('Automático:act
 // 3. El idioma
 // ===========================================================================
 ok('las pestañas arrancan en español', $('pestanaHabitos').textContent === 'Hábitos');
-ok('el botón de abajo arranca en español', $('btnAgregar').textContent === '+ Nuevo hábito');
+// Desde la v21 el botón de abajo es un "+" redondo: lo que dice en palabras
+// vive en su aria-label, que es lo que lee VoiceOver.
+ok('el botón de abajo muestra solo el +', $('btnAgregar').textContent === '+');
+ok('el botón de abajo arranca en español', $('btnAgregar').getAttribute('aria-label') === 'Nuevo hábito');
 
 app.cambiarIdioma('en');
 ok('cambiar a inglés traduce las pestañas', $('pestanaHabitos').textContent === 'Habits');
-ok('traduce también el botón grande', $('btnAgregar').textContent === '+ New habit');
+ok('traduce también el botón grande', $('btnAgregar').getAttribute('aria-label') === 'New habit');
 ok('traduce los botones del modo edición', $('btnEditar').textContent === 'Edit');
 ok('traduce los textos guía de los campos', $('correo').placeholder === 'you@email.com');
 ok('traduce el panel de copia', $('btnExportar').textContent === '↓ Save backup');
@@ -226,22 +229,50 @@ app.cambiarIdioma('en');
 ok('el progreso se traduce', $('progresoTexto').textContent === '0 of 1');
 
 app.cambiarVista('pendientes');
-ok('en Pendientes el botón grande está en inglés', $('btnAgregar').textContent === '+ New to-do');
+ok('en Pendientes el botón grande está en inglés', $('btnAgregar').getAttribute('aria-label') === 'New to-do');
 ok('y el texto guía del campo también', $('tareaNueva').placeholder === "What's on your list?");
 ok('y la etiqueta de la barra de progreso', $('progresoEtiqueta').textContent === 'To-do');
 
 app.cambiarVista('ideas');
-ok('en Ideas el botón grande está en inglés', $('btnAgregar').textContent === '+ New idea');
+ok('en Ideas el botón grande está en inglés', $('btnAgregar').getAttribute('aria-label') === 'New idea');
 
 app.cambiarVista('habitos');
-ok('volver a Hábitos restaura su botón', $('btnAgregar').textContent === '+ New habit');
+ok('volver a Hábitos restaura su botón', $('btnAgregar').getAttribute('aria-label') === 'New habit');
 ok('y su etiqueta "Today"', $('progresoEtiqueta').textContent === 'Today');
 
 // cambiar de idioma ESTANDO en otra sección tiene que repintar esa sección
 app.cambiarVista('ideas');
 app.cambiarIdioma('es');
 ok('cambiar de idioma dentro de Ideas repinta Ideas',
-   $('btnAgregar').textContent === '+ Nueva idea');
+   $('btnAgregar').getAttribute('aria-label') === 'Nueva idea');
+app.cambiarVista('habitos');
+
+// ===========================================================================
+// 5b. La barra de abajo (v21)
+// ===========================================================================
+ok('cada tarjeta de hábito lleva su tinte de color (v21)',
+   $('lista').children.length > 0 &&
+   $('lista').children.every(c => /^var\(--habito-[0-5]\)$/.test(c.style['--tinte'])));
+
+app.cambiarVista('ideas');
+ok('la píldora viaja hasta la tercera pestaña', $('pestanas').style['--i'] === '2');
+app.cambiarVista('habitos');
+ok('y vuelve a la primera', $('pestanas').style['--i'] === '0');
+
+$('btnEditar').click();
+ok('en modo edición el + se vuelve ✓', $('btnAgregar').textContent === '✓');
+ok('y VoiceOver lo lee como "Listo"', $('btnAgregar').getAttribute('aria-label') === 'Listo');
+ok('arriba también dice Listo', $('btnEditar').textContent === 'Listo');
+$('btnAgregar').click();
+ok('tocar el ✓ sale del modo edición', !doc.body.classList.contains('editando'));
+ok('y los dos botones vuelven a la vez', $('btnAgregar').textContent === '+' &&
+   $('btnEditar').textContent === 'Editar');
+ok('sin abrir de paso la ventana de nuevo hábito', !$('modal').classList.contains('abierto'));
+
+$('btnEditar').click();
+app.cambiarVista('compras');
+ok('cambiar de sección también devuelve el +', $('btnAgregar').textContent === '+' &&
+   $('btnAgregar').getAttribute('aria-label') === 'Agregar a la lista');
 app.cambiarVista('habitos');
 
 // ===========================================================================
@@ -272,22 +303,36 @@ app.pintarStats();   // el bloque anterior las dejó pintadas en inglés
 ok('las estadísticas ahora son cinco', $('calStats').querySelectorAll('.stat').length === 5);
 ok('la quinta es la Fuerza', $('calStats').textContent.includes('Fuerza'));
 
-const cuadros = $('anioGrid').children;
-ok('el mapa del año tiene 53 semanas × 7 días', cuadros.length === 53 * 7);
+// El mapa (v21): doce bloques, uno por mes, cada uno con su nombre y sus días.
+const cuadrosDelMapa = () => $('anioGrid').children.flatMap(b => b.children[1].children);
+const cuadros = cuadrosDelMapa();
+ok('el mapa del año tiene 12 meses', $('anioGrid').children.length === 12);
+ok('cada mes lleva su nombre arriba',
+   $('anioGrid').children.every(b => b.children[0].className === 'anio-mes-nombre' &&
+                                     b.children[0].textContent.length > 0));
+ok('el último mes es el de hoy',
+   $('anioGrid').children[11].children[0].textContent ===
+   new Date().toLocaleDateString('es-CO', { month: 'short' }));   // es-CO escribe "oct.", con punto
 ok('el día de hoy (marcado arriba) sale en verde',
    cuadros.some(c => c.classList.contains('hecho')));
+// .vacio ya es la clase del "todavía no hay hábitos", con 60px de padding.
+// Un cuadrito con esa clase estira su fila hasta 120px (pasó en la v21).
+ok('los huecos del mapa usan .relleno, nunca .vacio',
+   cuadros.some(c => c.classList.contains('relleno')) &&
+   !cuadros.some(c => c.classList.contains('vacio')));
 ok('ningún cuadro del mapa es un botón: no se toca, solo se mira',
    cuadros.every(c => c.tagName !== 'BUTTON' && c.onclick === null));
-const vaciosEsperados = 6 - ((new Date().getDay() + 6) % 7);   // lo que falta de esta semana
-ok('los días que faltan de esta semana van vacíos',
-   cuadros.filter(c => c.classList.contains('vacio')).length === vaciosEsperados);
+const ultimoDiaDelMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+ok('lo que falta de este mes sale apagado (futuro)',
+   cuadros.filter(c => c.classList.contains('futuro')).length ===
+   ultimoDiaDelMes - new Date().getDate());
 
 // Tocar un día del mes también repinta el mapa (los dos salen de los mismos datos).
 const antesVerdes = cuadros.filter(c => c.classList.contains('hecho')).length;
 app.alternarHoy(idHabito);            // desmarcar hoy
 app.abrirCalendario(idHabito);
 ok('desmarcar hoy apaga su cuadro en el mapa',
-   $('anioGrid').children.filter(c => c.classList.contains('hecho')).length === antesVerdes - 1);
+   cuadrosDelMapa().filter(c => c.classList.contains('hecho')).length === antesVerdes - 1);
 app.alternarHoy(idHabito);            // y lo dejamos como estaba
 
 app.cambiarIdioma('en');
@@ -425,6 +470,40 @@ ok('con "reducir movimiento" no se crea ni un papelito',
 pideMenosMovimiento = false;
 
 // ===========================================================================
+// 9b. La medalla del hito de racha (v21)
+//     Cuándo sale lo prueba pruebas.js. Aquí: que se arme bien, que hable el
+//     idioma de la app y que "reducir movimiento" apague el adorno pero NO la
+//     información.
+// ===========================================================================
+const idParaHito = app.datos.habitos[0].id;
+$('confeti').innerHTML = '';
+app.celebrarHito(idParaHito, 30);
+ok('la medalla se hace visible', $('hito').classList.contains('visible'));
+ok('muestra el número de días', $('hito').querySelector('.hito-numero').textContent === '30');
+ok('y la etiqueta en español', $('hito').querySelector('.hito-etiqueta').textContent === 'días seguidos');
+ok('y el nombre del hábito', $('hito').querySelector('.hito-nombre').textContent
+   .includes(app.datos.habitos[0].nombre));
+ok('el estallido lanza papelitos', $('confeti').children.length > 0 &&
+   $('confeti').children.every(p => p.className === 'papelito estallido'));
+ok('cada papelito del estallido trae su dirección (--dx y --dy)',
+   $('confeti').children.every(p => p.style['--dx'] && p.style['--dy']));
+
+app.cambiarIdioma('en');
+app.celebrarHito(idParaHito, 7);
+ok('en inglés la etiqueta cambia', $('hito').querySelector('.hito-etiqueta').textContent === 'days in a row');
+ok('y una segunda medalla reemplaza a la primera, no se apila',
+   $('hito').children.length === 1 && $('hito').querySelector('.hito-numero').textContent === '7');
+app.cambiarIdioma('es');
+
+$('confeti').innerHTML = '';
+pideMenosMovimiento = true;
+app.celebrarHito(idParaHito, 100);
+ok('con "reducir movimiento" la medalla sale igual (tiene información)',
+   $('hito').querySelector('.hito-numero').textContent === '100');
+ok('pero sin estallido', $('confeti').children.length === 0);
+pideMenosMovimiento = false;
+
+// ===========================================================================
 // 10. La importancia en pantalla, y el reordenar que quedó (v18)
 // ---------------------------------------------------------------------------
 // En la v18 las dos listas dejaron de comportarse igual a propósito:
@@ -519,7 +598,7 @@ app.cambiarVista('compras');
 ok('cambiar a Compras la marca como activa', $('pestanaCompras').className.includes('activa'));
 ok('y apaga las otras', !$('pestanaIdeas').className.includes('activa')
                        && !$('pestanaTareas').className.includes('activa'));
-ok('el botón grande dice lo suyo', $('btnAgregar').textContent === '+ Agregar a la lista');
+ok('el botón grande dice lo suyo', $('btnAgregar').getAttribute('aria-label') === 'Agregar a la lista');
 ok('y el texto guía del campo también', $('tareaNueva').placeholder === '¿Qué hay que comprar?');
 ok('la lista vacía muestra su mensaje', $('tareasCuerpo').textContent.includes('Lista vacía'));
 
@@ -617,9 +696,14 @@ async function pruebasDeCarrera() {
 
   // Caso tranquilo: nadie toca nada mientras baja. Debe aplicarse.
   app.datos.pendientes.length = 0;
+  const colorDeMeditar = app.datos.habitos.find(h => h.id === idMeditar).color;
   app.nube = nubeDeMentira({ habitos: [filaMeditar], registros: [], tareas: [] });
   alBajar = null;
   ok('con nadie tocando, lo bajado se aplica', (await app.bajarTodo()) === true);
+  // La nube no guarda colores (v21). Si bajarTodo() no los conservara, cada
+  // sincronización repartiría colores nuevos y cambiarían solos.
+  ok('lo bajado conserva el color que el hábito tenía aquí',
+     app.datos.habitos[0].color === colorDeMeditar);
 
   // Caso de la carrera: marcas justo mientras los datos viajan. La nube trae
   // una foto sin esa marca; si se aplicara, el hábito se vería desmarcarse
@@ -650,7 +734,41 @@ async function pruebasDeCarrera() {
      app.estaHecho(idMeditar, app.hoy()) === false);
 }
 
-pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(() => {
+// ===========================================================================
+// 12. Arrancar con los datos que ya tienes (v21)
+// ---------------------------------------------------------------------------
+// Todas las pruebas de arriba arrancan la app con el almacenamiento vacío. En
+// la v21 eso escondió un error serio: cargar() usaba una constante declarada
+// más abajo y, CON hábitos guardados, la app arrancaba vacía. Sin hábitos no
+// se notaba, porque no había nada a lo que repartirle colores.
+// Aquí se arranca la app una segunda vez, con datos como los del iPhone.
+// ===========================================================================
+function pruebasDeArranque() {
+  almacen['habitos-app-v1'] = JSON.stringify({
+    version: 1, registros: {}, tareas: [], pendientes: [], prefs: {},
+    habitos: [   // tal como estaban antes de la v21: sin color
+      { id: 'v1', nombre: 'Leer',     emoji: '📖', creado: '2026-01-01' },
+      { id: 'v2', nombre: 'Agua',     emoji: '💧', creado: '2026-01-01' },
+      { id: 'v3', nombre: 'Entrenar', emoji: '💪', creado: '2026-01-01' }
+    ]
+  });
+  const errores = [];
+  const errorDeVerdad = console.error;
+  console.error = (...partes) => errores.push(partes.join(' '));
+  // new Function corre el script entero en un espacio aparte, como una
+  // segunda apertura de la app, sin chocar con la primera.
+  const datosAlArrancar = new Function(script + '\n; return datos;')();
+  console.error = errorDeVerdad;
+
+  ok('arrancar con hábitos guardados no da errores al leerlos', errores.length === 0);
+  ok('y no los pierde: siguen los tres', datosAlArrancar.habitos.length === 3);
+  ok('a los hábitos de antes se les reparte color',
+     datosAlArrancar.habitos.every(h => Number.isInteger(h.color)));
+  ok('y ninguno repite',
+     new Set(datosAlArrancar.habitos.map(h => h.color)).size === 3);
+}
+
+pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

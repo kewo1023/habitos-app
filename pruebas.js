@@ -31,12 +31,15 @@ global.habitoRecienMarcado = null;   // la marca de "anima este círculo"; aquí
 // en el momento justo y no en cualquier otro.
 global.confetisLanzados = 0;
 global.celebrarDiaCompleto = () => { global.confetisLanzados++; };
+// Lo mismo con la medalla del hito de racha: se anota cuál hito se pidió.
+global.hitosCelebrados = [];
+global.celebrarHito = (id, dias) => { global.hitosCelebrados.push(dias); };
 let ultimaAlerta = null;
 global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,semanasHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,colorLibre,ponerColores,esColor,COLORES_HABITO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1123,33 +1126,41 @@ marcarDias(hf.id, 29, 0);                 // creado hoy, pero con 30 días marca
 ok('los días marcados antes de crearlo también cuentan', ctx.fuerzaHabito(hf.id) === 80);
 
 // ============================================================
-//  EL MAPA DEL AÑO (v20): semanasHasta()
-//  La pantalla solo pinta cuadritos; aquí se prueba que cada fecha caiga
-//  en su columna y su fila.
+//  EL MAPA DEL AÑO (v21): mesesHasta()
+//  Hasta la v20 eran 53 semanas en columnas; ahora son 12 meses. La
+//  pantalla solo pinta cuadritos; aquí se prueba que cada fecha caiga en
+//  su mes y en su columna.
 // ============================================================
 
-let sem = ctx.semanasHasta('2026-09-23', 53);   // un miércoles
-ok('devuelve 53 semanas', sem.length === 53);
-ok('cada semana trae 7 días', sem.every(s => s.length === 7));
-ok('la última semana empieza el lunes 21',
-   sem[52][0] === '2026-09-21' && sem[52][2] === '2026-09-23');
-ok('los días futuros de esta semana vienen vacíos (null)',
-   sem[52].slice(3).every(f => f === null));
-ok('todas las semanas empiezan en lunes',
-   sem.every(s => new Date(s[0] + 'T00:00:00').getDay() === 1));
-ok('la primera columna es 52 semanas antes',
-   ctx.diasEntre(sem[0][0], '2026-09-21') === 52 * 7);
+let meses = ctx.mesesHasta('2026-10-13', 12);
+ok('devuelve 12 meses', meses.length === 12);
+ok('el último es el mes de la fecha', meses[11].anio === 2026 && meses[11].mes === 10);
+ok('el primero es 11 meses antes, cruzando el año', meses[0].anio === 2025 && meses[0].mes === 11);
+ok('van seguidos, sin saltarse ni repetir un mes',
+   meses.every((m, i) => i === 0 ||
+     (m.anio * 12 + m.mes) - (meses[i - 1].anio * 12 + meses[i - 1].mes) === 1));
+ok('cada mes trae tantas fechas como días tiene',
+   meses.every(m => m.celdas.filter(Boolean).length === ctx.diasDelMes(m.anio, m.mes)));
+ok('y tantos huecos al principio como dice columnaInicio()',
+   meses.every(m => m.celdas.indexOf(m.celdas.find(Boolean)) === ctx.columnaInicio(m.anio, m.mes)));
+ok('octubre de 2026 empieza en jueves: 3 huecos (lunes, martes, miércoles)',
+   meses[11].celdas.slice(0, 4).join() === ',,,2026-10-01');
+ok('los huecos van solo al principio, nunca en medio',
+   meses.every(m => m.celdas.slice(m.celdas.indexOf(m.celdas.find(Boolean))).every(Boolean)));
+ok('los días que faltan de este mes SÍ vienen (el mes se dibuja entero)',
+   meses[11].celdas.includes('2026-10-31'));
 
 // Que no se salte ni repita ningún día en todo el año, incluido el cambio
 // de horario de noviembre y el de marzo.
-const seguidas = sem.flat().filter(Boolean);
+const seguidos = meses.flatMap(m => m.celdas.filter(Boolean));
 ok('los días van seguidos, sin huecos ni repetidos (horario de verano incluido)',
-   seguidas.every((f, i) => i === 0 || ctx.diasEntre(seguidas[i - 1], f) === 1));
+   seguidos.every((f, i) => i === 0 || ctx.diasEntre(seguidos[i - 1], f) === 1));
 
-sem = ctx.semanasHasta('2027-01-03', 2);        // un domingo, justo después de año nuevo
-ok('cruza el año sin romperse',
-   sem[0][0] === '2026-12-21' && sem[1][0] === '2026-12-28' && sem[1][6] === '2027-01-03');
-ok('un domingo no deja días vacíos', sem[1].every(f => f !== null));
+meses = ctx.mesesHasta('2028-02-10', 1);
+ok('un febrero bisiesto trae 29 días', meses[0].celdas.filter(Boolean).length === 29);
+meses = ctx.mesesHasta('2027-01-05', 2);
+ok('en enero, el mes anterior es diciembre del año pasado',
+   meses[0].anio === 2026 && meses[0].mes === 12);
 
 // ============================================================
 //  ÚLTIMA COPIA (v20)
@@ -1221,6 +1232,122 @@ ok('sin haber preguntado, está apagada (y ahí sale el botón)',
 ok('las cuatro claves existen en los dos idiomas',
    ['insigniaNoDisponible','insigniaActiva','insigniaBloqueada','insigniaApagada']
      .every(k => typeof ctx.TEXTOS.es[k] === 'string' && typeof ctx.TEXTOS.en[k] === 'string'));
+
+// ============================================================
+//  HITOS DE RACHA (v21): hitoDeRacha()
+//  Lo que se prueba es el CRUCE: llegar a 7, no estar en 7.
+// ============================================================
+
+ok('los hitos son 7, 30, 100 y 365', ctx.HITOS.join() === '7,30,100,365');
+ok('de 6 a 7 días es un hito',     ctx.hitoDeRacha(6, 7) === 7);
+ok('de 29 a 30 también',           ctx.hitoDeRacha(29, 30) === 30);
+ok('y de 364 a 365',               ctx.hitoDeRacha(364, 365) === 365);
+ok('de 7 a 8 ya no: estar pasado el hito no es llegar a él', ctx.hitoDeRacha(7, 8) === 0);
+ok('de 0 a 1 no es ningún hito',   ctx.hitoDeRacha(0, 1) === 0);
+ok('bajar de 7 a 6 (desmarcar) no celebra', ctx.hitoDeRacha(7, 6) === 0);
+ok('quedarse igual tampoco',       ctx.hitoDeRacha(7, 7) === 0);
+
+// Ya dentro de la app: alternarFecha() decide cuál de las dos celebraciones sale.
+const limpioHitos = () => { limpio(); global.hitosCelebrados = []; };
+
+limpioHitos();
+ctx.agregarHabito('Leer', '📖');
+let hHito = ctx.datos.habitos[0].id;
+marcarDias(hHito, 6, 1);                      // de hace 6 días hasta ayer: 6 seguidos
+ctx.alternarHoy(hHito);                       // hoy es el séptimo
+ok('marcar el séptimo día celebra el hito de 7',
+   global.hitosCelebrados.join() === '7');
+ok('y como el hito gana, NO sale además el confeti del día completo',
+   global.confetisLanzados === 0 && ctx.diaCompleto(ctx.hoy()) === true);
+
+ctx.alternarHoy(hHito);                       // desmarcar
+ok('desmarcar no celebra nada', global.hitosCelebrados.length === 1);
+
+limpioHitos();
+ctx.agregarHabito('Leer', '📖');
+hHito = ctx.datos.habitos[0].id;
+marcarDias(hHito, 7, 1);                      // ya llevaba 7 hasta ayer
+ctx.alternarHoy(hHito);                       // hoy son 8
+ok('el día 8 no es hito, así que sale el confeti normal',
+   global.hitosCelebrados.length === 0 && global.confetisLanzados === 1);
+
+// Corregir el pasado en el calendario no es "llegar" a nada hoy.
+limpioHitos();
+ctx.agregarHabito('Leer', '📖');
+hHito = ctx.datos.habitos[0].id;
+marcarDias(hHito, 7, 2);                      // de hace 7 a hace 2: falta ayer
+ctx.alternarHoy(hHito);                       // hoy: racha de 1
+ctx.alternarFecha(hHito, ctx.haceNDias(1));   // rellenar ayer: la racha salta a 8
+ok('rellenar un hueco del pasado no lanza la medalla',
+   global.hitosCelebrados.length === 0);
+
+// Con dos hábitos, el hito sale aunque el día no quede completo.
+limpioHitos();
+ctx.agregarHabito('Leer', '📖');
+ctx.agregarHabito('Agua', '💧');
+hHito = ctx.datos.habitos[0].id;
+marcarDias(hHito, 29, 1);
+ctx.alternarHoy(hHito);
+ok('llegar a 30 con otro hábito sin marcar celebra igual',
+   global.hitosCelebrados.join() === '30' && !ctx.diaCompleto(ctx.hoy()));
+
+// ============================================================
+//  EL COLOR DE CADA HÁBITO (v21)
+// ============================================================
+
+ok('hay seis colores', ctx.COLORES_HABITO === 6);
+ok('cada color tiene su variable en los DOS temas (--habito-0 a --habito-5)',
+   [0,1,2,3,4,5].every(i => (variables.match(new RegExp(`--habito-${i}:`, 'g')) || []).length === 2));
+ok('esColor acepta del 0 al 5', [0,1,2,3,4,5].every(ctx.esColor));
+ok('y rechaza lo demás (incluido "2" como texto)',
+   ![-1, 6, 2.5, '2', null, undefined].some(ctx.esColor));
+
+ok('sin hábitos, el color libre es el 0', ctx.colorLibre([]) === 0);
+ok('si el 0 está usado, el siguiente es el 1', ctx.colorLibre([{ color: 0 }]) === 1);
+ok('el que se libera se vuelve a usar primero',
+   ctx.colorLibre([{ color: 0 }, { color: 2 }]) === 1);
+ok('con los seis usados, vuelve a empezar por el menos repetido',
+   ctx.colorLibre([0,1,2,3,4,5,0,1].map(c => ({ color: c }))) === 2);
+ok('un color inválido no cuenta como usado', ctx.colorLibre([{ color: 'rojo' }]) === 0);
+
+limpio();
+for (const n of ['A','B','C','D','E','F']) ctx.agregarHabito(n, '⭐');
+ok('seis hábitos nuevos, seis colores distintos',
+   new Set(ctx.datos.habitos.map(h => h.color)).size === 6);
+ctx.agregarHabito('G', '⭐');
+ok('el séptimo ya repite uno (no hay más)', ctx.esColor(ctx.datos.habitos[6].color));
+
+// El color es de este teléfono: NO sube a la nube (no hace falta SQL).
+const filaConColor = ctx.habitoAFila(ctx.datos.habitos[0], 0, 'u1');
+ok('habitoAFila no manda el color a Postgres', !('color' in filaConColor));
+
+// ponerColores: conserva los que hay, rellena los que faltan.
+let lista = ctx.ponerColores([{ id: 'a', color: 3 }, { id: 'b' }, { id: 'c' }]);
+ok('ponerColores respeta un color que ya estaba', lista[0].color === 3);
+ok('y rellena los que faltan sin repetir',
+   new Set(lista.map(h => h.color)).size === 3);
+lista = ctx.ponerColores([{ id: 'a' }, { id: 'b' }], [{ id: 'b', color: 4 }]);
+ok('si el hábito ya tenía color aquí, lo recupera (lo que hace al bajar de la nube)',
+   lista[1].color === 4);
+ok('y al otro le da uno libre que no choque', lista[0].color === 0);
+
+// Restaurar una copia de antes de la v21 (sin colores) conserva los tuyos.
+limpio();
+ctx.agregarHabito('Leer', '📖');
+ctx.agregarHabito('Agua', '💧');
+const [hLeerColor, hAguaColor] = ctx.datos.habitos;
+hAguaColor.color = 5;
+ctx.importar(JSON.stringify({
+  habitos: [{ id: hLeerColor.id, nombre: 'Leer', emoji: '📖' },
+            { id: hAguaColor.id, nombre: 'Agua', emoji: '💧' },
+            { id: 'nuevo',       nombre: 'Correr', emoji: '🏃' }],
+  registros: {}
+}));
+ok('importar una copia sin colores conserva los que tenías',
+   ctx.datos.habitos[0].color === hLeerColor.color && ctx.datos.habitos[1].color === 5);
+ok('y al hábito nuevo de la copia le da uno libre',
+   ctx.esColor(ctx.datos.habitos[2].color) &&
+   ![hLeerColor.color, 5].includes(ctx.datos.habitos[2].color));
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);
