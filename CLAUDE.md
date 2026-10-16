@@ -622,8 +622,9 @@ el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQ
 **`v25`** (racha a 0 con hoy en ✗), commit `57f2e58`, publicada el 13 de
 octubre de 2026 y comprobada en el sitio en vivo; falta probarla en el iPhone.
 Ninguna de las v21 a v25 necesitó SQL.
-**`v26`** (animaciones, Fase 3.13), publicada el 15 de octubre de 2026,
-después de que Kev la aprobara en la maqueta. Tampoco necesitó SQL.
+**`v26`** (animaciones, Fase 3.13), commit `a0931e1`, publicada el 15 de
+octubre de 2026 después de que Kev la aprobara en la maqueta. Comprobada en
+el sitio en vivo; falta probarla en el iPhone. Tampoco necesitó SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
