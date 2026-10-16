@@ -121,7 +121,7 @@ eval(script + `
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
-    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO
+    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarIdea
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -920,6 +920,51 @@ async function pruebasDeMovimiento() {
   app.abrirCalendario(hab.id);
   $('calCerrarArriba').click();
   ok('el Cerrar de arriba cierra el calendario', !$('modalCal').classList.contains('abierto'));
+  await espera(230);
+
+  // --- v28: el cuadro de confirmar
+  app.agregarHabito('Para borrar', '🗑️');
+  const cuantos = app.datos.habitos.length;
+  const ultima = () => $('lista').children[$('lista').children.length - 1];
+  ultima().querySelector('.borrar').click();
+  ok('borrar un hábito abre el cuadro propio', $('modalConfirmar').classList.contains('abierto'));
+  ok('y pregunta por su nombre', $('confirmarTitulo').textContent === '¿Borrar "Para borrar"?');
+  ok('el botón rojo dice Borrar', $('confirmarSi').textContent === 'Borrar');
+  $('confirmarNo').click();
+  await espera(0);
+  ok('Cancelar no borra nada', app.datos.habitos.length === cuantos);
+  ok('y cierra el cuadro', !$('modalConfirmar').classList.contains('abierto'));
+  ultima().querySelector('.borrar').click();
+  $('confirmarSi').click();
+  await espera(0);
+  ok('Borrar sí lo borra', app.datos.habitos.length === cuantos - 1);
+  app.cambiarIdioma('en');
+  $('lista').children[0].querySelector('.borrar').click();
+  ok('el cuadro también habla inglés', $('confirmarTitulo').textContent.startsWith('Delete "'));
+  $('confirmarNo').click();
+  await espera(0);
+  app.cambiarIdioma('es');
+  await espera(230);
+
+  // --- v28: la nota de una idea se lee con formato y se edita en crudo
+  app.agregarTarea('Idea con nota', 'ideas');
+  const idNotaIdea = app.datos.tareas.find(x => x.texto === 'Idea con nota').id;
+  app.abrirIdea(idNotaIdea);
+  ok('sin nota, la ficha abre directo para escribir',
+     $('ideaNotaVista').hidden && !$('ideaNotaEditor').hidden);
+  app.datos.tareas.find(x => x.id === idNotaIdea).nota = '- [ ] uno\n**dos**';
+  app.abrirIdea(idNotaIdea);
+  ok('con nota, la ficha abre mostrándola con formato',
+     !$('ideaNotaVista').hidden && $('ideaNotaEditor').hidden);
+  ok('y el formato está dibujado', $('ideaNotaVista').innerHTML.includes('<strong>dos</strong>') &&
+     $('ideaNotaVista').innerHTML.includes('class="casilla"'));
+  $('ideaNotaVista').click();
+  ok('tocar la nota abre el editor', $('ideaNotaVista').hidden && !$('ideaNotaEditor').hidden);
+  $('ideaNota').value = 'comprar';
+  $('ideaNota').selectionStart = $('ideaNota').selectionEnd = 3;
+  $('formatoCasilla').click();
+  ok('el botón ☐ de la barra pone una casilla', $('ideaNota').value === '- [ ] comprar');
+  app.cerrarIdea && app.cerrarIdea();
   await espera(230);
 
   // --- El tachado: primero se tacha donde la tocaste, luego se va abajo

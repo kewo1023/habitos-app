@@ -1794,6 +1794,33 @@ va es verlo en el teléfono.
       abierto desde la v26).
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
 
+## 2026-10-15 — Confirmar, formato en las ideas y semáforo (v28)
+
+**Hecho**
+
+- Kev mandó captura del cuadro negro del sistema al borrar un hábito. Se
+  buscó en uiverse, se evaluó y se construyó `confirmar()`: una ventana que
+  sube desde abajo, con el basurero que levanta la tapa. Reemplaza los 4
+  `confirm()`. La lógica dejó de preguntar; pregunta la pantalla.
+- Markdown chiquito en el contexto de las ideas, con casillas que se marcan
+  tocándolas y una barra B · ☐. Límite de la nota: de 500 a 2000.
+- Semáforo de importancia unificado en los dos temas. Se le propuso a Kev
+  verde para la baja (quitando la franja verde de las tareas hechas) y
+  prefirió azul: el verde se queda para "hecho".
+- El amarillo mostaza (`#ca8a04`) se probó y sobre blanco se veía café; se
+  subió a `#eab308`, que se lee amarillo aunque tenga menos contraste.
+- Pruebas: **473** y **213**. Se rompieron a propósito el escape de HTML,
+  el Cancelar del cuadro y la vista de la nota: las tres se pusieron en rojo.
+
+**Pendiente / siguiente**
+
+- [ ] Probar en el iPhone: el cuadro de borrar (y que VoiceOver lo lea),
+      marcar una casilla de una nota, y que la barra B · ☐ no cierre el
+      teclado.
+- [ ] Siguiente tanda posible: reemplazar los `prompt()` de renombrar y
+      cambiar emoji, que siguen siendo cuadros del sistema.
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
+
 ---
 
 <!-- Plantilla para la próxima entrada:

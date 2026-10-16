@@ -40,7 +40,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -265,16 +265,56 @@ ok('los datos quedaron reemplazados', ctx.datos.habitos.length === 1 && ctx.dato
 ok('el historial importado se lee bien', ctx.estaHecho('x1','2026-07-30') === true);
 ok('la copia importada también se guardó', ctx.cargar().habitos[0].nombre === 'Correr');
 
-// si el usuario cancela el confirm, no debe pasar nada
-global.confirm = () => false;
-ctx.importar(JSON.stringify({version:1, habitos:[], registros:{}}));
-ok('cancelar la confirmación no borra nada', ctx.datos.habitos.length === 1);
-global.confirm = () => true;
+// v28: restaurar va en dos pasos y entre los dos la pantalla pregunta.
+// Revisar NO debe tocar nada: si respondes "no", tus datos siguen ahí.
+const revisada = ctx.revisarCopia(JSON.stringify({version:1, habitos:[], registros:{}}));
+ok('revisar una copia no cambia tus datos', ctx.datos.habitos.length === 1);
+ok('y trae el resumen para la pregunta, con los números puestos',
+   revisada && revisada.resumen.includes('0 hábito(s)') && !revisada.resumen.includes('%h'));
+ok('una copia ilegible no llega a la pregunta', ctx.revisarCopia('{{{') === null);
 
 // exportar -> importar debe devolver exactamente lo mismo (ida y vuelta)
 const antes = JSON.stringify(ctx.datos);
 ctx.importar(antes);
 ok('exportar e importar no altera los datos', JSON.stringify(ctx.datos) === antes);
+
+// ============================================================
+//  EL FORMATO DE LA NOTA DE UNA IDEA (v28)
+// ============================================================
+const h = ctx.notaAHtml;
+ok('una nota sin símbolos sale como un párrafo', h('Hola') === '<p>Hola</p>');
+ok('dos líneas seguidas van en el mismo párrafo', h('uno\ndos') === '<p>uno<br>dos</p>');
+ok('una línea vacía separa párrafos', h('uno\n\ndos') === '<p>uno</p><p>dos</p>');
+ok('**negrita**', h('es **clave**') === '<p>es <strong>clave</strong></p>');
+ok('*cursiva*', h('algo *suave*') === '<p>algo <em>suave</em></p>');
+ok('# título', h('# Plan') === '<h3>Plan</h3>');
+ok('- viñetas en una lista', h('- a\n- b') === '<ul><li>a</li><li>b</li></ul>');
+ok('- [ ] casilla con su número de línea',
+   h('Pasos\n- [ ] uno\n- [x] dos') ===
+   '<p>Pasos</p><ul><li class="casilla" data-linea="1">uno</li><li class="casilla marcada" data-linea="2">dos</li></ul>');
+ok('un enlace se vuelve tocable', h('ver https://uiverse.io/elements.').includes(
+   '<a href="https://uiverse.io/elements" target="_blank" rel="noopener">https://uiverse.io/elements</a>.'));
+ok('el HTML escrito en la nota NO se ejecuta: se muestra como texto',
+   h('<img src=x onerror=alert(1)>') === '<p>&lt;img src=x onerror=alert(1)&gt;</p>');
+ok('ni siquiera dentro de una negrita', !h('**<b>x</b>**').includes('<b>'));
+ok('una nota vacía no dibuja nada', h('') === '' && h(undefined) === '');
+
+ok('tocar una casilla la marca', ctx.alternarCasilla('a\n- [ ] b', 1) === 'a\n- [x] b');
+ok('y tocarla otra vez la desmarca', ctx.alternarCasilla('- [x] b', 0) === '- [ ] b');
+ok('una línea que no es casilla no cambia', ctx.alternarCasilla('- b', 0) === '- b');
+ok('una línea que no existe tampoco', ctx.alternarCasilla('a', 7) === 'a');
+
+ok('el adelanto de la lista quita los símbolos',
+   ctx.notaEnTexto('# Plan\n**ya**\n- [ ] uno\n- [x] dos\n- tres') === 'Plan  ya  ☐ uno  ☑ dos  • tres');
+
+const f = ctx.aplicarFormatoTexto;
+ok('B sin elegir nada deja el cursor entre los asteriscos',
+   JSON.stringify(f('ab', 1, 1, 'negrita')) === JSON.stringify({ valor: 'a****b', cursor: 3 }));
+ok('B con algo elegido lo envuelve',
+   f('hola mundo', 5, 10, 'negrita').valor === 'hola **mundo**');
+ok('• pone la viñeta al principio de la línea, no donde está el cursor',
+   f('uno\ndos', 6, 6, 'vineta').valor === 'uno\n- dos');
+ok('☐ pone una casilla', f('comprar', 3, 3, 'casilla').valor === '- [ ] comprar');
 
 // --- mensajes de error de la nube
 ok('sin error, mensaje vacío', ctx.mensajeDeError(null) === '');
@@ -665,8 +705,9 @@ ok('cambiar los dos a la vez funciona',
    ctx.tareasDe(I)[0].texto === 'Propinas' && ctx.tareasDe(I)[0].nota === 'Otra nota');
 ok('guardar lo mismo no cuenta como cambio',
    ctx.editarTarea(idNota, 'Propinas', 'Otra nota') === false);
-ok('la nota se recorta a 500 caracteres',
-   ctx.editarTarea(idNota, undefined, 'y'.repeat(700)) && ctx.tareasDe(I)[0].nota.length === 500);
+ok('la nota se recorta a 2000 caracteres (v28; eran 500)',
+   ctx.LARGO_NOTA === 2000 &&
+   ctx.editarTarea(idNota, undefined, 'y'.repeat(2500)) && ctx.tareasDe(I)[0].nota.length === 2000);
 ok('la nota quita espacios de alrededor',
    ctx.editarTarea(idNota, undefined, '   con espacios   ') &&
    ctx.tareasDe(I)[0].nota === 'con espacios');

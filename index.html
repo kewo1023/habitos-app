@@ -83,6 +83,7 @@
   --sobre-acento:  #ffffff;              /* texto encima del azul */
   --sobre-exito:   #0f1115;              /* texto encima del verde */
   --peligro:       #ff8a80;
+  --sobre-peligro: #2a0d0b;              /* texto encima del rojo (v28) */
   --peligro-borde: rgba(255,138,128,.35);
   --exito-borde:   rgba(62,207,142,.30);
   --velo:          rgba(0,0,0,.65);      /* el fondo oscuro detrás de las ventanas */
@@ -115,11 +116,15 @@
         por el tono. Quien no separa bien rojo de verde sigue viendo tres cosas
         distintas — y además la posición en la lista dice lo mismo que el color.
      3. "Sin importancia" tiene color propio y no es transparente: la franja
-        tiene que verse siempre para que sepas que se puede tocar. */
-  --prio-alta:    #ff6b6b;
-  --prio-media:   #f2b544;
-  --prio-baja:    #7f9cc4;
-  --prio-ninguna: #454e5f;   /* callado, pero visible: si no se ve, no invita a tocarla */
+        tiene que verse siempre para que sepas que se puede tocar.
+     v28 (pedido de Kev): un semáforo con el MISMO color en los dos temas —
+     rojo, amarillo, azul y gris—, solo ajustado de luz para cada fondo. El
+     azul de antes era grisáceo y se confundía con "sin marcar".
+     Contraste contra la tarjeta oscura: 6,1 / 11,1 / 6,7 / 2,9. */
+  --prio-alta:    #ff6b6b;   /* rojo */
+  --prio-media:   #facc15;   /* amarillo */
+  --prio-baja:    #60a5fa;   /* azul */
+  --prio-ninguna: #5c6678;   /* gris: callado, pero visible: si no se ve, no invita a tocarla */
 
   /* El "no logrado" (v23). Rojo, porque es lo contrario del verde de
      "hecho". Pero nunca va solo: siempre lleva una ✗ dibujada, para que se
@@ -150,6 +155,7 @@
   --sobre-acento:  #ffffff;
   --sobre-exito:   #ffffff;
   --peligro:       #b42318;
+  --sobre-peligro: #ffffff;
   --peligro-borde: rgba(180,35,24,.30);
   --exito-borde:   rgba(21,128,61,.28);
   --velo:          rgba(15,17,21,.42);
@@ -170,10 +176,20 @@
   /* Los cuatro de la importancia, oscurecidos. Un color pensado para brillar
      sobre fondo negro se lava sobre fondo blanco: es el mismo ajuste que ya
      hubo que hacerle al verde, al azul y al amarillo del confeti. */
-  --prio-alta:    #d0342c;
-  --prio-media:   #b45309;
-  --prio-baja:    #5470a3;
-  --prio-ninguna: #c2c8d4;
+  /* Mismos cuatro colores que en oscuro, más oscuros para el blanco (v28).
+     Hasta la v27 se habían elegido para el contraste de un TEXTO (5:1), y un
+     amarillo no llega a eso sobre blanco: se volvía naranja tostado. Pero
+     esto es una franja de 5px, no texto, y a una figura le basta 3:1. Con
+     eso el amarillo puede seguir siendo amarillo.
+     Se probó #ca8a04 (2,9:1) y sobre blanco seguía viéndose café. Quedó
+     #eab308, más bajo (1,9:1) pero amarillo de verdad: la importancia
+     también la dice el orden de la lista, y lo que pidió Kev fue que se
+     LEA como amarillo.
+     Contraste contra blanco: 4,8 / 1,9 / 3,7 / 2,4. */
+  --prio-alta:    #dc2626;   /* rojo */
+  --prio-media:   #eab308;   /* amarillo */
+  --prio-baja:    #3b82f6;   /* azul */
+  --prio-ninguna: #a1a9b8;   /* gris */
 
   --fallo:        #c0392b;
 }
@@ -675,6 +691,8 @@ header { margin-bottom: 22px; }
   .tarea.tachando .tarea-texto span,
   .numero-cambia,
   .btn-mas.girando,
+  #modalConfirmar.abierto .icono-basurero .tapa,
+  #modalConfirmar.abierto .icono-restaurar,
   .fondo-modal.abierto,
   .modal { animation: none; }
   .pestana-indicador,
@@ -1156,6 +1174,67 @@ body.editando .tarea-texto {
 }
 
 /* --- La ficha de una idea --- */
+/* La nota leída con formato (v28). Mismo marco que el campo de texto, para
+   que se entienda que es lo mismo; tocarla lo convierte en el campo. */
+.nota-vista {
+  position: relative;
+  padding: 14px 14px 26px;
+  margin-bottom: 18px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 13px;
+  font-size: 15px; line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;   /* en iOS, sin esto un div no avisa de los toques */
+}
+.nota-vista > * + * { margin-top: 8px; }
+.nota-vista h3 { font-size: 16px; }
+.nota-vista ul { list-style: none; display: grid; gap: 4px; }
+.nota-vista li { position: relative; padding-left: 18px; }
+.nota-vista li::before { content: '•'; position: absolute; left: 4px; color: var(--texto-suave); }
+.nota-vista a { color: var(--acento); }
+
+/* Una casilla: un cuadrito que se rellena de verde al marcarla, y el texto
+   se apaga y se tacha — lo mismo que un pendiente hecho. */
+.nota-vista li.casilla { padding-left: 28px; }
+.nota-vista li.casilla::before {
+  content: '';
+  left: 0; top: .2em;
+  width: 17px; height: 17px;
+  box-sizing: border-box;   /* los ::before no lo heredan del reset (v27) */
+  border: 1.5px solid var(--borde);
+  border-radius: 5px;
+  transition: background .2s ease, border-color .2s ease;
+}
+.nota-vista li.casilla.marcada { color: var(--texto-suave); text-decoration: line-through; }
+.nota-vista li.casilla.marcada::before {
+  content: '✓';
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700;
+  color: var(--sobre-exito);
+  background: var(--exito);
+  border-color: var(--exito);
+}
+
+.nota-pista {
+  position: absolute; right: 12px; bottom: 7px;
+  font-size: 11px; color: var(--texto-suave);
+}
+
+/* La barra de formato, encima del campo. */
+.nota-barra { display: flex; gap: 6px; margin-bottom: 6px; }
+.nota-barra button {
+  min-width: 44px; height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: inherit; font-size: 16px;
+  cursor: pointer;
+}
+.nota-barra button:active { background: var(--tarjeta-alta); }
+
 .modal textarea {
   width: 100%;
   min-height: 120px;
@@ -1354,6 +1433,67 @@ body.editando .mover { display: none; }
   animation: velo-sale .2s ease-in forwards;
 }
 .fondo-modal.cerrando .modal { animation: bajar .2s cubic-bezier(.4, 0, 1, 1) forwards; }
+
+/* --- El cuadro de confirmar (v28) ---
+   Tomado de la referencia de uiverse (Yaya12085/grumpy-fox-39): ícono en un
+   círculo rojo suave, pregunta, explicación, botón rojo ancho y Cancelar
+   debajo. Rehecho con las variables de la app y como ventana que sube desde
+   abajo, igual que las demás: el botón queda al alcance del pulgar. */
+.modal.confirmar { text-align: center; padding-top: 30px; }
+.modal.confirmar:focus { outline: none; }
+.modal.confirmar h2 { margin: 14px 0 6px; text-wrap: balance; }
+.modal.confirmar p {
+  color: var(--texto-suave);
+  font-size: 15px; line-height: 1.45;
+  margin-bottom: 22px;
+  text-wrap: balance;
+}
+.confirmar-botones { display: flex; flex-direction: column; gap: 10px; }
+.confirmar-botones .btn { width: 100%; flex: none; }
+
+.btn-borrar { background: var(--peligro); color: var(--sobre-peligro); }
+
+.confirmar-icono {
+  width: 60px; height: 60px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--peligro);
+  background: var(--tarjeta-alta);
+  background: color-mix(in srgb, var(--peligro) 16%, var(--tarjeta));
+}
+.confirmar-icono svg {
+  width: 28px; height: 28px;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  overflow: visible;
+}
+/* Cuál de los dos íconos se ve lo decide una clase en el fondo. */
+.icono-restaurar { display: none; }
+#modalConfirmar.restaurar .icono-basurero { display: none; }
+#modalConfirmar.restaurar .icono-restaurar { display: block; }
+
+/* La tapa del basurero se levanta al abrirse el cuadro y se queda un poco
+   abierta: "esto va a la basura". En uiverse (vinodjangid07/smart-emu-83)
+   pasaba con el mouse encima; aquí pasa sola, porque en el teléfono no hay
+   mouse. Gira desde su esquina derecha, como una tapa con bisagra.
+   transform-box: fill-box hace que transform-origin se mida sobre la propia
+   tapa y no sobre todo el dibujo. */
+.icono-basurero .tapa { transform-box: fill-box; transform-origin: 100% 100%; }
+@keyframes levantar-tapa {
+  0%   { transform: none; }
+  55%  { transform: translateY(-2.5px) rotate(18deg); }
+  100% { transform: translateY(-1.5px) rotate(12deg); }
+}
+#modalConfirmar.abierto .icono-basurero .tapa {
+  animation: levantar-tapa .5s cubic-bezier(.3, 1.4, .5, 1) .15s both;
+}
+/* Las flechas de restaurar dan media vuelta hacia atrás: "volver". */
+@keyframes volver { from { transform: rotate(0); } to { transform: rotate(-200deg); } }
+#modalConfirmar.abierto .icono-restaurar {
+  transform-origin: 50% 50%;
+  animation: volver .6s cubic-bezier(.3, 1.2, .5, 1) .15s both;
+}
 
 @keyframes velo-entra { from { opacity: 0; } }
 @keyframes velo-sale  { to   { opacity: 0; } }
@@ -1905,6 +2045,33 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     </div>
   </div>
 
+  <!-- El cuadro para confirmar algo que no se deshace (v28). Reemplaza al
+       confirm() del sistema en los 4 sitios que preguntaban. Va DESPUÉS de
+       las otras ventanas en el HTML a propósito: así, si se abre encima de
+       la ficha de una idea, queda por delante. Los textos los pone
+       confirmar() en cada caso. role="alertdialog" le dice a VoiceOver que
+       esto es una pregunta que hay que responder antes de seguir. -->
+  <div class="fondo-modal" id="modalConfirmar">
+    <div class="modal confirmar" id="confirmarCaja" role="alertdialog" aria-modal="true"
+         aria-labelledby="confirmarTitulo" aria-describedby="confirmarTexto" tabindex="-1">
+      <div class="confirmar-icono" aria-hidden="true">
+        <svg class="icono-basurero" viewBox="0 0 24 24">
+          <g class="tapa"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/></g>
+          <path d="M6 7l1 13h10l1-13"/><path d="M10 11v5.5M14 11v5.5"/>
+        </svg>
+        <svg class="icono-restaurar" viewBox="0 0 24 24">
+          <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/>
+        </svg>
+      </div>
+      <h2 id="confirmarTitulo"></h2>
+      <p id="confirmarTexto"></p>
+      <div class="confirmar-botones">
+        <button class="btn btn-borrar" id="confirmarSi"></button>
+        <button class="btn btn-secundario" id="confirmarNo" data-t="cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- La ficha de una idea. Se abre al tocar su texto en la lista.
        Aquí vive todo lo que se hace con una idea: cambiarle el título,
        escribirle el contexto, mandarla a Pendientes o borrarla. -->
@@ -1916,8 +2083,19 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <input type="text" id="ideaTexto" maxlength="120" autocomplete="off">
 
       <label class="etiqueta" for="ideaNota" data-t="contexto">Contexto</label>
-      <textarea id="ideaNota" maxlength="500" data-ph="phContexto"
+      <!-- v28: la nota se LEE con formato (vista) y se EDITA en crudo
+           (editor). Tocar la vista abre el editor. Si no hay nota, se va
+           directo al editor: no hay nada que leer. -->
+      <div class="nota-vista" id="ideaNotaVista" hidden></div>
+      <div id="ideaNotaEditor">
+        <div class="nota-barra">
+          <button type="button" id="formatoNegrita" data-aria="negrita"><b>B</b></button>
+          <button type="button" id="formatoVineta"  data-aria="vineta">•</button>
+          <button type="button" id="formatoCasilla" data-aria="casilla">☐</button>
+        </div>
+      <textarea id="ideaNota" maxlength="2000" data-ph="phContexto"
                 placeholder="¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes."></textarea>
+      </div>
 
       <div class="ficha-acciones">
         <button class="btn-mini" id="ideaMover" data-t="aPendientes">→ A Pendientes</button>
@@ -1998,7 +2176,13 @@ const TEXTOS = {
 
     phContexto: '¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes.',
     confirmBorrarIdea: '¿Borrar esta idea?',
-    confirmBorrarIdeaNota: '¿Borrar esta idea? También se pierde el contexto que escribiste.',
+    avisoIdeaNota: 'También se pierde el contexto que escribiste.',
+    negrita: 'Negrita', vineta: 'Viñeta', casilla: 'Casilla',
+    tocaEditar: 'Toca para editar',
+    borrarHabitoTitulo: '¿Borrar "%n"?',
+    borrarHabitoTexto: 'Se pierde todo su historial. No se puede deshacer.',
+    importarTitulo: '¿Restaurar esta copia?',
+    restaurar: 'Restaurar',
 
     // --- Calendario y estadísticas ---
     letrasDias: ['L','M','M','J','V','S','D'],
@@ -2045,7 +2229,7 @@ const TEXTOS = {
     exportarCSV: '↓ Tabla para Excel (.csv)',
     csvFecha: 'fecha', csvHabito: 'habito', csvHecho: 'hecho',
     confirmImportar1: 'La copia tiene %h hábito(s) y %d día(s) de historial.',
-    confirmImportar2: 'Esto REEMPLAZA todo lo que tienes ahora. ¿Continuar?',
+    confirmImportar2: 'Reemplaza todo lo que tienes ahora en este teléfono.',
 
     // --- Ajustes ---
     ajustes: 'Ajustes', tuNombre: 'Tu nombre', phNombre: 'Para el saludo de arriba',
@@ -2120,7 +2304,13 @@ const TEXTOS = {
 
     phContexto: 'Why did it seem like a good one? What problem does it solve? Whatever you want to remember a month from now.',
     confirmBorrarIdea: 'Delete this idea?',
-    confirmBorrarIdeaNota: 'Delete this idea? The context you wrote goes with it.',
+    avisoIdeaNota: 'The context you wrote goes with it.',
+    negrita: 'Bold', vineta: 'Bullet', casilla: 'Checkbox',
+    tocaEditar: 'Tap to edit',
+    borrarHabitoTitulo: 'Delete "%n"?',
+    borrarHabitoTexto: 'All of its history goes with it. This can\'t be undone.',
+    importarTitulo: 'Restore this backup?',
+    restaurar: 'Restore',
 
     // Lunes primero, igual que en español: la app no cambia de calendario,
     // solo de letras.
@@ -2167,7 +2357,7 @@ const TEXTOS = {
     exportarCSV: '↓ Table for Excel (.csv)',
     csvFecha: 'date', csvHabito: 'habit', csvHecho: 'done',
     confirmImportar1: 'The backup has %h habit(s) and %d day(s) of history.',
-    confirmImportar2: 'This REPLACES everything you have now. Continue?',
+    confirmImportar2: 'It replaces everything you have now on this device.',
 
     ajustes: 'Settings', tuNombre: 'Your name', phNombre: 'For the greeting above',
     idioma: 'Language', apariencia: 'Appearance',
@@ -2828,10 +3018,10 @@ function moverHabito(idHabito, direccion) {
   return true;
 }
 
+// Desde la v28 NO pregunta: preguntar es cosa de la pantalla (ver
+// confirmar(), sección E1). La lógica solo hace su trabajo, y así se puede
+// probar sin pantalla y sin fingir que alguien tocó "Sí".
 function borrarHabito(idHabito) {
-  const h = datos.habitos.find(x => x.id === idHabito);
-  if (!confirm(`¿Borrar "${h.nombre}"? Se pierde su historial.`)) return;
-
   datos.habitos = datos.habitos.filter(x => x.id !== idHabito);
   // También limpiamos su historial de todas las fechas
   for (const fecha in datos.registros) {
@@ -3055,7 +3245,7 @@ function editarTarea(idTarea, textoNuevo, notaNueva) {
   const texto = (textoNuevo ?? tarea.texto ?? '').trim().slice(0, 120);
   if (!texto) return false;                  // sin título no hay tarea
 
-  const nota = (notaNueva ?? tarea.nota ?? '').trim().slice(0, 500);
+  const nota = (notaNueva ?? tarea.nota ?? '').trim().slice(0, LARGO_NOTA);
 
   // Si no cambió nada, no guardamos: escribir en disco por gusto es trabajo
   // que no hace falta, y hace más difícil saber qué cambió de verdad.
@@ -3068,6 +3258,131 @@ function editarTarea(idTarea, textoNuevo, notaNueva) {
   guardar();
   pintarLista();
   return true;
+}
+
+/* --- El formato de la nota de una idea (v28) ---
+   Un markdown chiquito, a propósito. Solo esto:
+       # Título
+       **negrita**   *cursiva*
+       - una viñeta
+       - [ ] una casilla        - [x] una casilla marcada
+       https://...  (se vuelve un enlace solo)
+   Nada de tablas ni código: para anotar una idea no hacen falta, y cada
+   regla más es una regla más que recordar.
+
+   La nota se sigue guardando como TEXTO, igual que antes. El formato solo
+   existe al dibujarla. Por eso no hizo falta tocar Postgres, y las notas
+   viejas (texto sin símbolos) ya son markdown válido.
+
+   2000 caracteres y no 500: con listas, 500 se acababan enseguida. En
+   Postgres la columna es `text`, sin límite. */
+const LARGO_NOTA = 2000;
+
+// Convierte < > & " ' en su versión "escrita" (&lt; ...). Sin esto, una nota
+// que dijera <img src=x onerror=...> se ejecutaría al dibujarla: el
+// navegador la leería como HTML de verdad. Es la misma regla que usar
+// textContent, para cuando no queda más remedio que usar innerHTML.
+function escaparHtml(texto) {
+  return String(texto)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Negrita, cursiva y enlaces dentro de una línea. Recibe texto YA escapado.
+function formatoEnLinea(texto) {
+  return texto
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/(https?:\/\/[^\s<]*[^\s<.,;:!?)])/g,
+             '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// La nota entera, de texto a HTML. Va línea por línea, como se lee: cada
+// línea se reconoce por cómo empieza. Las casillas guardan su número de
+// línea (data-linea) para saber cuál marcar cuando la tocas.
+function notaAHtml(nota) {
+  const lineas = escaparHtml(nota || '').split('\n');
+  let html = '';
+  let parrafo = [];      // líneas seguidas de texto normal: van juntas
+  let enLista = false;
+
+  const cerrarParrafo = () => {
+    if (parrafo.length) html += '<p>' + parrafo.join('<br>') + '</p>';
+    parrafo = [];
+  };
+  const abrirLista  = () => { if (!enLista) { html += '<ul>'; enLista = true; } };
+  const cerrarLista = () => { if (enLista) { html += '</ul>'; enLista = false; } };
+
+  lineas.forEach((linea, n) => {
+    const casilla = linea.match(/^\s*[-*] \[( |x|X)\] ?(.*)$/);
+    const vineta  = linea.match(/^\s*[-*] (.*)$/);
+    const titulo  = linea.match(/^#{1,3} (.*)$/);
+
+    if (casilla) {
+      cerrarParrafo(); abrirLista();
+      const marcada = casilla[1] !== ' ';
+      html += `<li class="casilla${marcada ? ' marcada' : ''}" data-linea="${n}">`
+            + formatoEnLinea(casilla[2]) + '</li>';
+    } else if (vineta) {
+      cerrarParrafo(); abrirLista();
+      html += '<li>' + formatoEnLinea(vineta[1]) + '</li>';
+    } else if (titulo) {
+      cerrarParrafo(); cerrarLista();
+      html += '<h3>' + formatoEnLinea(titulo[1]) + '</h3>';
+    } else if (linea.trim() === '') {
+      cerrarParrafo(); cerrarLista();          // línea vacía = corte
+    } else {
+      cerrarLista();
+      parrafo.push(formatoEnLinea(linea));
+    }
+  });
+  cerrarParrafo(); cerrarLista();
+  return html;
+}
+
+// Marca o desmarca la casilla de una línea. Devuelve el texto nuevo; si esa
+// línea no es una casilla, lo devuelve igual.
+function alternarCasilla(nota, numeroLinea) {
+  const lineas = (nota || '').split('\n');
+  const linea = lineas[numeroLinea];
+  if (linea === undefined) return nota;
+  lineas[numeroLinea] = linea.replace(/^(\s*[-*] \[)( |x|X)(\])/,
+    (todo, antes, marca, despues) => antes + (marca === ' ' ? 'x' : ' ') + despues);
+  return lineas.join('\n');
+}
+
+// La nota sin símbolos, para el adelanto de dos líneas en la lista: ahí no
+// cabe el formato, pero los ** sueltos se verían como basura.
+function notaEnTexto(nota) {
+  return (nota || '').split('\n')
+    .map(linea => linea
+      .replace(/^#{1,3} /, '')
+      .replace(/^\s*[-*] \[ \] ?/, '☐ ')
+      .replace(/^\s*[-*] \[[xX]\] ?/, '☑ ')
+      .replace(/^\s*[-*] /, '• ')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*([^*\s][^*]*?)\*/g, '$1'))
+    .filter(linea => linea.trim())
+    .join('  ');
+}
+
+// Lo que hacen los tres botones de la barra, sobre el texto y la selección.
+// Pura (no toca la pantalla) para poder probarla: recibe el texto y dónde
+// está el cursor, y devuelve el texto nuevo y dónde dejar el cursor.
+//   negrita -> envuelve lo seleccionado en ** **
+//   vineta / casilla -> pone "- " o "- [ ] " al principio de la línea
+function aplicarFormatoTexto(valor, inicio, fin, tipo) {
+  if (tipo === 'negrita') {
+    const elegido = valor.slice(inicio, fin);
+    const nuevo = valor.slice(0, inicio) + '**' + elegido + '**' + valor.slice(fin);
+    // Sin nada elegido, el cursor queda ENTRE los asteriscos, listo para escribir.
+    const cursor = elegido ? fin + 4 : inicio + 2;
+    return { valor: nuevo, cursor };
+  }
+  const marca = tipo === 'casilla' ? '- [ ] ' : '- ';
+  const inicioLinea = valor.lastIndexOf('\n', inicio - 1) + 1;
+  const nuevo = valor.slice(0, inicioLinea) + marca + valor.slice(inicioLinea);
+  return { valor: nuevo, cursor: fin + marca.length };
 }
 
 // Cambiar solo el texto pasa a ser un caso particular de lo anterior, igual
@@ -3397,7 +3712,14 @@ function pintar() {
     tarjeta.querySelector('.habito-info').onclick = () => {
       if (!document.body.classList.contains('editando')) alternarHoy(h.id);
     };
-    tarjeta.querySelector('.borrar').onclick = () => borrarHabito(h.id);
+    tarjeta.querySelector('.borrar').onclick = async () => {
+      const si = await confirmar({
+        titulo: t('borrarHabitoTitulo').replace('%n', h.nombre),
+        texto:  t('borrarHabitoTexto'),
+        accion: t('borrar')
+      });
+      if (si) borrarHabito(h.id);
+    };
     // El emoji hace dos cosas distintas según el modo: en uso normal abre
     // el calendario; en modo edición te deja cambiarlo. Es el mismo criterio
     // que el nombre, para no tener que aprender dos reglas.
@@ -3531,6 +3853,59 @@ function cerrarVentana(fondo) {
   clearTimeout(fondo._cierre);
   fondo._cierre = setTimeout(() => fondo.classList.remove('cerrando'), 200);
 }
+
+/* Preguntar antes de algo que no se deshace (v28). Reemplaza a confirm().
+
+   La diferencia que importa: confirm() CONGELA el código hasta que
+   respondes — la línea siguiente no corre hasta que tocas un botón. Un
+   cuadro propio no puede congelar nada: el código sigue de largo y la
+   respuesta llega después, con el toque. Por eso confirmar() devuelve una
+   promesa ("te aviso cuando responda"), y quien pregunta la espera con
+   await:
+
+       if (await confirmar({ titulo, texto, accion })) borrarHabito(id);
+
+   Es como pedirle a alguien un dato por correo en vez de en persona: sigues
+   con lo tuyo y actúas cuando llega la respuesta.
+
+   titulo y accion son obligatorios; texto es la explicación, opcional.
+   icono: 'basurero' (por defecto) o 'restaurar'. */
+let resolverConfirmacion = null;
+
+function confirmar({ titulo, texto = '', accion, icono = 'basurero' }) {
+  const fondo = document.getElementById('modalConfirmar');
+  document.getElementById('confirmarTitulo').textContent = titulo;
+  document.getElementById('confirmarTexto').textContent = texto;
+  document.getElementById('confirmarTexto').hidden = !texto;
+  document.getElementById('confirmarSi').textContent = accion;
+  fondo.classList.toggle('restaurar', icono === 'restaurar');
+
+  // Si quedó una pregunta sin responder, cuenta como "no".
+  if (resolverConfirmacion) resolverConfirmacion(false);
+  abrirVentana(fondo);
+  // El foco va al cuadro y no al botón rojo: si fuera al botón, un Enter
+  // por error en el teclado del Mac borraría sin querer.
+  const caja = document.getElementById('confirmarCaja');
+  if (caja.focus) caja.focus();
+  return new Promise(resolver => { resolverConfirmacion = resolver; });
+}
+
+function responderConfirmacion(si) {
+  const resolver = resolverConfirmacion;
+  resolverConfirmacion = null;
+  cerrarVentana(document.getElementById('modalConfirmar'));
+  if (resolver) resolver(si);
+}
+
+document.getElementById('confirmarSi').onclick = () => responderConfirmacion(true);
+document.getElementById('confirmarNo').onclick = () => responderConfirmacion(false);
+// Tocar el fondo oscuro, o Escape en el Mac, es decir que no.
+document.getElementById('modalConfirmar').onclick = ev => {
+  if (ev.target.id === 'modalConfirmar') responderConfirmacion(false);
+};
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && resolverConfirmacion) responderConfirmacion(false);
+});
 
 // Un número que cambia (el "3 de 5" de arriba) entra desde abajo en vez de
 // cambiar de golpe. Solo si cambió DENTRO de la misma sección: al saltar de
@@ -3975,34 +4350,46 @@ function esCopiaValida(obj) {
   return habitosOk && registrosOk && tareasOk;
 }
 
-// Devuelve true si se importó, false si no. Así quien la llama sabe qué pasó.
-function importar(texto) {
+/* Restaurar una copia, en dos pasos desde la v28:
+     revisarCopia(texto) -> lee y valida. Devuelve lo que trae, o null.
+     aplicarCopia(copia) -> reemplaza tus datos por los de la copia.
+   Entre los dos, la pantalla pregunta (ver archivoEntrada.onchange). Antes
+   la pregunta iba aquí dentro con confirm(); al pasar a un cuadro propio,
+   que no congela el código, la pregunta se tuvo que ir a la pantalla. */
+function revisarCopia(texto) {
   let copia;
   try {
     copia = JSON.parse(texto);
   } catch (e) {
     alert(t('copiaIlegible'));
-    return false;
+    return null;
   }
 
   if (!esCopiaValida(copia)) {
     alert(t('copiaMalFormada'));
-    return false;
+    return null;
   }
-
-  const cuantosHabitos = copia.habitos.length;
-  const cuantosDias = Object.keys(copia.registros).length;
 
   // %h y %d son huecos que se rellenan con los números. Se hace así y no
   // pegando trozos de frase ("La copia tiene " + n + " hábitos") porque el
   // orden de las palabras cambia entre idiomas y pegando trozos acabas con
   // frases que no se pueden traducir sin tocar el código.
-  const aviso = t('confirmImportar1')
-                  .replace('%h', cuantosHabitos)
-                  .replace('%d', cuantosDias)
-                + '\n\n' + t('confirmImportar2');
-  if (!confirm(aviso)) return false;
+  const resumen = t('confirmImportar1')
+                    .replace('%h', copia.habitos.length)
+                    .replace('%d', Object.keys(copia.registros).length)
+                  + ' ' + t('confirmImportar2');
+  return { copia, resumen };
+}
 
+// Revisar y aplicar de una vez, sin preguntar. La usan las pruebas; la
+// pantalla pregunta entre los dos pasos. Devuelve true si se importó.
+function importar(texto) {
+  const revisada = revisarCopia(texto);
+  if (!revisada) return false;
+  return aplicarCopia(revisada.copia);
+}
+
+function aplicarCopia(copia) {
   datos = {
     version: 1,
     habitos: copia.habitos,
@@ -4076,8 +4463,16 @@ document.getElementById('archivoEntrada').onchange = ev => {
 
   // Leer un archivo toma tiempo, por eso avisamos "cuando termines, haz esto"
   const lector = new FileReader();
-  lector.onload = () => {
-    if (importar(lector.result)) alert(t('copiaRestaurada'));
+  lector.onload = async () => {
+    const revisada = revisarCopia(lector.result);
+    if (!revisada) return;   // el aviso de por qué ya salió
+    const si = await confirmar({
+      titulo: t('importarTitulo'),
+      texto:  revisada.resumen,
+      accion: t('restaurar'),
+      icono:  'restaurar'
+    });
+    if (si && aplicarCopia(revisada.copia)) alert(t('copiaRestaurada'));
   };
   lector.readAsText(archivo);
 
@@ -5061,7 +5456,7 @@ function pintarLista() {
     if (reglas.ficha && item.nota) {
       const nota = document.createElement('div');
       nota.className = 'tarea-nota';
-      nota.textContent = item.nota;
+      nota.textContent = notaEnTexto(item.nota);   // sin los símbolos (v28)
       tarjeta.querySelector('.tarea-info').appendChild(nota);
     }
 
@@ -5152,8 +5547,8 @@ function pintarLista() {
     const btn = document.createElement('button');
     btn.className = 'limpiar-hechas';
     btn.textContent = `${t('limpiarHechas')} ${cuenta.hechas} ${t(reglas.hechas)}`;
-    btn.onclick = () => {
-      if (confirm(t('confirmLimpiar'))) {
+    btn.onclick = async () => {
+      if (await confirmar({ titulo: t('confirmLimpiar'), accion: t('borrar') })) {
         limpiarHechas(listaActual);
       }
     };
@@ -5202,6 +5597,7 @@ function abrirIdea(idTarea) {
   ideaAbierta = idTarea;
   document.getElementById('ideaTexto').value = idea.texto;
   document.getElementById('ideaNota').value  = idea.nota || '';
+  mostrarNota(false);
 
   // Una idea ya dada por hecha no se manda a Pendientes. Se deshabilita en
   // vez de esconderse, para que los botones no cambien de sitio bajo el dedo
@@ -5210,6 +5606,57 @@ function abrirIdea(idTarea) {
 
   abrirVentana(modalIdea);
 }
+
+/* Leer o editar la nota (v28). editando = false muestra la nota con formato;
+   true muestra el texto crudo con la barra de botones. Sin nota no hay
+   nada que leer, así que se va directo a editar. */
+function mostrarNota(editando) {
+  const vista = document.getElementById('ideaNotaVista');
+  const area  = document.getElementById('ideaNota');
+  const verVista = !editando && area.value.trim() !== '';
+  vista.hidden = !verVista;
+  document.getElementById('ideaNotaEditor').hidden = verVista;
+  if (verVista) {
+    vista.innerHTML = notaAHtml(area.value)
+      + '<span class="nota-pista">' + escaparHtml(t('tocaEditar')) + '</span>';
+  }
+}
+
+// Tocar la nota: si fue en una casilla, se marca (y se guarda en el acto,
+// como en una lista de papel); si fue en un enlace, lo abre el navegador;
+// en cualquier otro sitio, pasa a editar.
+document.getElementById('ideaNotaVista').onclick = ev => {
+  const objetivo = ev.target;
+  const dentro = sel => (objetivo && objetivo.closest) ? objetivo.closest(sel) : null;
+  if (dentro('a')) return;
+  const casilla = dentro('.casilla');
+  const area = document.getElementById('ideaNota');
+  if (casilla) {
+    area.value = alternarCasilla(area.value, Number(casilla.dataset.linea));
+    editarTarea(ideaAbierta, null, area.value);
+    mostrarNota(false);
+    return;
+  }
+  mostrarNota(true);
+  area.focus();
+};
+
+// Los tres botones de la barra. El pointerdown con preventDefault es lo que
+// evita que el toque le quite el cursor al campo: sin él, en el iPhone se
+// cerraría el teclado en cada botón.
+[['formatoNegrita', 'negrita'], ['formatoVineta', 'vineta'], ['formatoCasilla', 'casilla']]
+  .forEach(([id, tipo]) => {
+    const boton = document.getElementById(id);
+    boton.addEventListener('pointerdown', ev => ev.preventDefault());
+    boton.onclick = () => {
+      const area = document.getElementById('ideaNota');
+      const r = aplicarFormatoTexto(area.value, area.selectionStart || 0,
+                                    area.selectionEnd || 0, tipo);
+      area.value = r.valor;
+      if (area.focus) area.focus();
+      if (area.setSelectionRange) area.setSelectionRange(r.cursor, r.cursor);
+    };
+  });
 
 function cerrarIdea() {
   cerrarVentana(modalIdea);
@@ -5233,16 +5680,19 @@ document.getElementById('ideaMover').onclick = () => {
   cerrarIdea();
 };
 
-document.getElementById('ideaBorrar').onclick = () => {
+document.getElementById('ideaBorrar').onclick = async () => {
   // Aquí sí se pregunta, a diferencia de la ✕ de la lista. La razón es lo que
   // se pierde: una idea con contexto escrito ya no es una línea de texto que
   // reescribes en tres segundos.
   const idea = datos.tareas.find(x => x.id === ideaAbierta);
-  const aviso = idea && idea.nota
-    ? t('confirmBorrarIdeaNota')
-    : t('confirmBorrarIdea');
-  if (!confirm(aviso)) return;
-  borrarTarea(ideaAbierta);
+  const id = ideaAbierta;   // se guarda: la respuesta llega después del toque
+  const si = await confirmar({
+    titulo: t('confirmBorrarIdea'),
+    texto:  idea && idea.nota ? t('avisoIdeaNota') : '',
+    accion: t('borrar')
+  });
+  if (!si) return;
+  borrarTarea(id);
   cerrarIdea();
 };
 

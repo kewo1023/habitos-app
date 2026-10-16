@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 450 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 201 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 473 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 213 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -388,6 +388,7 @@ pantalla, agregarlo a `pruebas-app.js`.
     toca la franja del borde izquierdo y cicla. `PRIORIDADES` en D2.
   - **Decisión clave:** la baja **no es verde**. El verde ya significa "hecho"
     en esta app; un pendiente verde sin hacer diría dos cosas a la vez.
+    **Ratificado por Kev en la v28**: la baja es azul.
   - **Decisión clave:** el orden de **Pendientes es automático** por
     importancia, y por eso esa lista **perdió las flechas ↑↓**. **Ideas las
     conserva** (petición de Kev): no tienen importancia y ahí el orden lo pone
@@ -619,6 +620,38 @@ pantalla, agregarlo a `pruebas-app.js`.
     solo en ella (cambiar el reset tocaría la franja de importancia y los
     íconos). **Regla que se lleva:** un pseudo-elemento con borde y ancho
     calculado necesita su propio `box-sizing`.
+- **Fase 3.15 — Confirmar, formato en las ideas y semáforo (v28)**
+  **No hay SQL que correr.**
+  - **Cuadro de confirmar propio** (`confirmar()`, E1) en lugar de
+    `confirm()` en los 4 sitios: borrar hábito, borrar idea, limpiar hechas,
+    restaurar copia. Referencia de uiverse: Yaya12085/grumpy-fox-39 (ícono
+    en círculo rojo, botón rojo ancho, Cancelar debajo); la tapa del
+    basurero que se levanta viene de vinodjangid07/smart-emu-83, rehecha
+    para que pase al abrirse y no con el mouse.
+  - **Decisión clave: la lógica no pregunta, la pantalla pregunta.**
+    `confirm()` congela el código; un cuadro propio no, así que devuelve una
+    promesa y quien pregunta la espera con `await`. Por eso `borrarHabito()`
+    ya no pregunta, e `importar()` se partió en `revisarCopia()` (lee y
+    valida) y `aplicarCopia()` (reemplaza); la pantalla pregunta entre los
+    dos. `importar()` sigue existiendo, sin preguntar, para las pruebas.
+  - Quedan nativos: los `prompt()` (renombrar, cambiar emoji) y los
+    `alert()` (avisos). Si se quiere, son la siguiente tanda.
+  - **Markdown chiquito en la nota de una idea** (`notaAHtml`, D2): `#`,
+    `**`, `*`, `- `, `- [ ]` tocables y enlaces solos. La ficha abre
+    **leyendo** la nota con formato; tocarla abre el texto crudo con una
+    barra B · ☐ (`aplicarFormatoTexto`). Sin nota, abre directo a escribir.
+    La nota sigue guardándose como texto: **no cambió el modelo**.
+  - **Regla:** todo pasa por `escaparHtml()` antes de convertirse en HTML.
+    Hay una prueba con `<img onerror=...>` que lo vigila.
+  - La nota pasó de 500 a **2000 caracteres** (`LARGO_NOTA`). En Postgres
+    es `text`, sin límite.
+  - **Semáforo de importancia, el mismo color en los dos temas:** rojo,
+    amarillo, azul, gris. **Decisión de Kev:** la baja es **azul**, no verde;
+    el verde se queda para "hecho" (se le propuso verde y lo descartó).
+    En claro, los colores estaban elegidos para el contraste de texto (5:1)
+    y el amarillo salía café. Una franja solo necesita 3:1, y para que el
+    amarillo se lea amarillo se aceptó 1,9:1: el orden de la lista también
+    dice la importancia.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -658,6 +691,8 @@ píldora (arreglado en la v27). Tampoco necesitó SQL.
 **`v27`** ("no logrado" manteniendo oprimido, Cerrar arriba en el
 calendario y el arreglo de la píldora, Fase 3.14), publicada el 15 de
 octubre de 2026. Sin SQL.
+**`v28`** (cuadro de confirmar, markdown en las ideas y semáforo, Fase
+3.15), publicada el 15 de octubre de 2026. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
