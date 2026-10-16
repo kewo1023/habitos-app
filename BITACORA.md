@@ -1735,6 +1735,41 @@ va es verlo en el teléfono.
 - [ ] Abiertos sin prisa: la tabla para Excel no distingue ✗ de vacío;
       evaluar C (notificaciones push); el botón → de las ideas.
 
+## 2026-10-15 — Animaciones con referencias de uiverse (v26)
+
+**Hecho**
+
+- Kev pidió que la app no se sintiera plana o "hecha con IA", animándola
+  sin rediseñarla. Se recorrió uiverse.io y se presentó una lista de 7
+  candidatos + 2 huecos propios, evaluados con los cuatro ejes, **antes de
+  tocar código**. Kev aprobó todo.
+- Se construyó en una rama aparte (`animaciones`) y se publicó una
+  **maqueta** como Artifact privado de claude.ai, con datos de ejemplo,
+  para probar en el iPhone sin tocar GitHub Pages ni los datos reales.
+- Lo nuevo: ✓ que se dibuja, estallido de rayitas, tachado que avanza (con
+  pausa de 420 ms antes de bajar la tarea), píldora en los selectores,
+  línea que crece en los campos, "+" que gira, botón que se hunde, ventanas
+  que bajan al cerrarse, números que suben. Detalles en la Fase 3.13 de
+  `CLAUDE.md`.
+- Kev pidió un ajuste tras probar la maqueta: la línea del campo no se
+  notaba. Ahora va encima del borde de abajo, es más gruesa, más lenta, y
+  el marco se tiñe después.
+- Tropiezo propio: la primera maqueta salió rota. El script que la armaba
+  borró el bloque de la nube con un patrón que también coincidía con un
+  comentario, y se llevó media app. Se arregló exigiendo una sola
+  coincidencia.
+- Pruebas: **443** y **192** (20 nuevas). Se rompió a propósito cada pieza
+  nueva para comprobar que su prueba se pone en rojo.
+
+**Pendiente / siguiente**
+
+- [ ] Probar la `v26` en el iPhone ya publicada: sobre todo el tachado (la
+      pausa) y que "reducir movimiento" apague todo.
+- [ ] Visto de paso, sin tocar: en una tarjeta verde, los puntos grises de
+      los días sin marcar casi no se ven (contraste de `--borde`).
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue siendo
+      lo más urgente.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

@@ -120,7 +120,8 @@ eval(script + `
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
-    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito
+    bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
+    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -269,6 +270,12 @@ $('btnAgregar').click();
 ok('tocar el ✓ sale del modo edición', !doc.body.classList.contains('editando'));
 ok('y los dos botones vuelven a la vez', $('btnAgregar').textContent === '+' &&
    $('btnEditar').textContent === 'Editar');
+// v26: el botón gira al cambiar de cara, y SOLO entonces. pintar() lo
+// repinta en cada toque; si girara siempre, giraría al marcar un hábito.
+ok('al cambiar de + a ✓ (y de vuelta) el botón gira', $('btnAgregar').classList.contains('girando'));
+$('btnAgregar').classList.remove('girando');
+app.pintar();
+ok('pero repintar sin cambiar de cara no lo hace girar', !$('btnAgregar').classList.contains('girando'));
 ok('sin abrir de paso la ventana de nuevo hábito', !$('modal').classList.contains('abierto'));
 
 $('btnEditar').click();
@@ -472,7 +479,13 @@ tarjetaIngles().querySelector('.check').click();   // si al final lo hiciste...
 ok('tocar el círculo de un no logrado lo marca hecho', app.estaHecho(idIngles, app.hoy()));
 ok('la tarjeta pasa a verde (hecho)', tarjetaIngles().classList.contains('hecho'));
 ok('y deja de estar en rojo', !tarjetaIngles().classList.contains('fallo') &&
-   tarjetaIngles().innerHTML.includes('<div class="check">✓</div>'));
+   tarjetaIngles().innerHTML.includes('<div class="check">' + app.TRAZO_CHECK + '</div>'));
+// Desde la v26 el ✓ es un trazo SVG y no una letra: la animación necesita
+// algo que se pueda "dibujar". La ✗ sigue siendo letra.
+ok('el ✓ es el trazo que se dibuja, no una letra',
+   tarjetaIngles().innerHTML.includes('<div class="check"><svg'));
+ok('y el trazo solo se anima en la que acabas de marcar',
+   tarjetaIngles().querySelector('.check').classList.contains('celebrar'));
 
 app.abrirCalendario(idIngles);
 celdaDeHoy().click();                       // ✓ → ✗
@@ -671,7 +684,12 @@ ok('la barra de progreso sí se ve', $('cajaProgreso').style.visibility === 'vis
 ok('y dice cuánto falta', $('progresoTexto').textContent === '0 de 2');
 
 // Tocar el TEXTO marca, como en Pendientes: en la tienda ese es el gesto.
+// Con "reducir movimiento" para que marque en el acto: desde la v26, con
+// movimiento normal hay una pausa para ver el tachado (se prueba en la
+// sección 12, que puede esperar).
+pideMenosMovimiento = true;
 tarjetasCompras[0].querySelectorAll('.tarea-info')[0].click();
+pideMenosMovimiento = false;
 ok('tocar el texto de una compra la marca', app.tareasDe('compras').filter(x => x.hecha).length === 1);
 ok('y el progreso baja', $('progresoTexto').textContent === '1 de 2');
 ok('el botón de limpiar habla de "compradas"',
@@ -810,7 +828,77 @@ function pruebasDeArranque() {
      datosAlArrancar.habitos.every(h => !('color' in h)));
 }
 
-pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeArranque).then(() => {
+// ===========================================================================
+// 13. Las animaciones de la v26
+//     Que se vean bien no se puede probar aquí. Lo que sí: que se disparen
+//     cuando toca, que NO se disparen cuando no toca, y que la app siga
+//     haciendo lo correcto mientras duran.
+// ===========================================================================
+async function pruebasDeMovimiento() {
+  // --- La píldora de los selectores de Ajustes
+  app.cambiarVista('habitos');
+  app.cambiarTema('claro');
+  ok('la píldora del tema está en "Claro" (segunda)', $('temas').style['--i'] === '1');
+  app.cambiarTema('auto');
+  ok('y viaja de vuelta a "Automático"', $('temas').style['--i'] === '0');
+  ok('la del idioma marca "Español"', $('idiomas').style['--i'] === '0');
+
+  // --- El número de arriba entra desde abajo cuando cambia
+  const idPrimero = app.datos.habitos[0].id;
+  $('progresoTexto').classList.remove('numero-cambia');
+  app.alternarHoy(idPrimero);
+  ok('marcar un hábito hace subir el número del progreso',
+     $('progresoTexto').classList.contains('numero-cambia'));
+  $('progresoTexto').classList.remove('numero-cambia');
+  app.cambiarVista('pendientes');
+  ok('cambiar de sección no lo anima: es otro número, no uno que cambió',
+     !$('progresoTexto').classList.contains('numero-cambia'));
+  app.cambiarVista('habitos');
+  app.alternarHoy(idPrimero);   // se deja como estaba
+
+  // --- Las ventanas bajan al cerrarse
+  app.abrirCalendario(idPrimero);
+  app.cerrarCalendario();
+  ok('al cerrar, la ventana deja de estar abierta en el acto',
+     !$('modalCal').classList.contains('abierto'));
+  ok('pero sigue visible mientras baja', $('modalCal').classList.contains('cerrando'));
+  app.abrirCalendario(idPrimero);
+  ok('reabrirla mientras baja la deja abierta y quieta',
+     $('modalCal').classList.contains('abierto') && !$('modalCal').classList.contains('cerrando'));
+  app.cerrarCalendario();
+  await new Promise(listo => setTimeout(listo, 230));
+  ok('terminada la bajada, desaparece', !$('modalCal').classList.contains('cerrando'));
+  pideMenosMovimiento = true;
+  app.abrirCalendario(idPrimero);
+  app.cerrarCalendario();
+  ok('con "reducir movimiento" se cierra de golpe, como antes',
+     !$('modalCal').classList.contains('cerrando'));
+  pideMenosMovimiento = false;
+
+  // --- El tachado: primero se tacha donde la tocaste, luego se va abajo
+  app.cambiarVista('pendientes');
+  app.agregarTarea('Tachar despacio');
+  const tarjeta = () => $('tareasCuerpo').children
+    .find(x => x.querySelector('.tarea-texto').textContent.includes('Tachar despacio'));
+  const tarea = () => app.tareasDe('pendientes').find(x => x.texto === 'Tachar despacio');
+
+  tarjeta().querySelector('.check').click();
+  ok('al marcar, la tarjeta se tacha en el acto', tarjeta().classList.contains('tachando'));
+  ok('y su círculo celebra', tarjeta().querySelector('.check').classList.contains('celebrar'));
+  ok('pero todavía no se movió: el dato cambia después de la pausa', !tarea().hecha);
+
+  await new Promise(listo => setTimeout(listo, app.PAUSA_TACHADO + 20));
+  ok('pasada la pausa, queda marcada', tarea().hecha === true);
+  ok('y la tarjeta nueva nace tachada, sin repetir la animación',
+     tarjeta().classList.contains('hecha') && !tarjeta().classList.contains('tachando'));
+
+  // Desmarcar no tiene pausa: no hay raya que mirar.
+  tarjeta().querySelector('.check').click();
+  ok('desmarcar es inmediato', tarea().hecha === false);
+}
+
+pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
+  .then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

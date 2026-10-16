@@ -166,7 +166,7 @@ Plataforma: iPhone. Kev tiene un Mac.
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
 1. `node pruebas.js` — 443 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 172 verificaciones de la app entera cargada en un
+2. `node pruebas-app.js` — 192 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -557,6 +557,39 @@ pantalla, agregarlo a `pruebas-app.js`.
     lo marca hecho, el ✗ se borra y la racha vuelve.
   - **Abierto:** la tabla para Excel no distingue ✗ de vacío (los dos salen
     0), y los ✗ no viajan a la nube (sería el Paso 8 al reactivar Supabase).
+- **Fase 3.13 — Animaciones (v26)** Kev pidió que la app no se sintiera
+  plana "sin cambiar tanto el diseño". Se buscaron referencias en uiverse.io
+  (licencia MIT), se evaluaron, y Kev aprobó todo con una maqueta publicada
+  como Artifact antes de lanzar. **No hay SQL que correr.**
+  - **Filtro que se aplicó:** casi todo uiverse se anima con `:hover`, que en
+    el iPhone no existe. Solo sirve lo que reacciona al toque o a un cambio
+    de estado. Y nada se copió tal cual: todo se rehízo con las variables.
+  - **✓ que se dibuja** (`TRAZO_CHECK`, un SVG con `stroke-dashoffset`) y
+    **estallido de 8 rayitas** (`repeating-conic-gradient` + `mask`), que
+    **reemplaza** a la onda de la v16: mismo tamaño de señal, no una más.
+    Solo en el recién marcado (`.celebrar`); las demás nacen dibujadas.
+  - **Tachado que avanza** en Pendientes/Compras/Ideas: es un fondo en un
+    `<span>`, no `line-through`, para que cruce renglón por renglón.
+    **Decisión clave:** al marcar, la tarjeta se tacha **donde está** y se
+    va al final tras `PAUSA_TACHADO` (420 ms). Sin la pausa la raya se
+    dibujaría en una tarjeta que ya se fue. Desmarcar no tiene pausa.
+  - De paso se arregló algo viejo: el círculo de una tarea hecha nunca se
+    rellenaba (el ✓ era transparente). Ahora es verde, como en Hábitos.
+  - **Píldora que viaja** en los selectores de Ajustes (`ponerPildora`,
+    `--i`, misma curva que la barra de abajo), **línea que crece** en los
+    campos, **"+" que gira** al entrar/salir de edición (solo si cambia de
+    cara: `pintar()` lo repinta en cada toque), **botón que se hunde**,
+    **ventanas que bajan al cerrarse** y **números que suben** ("3 de 5" y
+    la racha; no al cambiar de sección).
+  - **Ventanas:** `abrirVentana()`/`cerrarVentana()` en E1. Al cerrar se
+    quita `abierto` en el acto y `cerrando` la mantiene visible 200 ms sin
+    escuchar toques. Para la app (y las pruebas) ya está cerrada.
+  - **Corrección de Kev al probar la maqueta:** la línea del campo casi no
+    se veía. Competía con el borde, que se ponía azul al mismo tiempo, y
+    era chica y rápida. **Regla que se lleva:** dos cambios simultáneos en
+    el mismo sitio se tapan entre sí; escalonarlos (primero la línea, luego
+    el borde) es lo que hace que se vean.
+  - Todo respeta "reducir movimiento" (CSS y `menosMovimiento()` en JS).
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -589,6 +622,8 @@ el 13 de octubre de 2026. Probada en el iPhone (captura de Kev). No necesitó SQ
 **`v25`** (racha a 0 con hoy en ✗), commit `57f2e58`, publicada el 13 de
 octubre de 2026 y comprobada en el sitio en vivo; falta probarla en el iPhone.
 Ninguna de las v21 a v25 necesitó SQL.
+**`v26`** (animaciones, Fase 3.13), publicada el 15 de octubre de 2026,
+después de que Kev la aprobara en la maqueta. Tampoco necesitó SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

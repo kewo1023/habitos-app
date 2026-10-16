@@ -229,6 +229,17 @@ header { margin-bottom: 22px; }
   margin-bottom: 8px;
 }
 
+/* Un número que acaba de cambiar (v26) entra desde abajo, como el
+   cuentakilómetros de un carro. inline-block porque un elemento "inline"
+   (un span suelto en una línea) ignora transform. */
+@keyframes numero-sube {
+  from { transform: translateY(55%); opacity: 0; }
+}
+.numero-cambia {
+  display: inline-block;
+  animation: numero-sube .3s cubic-bezier(.2, .8, .2, 1);
+}
+
 .progreso-fondo {
   height: 8px;
   background: var(--tarjeta-alta);
@@ -389,12 +400,24 @@ header { margin-bottom: 22px; }
   100% { transform: scale(1); }
 }
 
-/* La onda es un pseudo-elemento ENCIMA del círculo, no el círculo mismo.
-   Si le hiciéramos un scale grande al propio .check, empujaría el texto de
-   la tarjeta hacia los lados mientras dura la animación. */
-@keyframes onda {
-  from { transform: scale(1);   opacity: .5; }
-  to   { transform: scale(2.3); opacity: 0; }
+/* El estallido (v26) es un pseudo-elemento ENCIMA del círculo, no el
+   círculo mismo. Si le hiciéramos un scale grande al propio .check,
+   empujaría el texto de la tarjeta hacia los lados mientras dura.
+   Reemplaza a la onda de la v16: es el mismo tamaño de señal (sale del
+   círculo y se apaga en medio segundo), pero con forma de "chispa".
+
+   Cómo se dibujan 8 rayitas sin 8 elementos:
+     - repeating-conic-gradient pinta un abanico que se repite cada 45°:
+       8° de color y 37° de nada. Es como cortar una pizza en 8 y pintar
+       solo una tira finita de cada porción.
+     - la máscara (mask) borra el centro y el borde de afuera: de cada tira
+       solo queda un tramo del medio, que es la rayita.
+   En una máscara solo importa si un punto es opaco o transparente, no el
+   color. Por eso se usa var(--exito): cualquier color sólido sirve y así
+   no se cuela un color escrito a mano. */
+@keyframes estallido-check {
+  from { transform: scale(.55); opacity: 1; }
+  to   { transform: scale(1.2); opacity: 0; }
 }
 
 .check { position: relative; }
@@ -404,14 +427,45 @@ header { margin-bottom: 22px; }
 .check.celebrar::after {
   content: '';
   position: absolute;
-  inset: -2px;
+  inset: -13px;
   border-radius: 50%;
-  border: 2px solid var(--exito);
-  animation: onda .5s ease-out forwards;
-  /* La onda queda encima del círculo. Sin esto se comería el siguiente toque
+  background: repeating-conic-gradient(from -3deg, var(--exito) 0 6deg, transparent 6deg 45deg);
+  -webkit-mask: radial-gradient(circle, transparent 50%, var(--exito) 51% 76%, transparent 77%);
+          mask: radial-gradient(circle, transparent 50%, var(--exito) 51% 76%, transparent 77%);
+  animation: estallido-check .45s cubic-bezier(.2,.8,.2,1) forwards;
+  /* Queda encima del círculo. Sin esto se comería el siguiente toque
      durante medio segundo, justo cuando quieres desmarcar por error. */
   pointer-events: none;
 }
+
+/* --- El ✓ que se dibuja solo (v26) ---
+   Hasta la v25 el ✓ era una letra que aparecía de golpe. Ahora es un trazo
+   SVG, y un trazo se puede "dibujar":
+     stroke-dasharray: 24  -> la línea es un guion de 24 de largo seguido
+                              de un hueco de 24 (el trazo mide ~22)
+     stroke-dashoffset     -> cuánto se corre ese guion. Corrido 24, lo que
+                              se ve es el hueco: nada. Corrido 0, el guion
+                              entero: el ✓ completo.
+   Animar de 24 a 0 es ver la línea avanzar, como si alguien la trazara.
+   Solo se anima con .celebrar (el que acabas de marcar). Las demás
+   tarjetas nacen con el ✓ ya dibujado: pintar() redibuja todo en cada
+   toque y no queremos que se redibujen los cinco. */
+.check svg {
+  width: 18px; height: 18px;
+  fill: none;
+  stroke: currentColor;      /* el color lo decide .check, como antes la letra */
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+}
+
+@keyframes trazar-check { from { stroke-dashoffset: 24; } }
+
+/* Arranca un poquito tarde (80ms): primero el círculo se llena de verde y
+   luego aparece el trazo encima. Si fueran a la vez, el ojo no ve el trazo. */
+.check.celebrar svg { animation: trazar-check .32s cubic-bezier(.4,0,.2,1) .08s backwards; }
 
 /* --- El confeti del día completo ---
    Vive en una capa fija encima de todo. pointer-events: none la vuelve
@@ -568,8 +622,16 @@ header { margin-bottom: 22px; }
   .papelito,
   .tarea.recien-movida,
   .hito.visible .hito-tarjeta,
-  .hito-anillo { animation: none; }
-  .pestana-indicador { transition: none; }
+  .hito-anillo,
+  .check.celebrar svg,
+  .tarea.tachando .tarea-texto span,
+  .numero-cambia,
+  .btn-mas.girando,
+  .fondo-modal.abierto,
+  .modal { animation: none; }
+  .pestana-indicador,
+  .segmentado::before,
+  input[type=text], input[type=email], input[type=password] { transition: none; }
 }
 
 /* Botones de mover y borrar. Solo aparecen en modo edición, donde
@@ -653,10 +715,34 @@ body.editando .panel-datos { display: block; }
   display: grid;
   gap: 6px;
   margin-top: 10px;
+  position: relative;   /* la píldora se ubica respecto a esta caja */
 }
 
-.segmentado.dos  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.segmentado.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.segmentado.dos  { grid-template-columns: repeat(2, minmax(0, 1fr)); --n: 2; }
+.segmentado.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); --n: 3; }
+
+/* La píldora que viaja (v26). Es solo un marco de color ENCIMA de los
+   botones: no tapa la letra porque no tiene relleno, y pointer-events: none
+   deja pasar el toque al botón de abajo.
+     ancho:  lo que mide un botón = (todo el ancho - los huecos) / cuántos son
+     moverse: translateX en % se mide sobre la propia píldora, o sea, un
+              botón de ancho. "+ 6px" es el hueco entre uno y otro.
+   La curva es la misma de la píldora de las pestañas, para que las dos se
+   sientan de la misma familia. */
+.segmentado::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: calc((100% - (var(--n) - 1) * 6px) / var(--n));
+  border: 1.5px solid var(--acento);
+  border-radius: 11px;
+  transform: translateX(calc(var(--i, 0) * (100% + 6px)));
+  transition: transform .4s cubic-bezier(.3, 1.35, .5, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.segmentado.sin-eleccion::before { display: none; }
 
 .segmentado button {
   padding: 11px 6px;
@@ -673,7 +759,6 @@ body.editando .panel-datos { display: block; }
    letra. Un bloque azul sólido aquí competiría con el botón grande de abajo,
    que ya usa ese mismo azul y es la acción principal de la pantalla. */
 .segmentado button.activo {
-  border-color: var(--acento);
   color: var(--acento);
   font-weight: 700;
 }
@@ -870,7 +955,9 @@ body.vista-tareas .panel-datos { display: none; }
   display: flex;
   align-items: center;
   gap: 13px;
-  transition: transform .12s ease, background .2s ease;
+  /* opacity entra en la lista en la v26: al marcar, la tarjeta se apaga
+     poco a poco mientras se tacha, en vez de apagarse de golpe. */
+  transition: transform .12s ease, background .2s ease, opacity .3s ease;
 }
 
 .tarea:active { transform: scale(0.98); }
@@ -929,10 +1016,38 @@ body.vista-tareas .panel-datos { display: none; }
   opacity: .62;
 }
 
-.tarea.hecha .tarea-texto {
-  color: var(--texto-suave);
-  text-decoration: line-through;
+.tarea.hecha .tarea-texto { color: var(--texto-suave); }
+
+/* Hasta la v25 el círculo de una tarea hecha se quedaba vacío: el ✓ estaba
+   ahí pero con color transparent, así que nunca se vio. Con el ✓ que se
+   dibuja (v26) eso dejaba la animación sin nada que mostrar. Ahora se
+   rellena igual que el de un hábito: una sola regla en toda la app. */
+.tarea.hecha .check {
+  background: var(--exito);
+  border-color: var(--exito);
+  color: var(--sobre-exito);
 }
+
+/* --- El tachado que se dibuja (v26) ---
+   Hasta la v25 era text-decoration: line-through, que aparece de golpe y no
+   se puede animar. Ahora la raya es un fondo: un degradado de un solo color
+   (o sea, una franja lisa) de 2px de alto, a media altura de la letra.
+   Animar su ancho de 0 a 100% es ver la raya cruzar el texto.
+
+   Por qué va en un <span> y no en el div: un pendiente largo ocupa dos o
+   tres líneas. El fondo de un elemento "inline" (como un span) se reparte
+   por los renglones como si fueran uno solo puesto en fila, así que la raya
+   cruza el primer renglón, luego el segundo, luego el tercero. En el div
+   cruzaría una sola franja por el medio del bloque. */
+.tarea-texto span {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 56% / 0 2px;
+}
+
+.tarea.hecha .tarea-texto span { background-size: 100% 2px; }
+
+/* Solo la que acabas de marcar dibuja la raya; las demás nacen tachadas. */
+@keyframes tachar { from { background-size: 0 2px; } }
+.tarea.tachando .tarea-texto span { animation: tachar .34s cubic-bezier(.4,0,.2,1); }
 
 /* El título y la nota van juntos en un bloque, para que el círculo y los
    botones queden centrados respecto a los dos y no solo respecto al título. */
@@ -1093,10 +1208,29 @@ body.editando .mover { display: none; }
   font-size: 30px; font-weight: 400; line-height: 1;
   cursor: pointer;
   box-shadow: 0 8px 24px var(--sombra);
-  transition: transform .15s ease, background .2s ease;
+  transition: transform .15s ease, background .2s ease, box-shadow .15s ease;
 }
 
-.btn-mas:active { transform: scale(.92); }
+/* Al apretarlo se hunde como una tecla (v26): además de encoger, baja un
+   poco y su sombra se achica. La sombra es lo que dice "estoy despegado del
+   fondo"; si se achica, el ojo entiende que el botón bajó. Encoger solo
+   parecía alejarse, no hundirse. */
+.btn-mas:active {
+  transform: translateY(2px) scale(.93);
+  box-shadow: 0 3px 10px var(--sombra);
+}
+
+/* Al entrar o salir del modo edición el símbolo cambia (+ <-> ✓) y el botón
+   da un giro corto. El giro tapa el cambio de símbolo: sin él, el + se
+   convierte en ✓ de un frame al siguiente.
+   Se usan rotate y scale sueltos, no transform: así no chocan con el
+   transform del :active de arriba (si los dos usaran transform, uno
+   borraría al otro). */
+@keyframes girar-mas {
+  from { rotate: -90deg; scale: .7; }
+  to   { rotate: 0deg;   scale: 1; }
+}
+.btn-mas.girando { animation: girar-mas .38s cubic-bezier(.3, 1.35, .5, 1); }
 
 /* En modo edición el "+" se vuelve "✓" y sirve para salir. Los paneles de
    Ajustes y copia aparecen al final de la lista, y el "Listo" de arriba
@@ -1153,7 +1287,22 @@ body.editando .mover { display: none; }
   z-index: 10;
 }
 
-.fondo-modal.abierto { display: flex; }
+.fondo-modal.abierto { display: flex; animation: velo-entra .25s ease-out; }
+
+/* Cerrándose (v26): sigue visible el rato que dura la bajada, pero ya no
+   escucha toques — para la app la ventana ya está cerrada. La salida es
+   más rápida que la entrada (.2s contra .25s): lo que se va no necesita
+   que lo mires, lo que llega sí. */
+.fondo-modal.cerrando {
+  display: flex;
+  pointer-events: none;
+  animation: velo-sale .2s ease-in forwards;
+}
+.fondo-modal.cerrando .modal { animation: bajar .2s cubic-bezier(.4, 0, 1, 1) forwards; }
+
+@keyframes velo-entra { from { opacity: 0; } }
+@keyframes velo-sale  { to   { opacity: 0; } }
+@keyframes bajar      { to   { transform: translateY(100%); } }
 
 .modal {
   background: var(--tarjeta);
@@ -1189,6 +1338,35 @@ input[type=text], input[type=email], input[type=password] {
 
 input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   outline: none; border-color: var(--acento);
+}
+
+/* La línea que crece al escribir (v26). Es un fondo, no un borde: un
+   degradado de un solo color de 3px de alto pegado abajo y centrado
+   (50% 100%). Sin foco mide 0 de ancho; con foco, el campo entero. Crece
+   desde el centro hacia los dos lados.
+
+   Primera versión, corregida por Kev al probar la maqueta: casi no se
+   veía. Dos motivos, y vale la pena recordarlos para cualquier animación:
+     1. Competía con otro cambio al mismo tiempo. El borde entero se ponía
+        azul en 0,2s y la línea crecía JUSTO ENCIMA del borde de abajo, que
+        ya era azul: el ojo veía "el campo se puso azul" y nada más.
+     2. Era chica y rápida: 2px en 0,3s.
+   Arreglo:
+     - background-origin: border-box -> la línea se dibuja ENCIMA del borde
+       de abajo (no por dentro), así que es lo único que cambia ahí.
+     - 3px y 0,45s: lo bastante para que se vea viajar.
+     - El resto del borde se tiñe después (espera 0,2s): primero llega la
+       línea, luego el marco. Una cosa a la vez se ve; dos a la vez se tapan. */
+input[type=text], input[type=email], input[type=password] {
+  background-image: linear-gradient(var(--acento), var(--acento));
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-position: 50% 100%;
+  background-size: 0 3px;
+  transition: background-size .45s cubic-bezier(.2,.8,.2,1), border-color .25s ease .2s;
+}
+input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
+  background-size: 100% 3px;
 }
 
 /* ---------- 10. PANEL DE CUENTA ---------- */
@@ -2064,6 +2242,14 @@ function encolar(pendiente) {
   guardar();
   if (typeof pedirSincronizar === 'function') pedirSincronizar();
 }
+
+/* El ✓ de los círculos (v26): un trazo SVG en vez de una letra, para poder
+   animarlo como si se dibujara (ver ".check svg" en el CSS). Vive en una
+   constante porque lo usan las tarjetas de hábitos y las de tareas.
+   Va ANTES de cargar los datos por la misma trampa que encontramos en la
+   v21: un const no existe hasta que el script pasa por su línea. */
+const TRAZO_CHECK =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
 let datos = cargar();
 
@@ -3022,8 +3208,7 @@ function pintar() {
 
   // Barra de progreso del día
   const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
-  document.getElementById('progresoTexto').textContent =
-    `${hechosHoy} ${t('de')} ${datos.habitos.length}`;
+  ponerProgreso(`${hechosHoy} ${t('de')} ${datos.habitos.length}`);
   document.getElementById('barra').style.width = (hechosHoy / datos.habitos.length * 100) + '%';
 
   // Una tarjeta por hábito
@@ -3062,7 +3247,7 @@ function pintar() {
             : `<span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>`}
         </div>
       </div>
-      <div class="check">${falloHoy ? '✗' : '✓'}</div>
+      <div class="check">${falloHoy ? '✗' : TRAZO_CHECK}</div>
       <div class="acciones">
         <button class="subir"  ${esPrimero ? 'disabled' : ''}>↑</button>
         <button class="bajar"  ${esUltimo  ? 'disabled' : ''}>↓</button>
@@ -3074,6 +3259,8 @@ function pintar() {
     // clase puesta y el navegador arranca la animación al insertarlo.
     if (h.id === habitoRecienMarcado) {
       tarjeta.querySelector('.check').classList.add('celebrar');
+      // Y su racha sube con el mismo gesto que el "3 de 5" de arriba (v26).
+      tarjeta.querySelector('.racha').classList.add('numero-cambia');
     }
 
     // Tocar la tarjeta = marcar/desmarcar
@@ -3117,6 +3304,70 @@ function pintar() {
   // Ya se dibujó con su animación. Se limpia para que el siguiente repintado
   // no la repita — mismo cierre que pintarLista() hace con tareaRecienMovida.
   habitoRecienMarcado = null;
+}
+
+/* ---------- E1. AYUDANTES DE MOVIMIENTO (v26) ----------
+   Tres herramientas pequeñas que usan las animaciones de la v26. Viven
+   juntas para que la próxima animación las encuentre en vez de inventarlas
+   otra vez. */
+
+// ¿Pidió el teléfono menos movimiento? (Ajustes > Accesibilidad > Movimiento)
+// Es una función y no una variable porque el ajuste se puede cambiar con la
+// app abierta: hay que preguntar cada vez.
+function menosMovimiento() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// Cuánto espera una tarea recién marcada antes de irse al final de la lista:
+// lo que dura la raya del tachado (.34s) y un respiro para verla terminada.
+const PAUSA_TACHADO = 420;
+
+// Volver a disparar una animación de CSS que ya corrió una vez.
+// Quitar y poner la clase seguidas no basta: el navegador junta los dos
+// cambios, ve que la clase sigue ahí y no hace nada. Leer offsetWidth en
+// medio lo obliga a "mirar" la página entre uno y otro (se llama forzar un
+// reflow), y entonces sí cuenta como una clase nueva.
+function reiniciarAnimacion(elemento, clase) {
+  elemento.classList.remove(clase);
+  void elemento.offsetWidth;
+  elemento.classList.add(clase);
+}
+
+// Las ventanas que suben desde abajo (nuevo hábito, calendario, idea).
+// Hasta la v25 se abrían animadas pero se cerraban de golpe: display: none
+// las borra de un frame al siguiente. Ahora, al cerrar, la clase "abierto"
+// se quita EN EL ACTO (para la app la ventana ya está cerrada, y las pruebas
+// lo ven así) y "cerrando" la deja visible el rato que dura la bajada.
+function abrirVentana(fondo) {
+  clearTimeout(fondo._cierre);
+  fondo.classList.remove('cerrando');
+  fondo.classList.add('abierto');
+}
+
+function cerrarVentana(fondo) {
+  if (!fondo.classList.contains('abierto')) return;
+  fondo.classList.remove('abierto');
+  // Si el cursor seguía en un campo, se suelta ya: así el teclado del iPhone
+  // baja a la vez que la ventana y no se queda flotando. Con una ventana
+  // abierta, lo único que puede tener el cursor es algo de esa ventana.
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (menosMovimiento()) return;
+  fondo.classList.add('cerrando');
+  clearTimeout(fondo._cierre);
+  fondo._cierre = setTimeout(() => fondo.classList.remove('cerrando'), 200);
+}
+
+// Un número que cambia (el "3 de 5" de arriba) entra desde abajo en vez de
+// cambiar de golpe. Solo si cambió DENTRO de la misma sección: al saltar de
+// Hábitos a Pendientes el número es otro, no uno que se movió.
+let seccionDelProgreso = null;
+
+function ponerProgreso(texto) {
+  const caja = document.getElementById('progresoTexto');
+  const cambio = seccionDelProgreso === vista && caja.textContent !== texto;
+  caja.textContent = texto;
+  seccionDelProgreso = vista;
+  if (cambio && !menosMovimiento()) reiniciarAnimacion(caja, 'numero-cambia');
 }
 
 /* ---------- E2. EL CONFETI DEL DÍA COMPLETO ----------
@@ -3332,7 +3583,7 @@ document.getElementById('btnAgregar').onclick = () => {
     document.getElementById('tareaNueva').focus();
     return;
   }
-  modal.classList.add('abierto');
+  abrirVentana(modal);
   document.getElementById('nombre').focus();
 };
 
@@ -3341,7 +3592,7 @@ document.getElementById('btnCancelar').onclick = cerrarModal;
 modal.onclick = (ev) => { if (ev.target === modal) cerrarModal(); };
 
 function cerrarModal() {
-  modal.classList.remove('abierto');
+  cerrarVentana(modal);
   document.getElementById('nombre').value = '';
   document.getElementById('emojiLibre').value = '';
 }
@@ -3397,9 +3648,14 @@ function pintarBotonMas() {
   let clave = 'listo';
   if (!editando) clave = vista === 'habitos' ? 'nuevoHabito' : TEXTOS_LISTA[vista].boton;
 
+  // ¿Cambió de cara en este repintado? pintar() llama aquí en cada toque,
+  // y el giro solo debe salir al entrar o salir del modo edición (v26).
+  const cambiaDeCara = boton.classList.contains('listo') !== editando;
+
   boton.textContent = editando ? '✓' : '+';
   boton.setAttribute('aria-label', t(clave).replace(/^\+\s*/, ''));
   boton.classList.toggle('listo', editando);
+  if (cambiaDeCara && !menosMovimiento()) reiniciarAnimacion(boton, 'girando');
 }
 
 /* ---------- H. COPIA DE SEGURIDAD ----------
@@ -3670,11 +3926,11 @@ function abrirCalendario(idHabito) {
   calAnio = ahora.getFullYear();
   calMes = ahora.getMonth() + 1;      // +1 porque adentro contamos 1-12
   pintarCalendario();
-  document.getElementById('modalCal').classList.add('abierto');
+  abrirVentana(document.getElementById('modalCal'));
 }
 
 function cerrarCalendario() {
-  document.getElementById('modalCal').classList.remove('abierto');
+  cerrarVentana(document.getElementById('modalCal'));
   calHabitoId = null;
 }
 
@@ -4535,8 +4791,7 @@ function pintarLista() {
     cajaProgreso.style.visibility = 'hidden';
   } else {
     cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
-    document.getElementById('progresoTexto').textContent =
-      `${cuenta.hechas} ${t('de')} ${cuenta.total}`;
+    ponerProgreso(`${cuenta.hechas} ${t('de')} ${cuenta.total}`);
     document.getElementById('barra').style.width =
       (cuenta.total ? cuenta.hechas / cuenta.total * 100 : 0) + '%';
   }
@@ -4602,7 +4857,7 @@ function pintarLista() {
 
     tarjeta.innerHTML = `
       ${botonPrio}
-      <div class="check">✓</div>
+      <div class="check">${TRAZO_CHECK}</div>
       <div class="tarea-info">
         <div class="tarea-texto"></div>
       </div>
@@ -4618,7 +4873,11 @@ function pintarLista() {
     // escrita como "app de <algo>" se rompería. textContent lo trata como texto
     // y punto. Es la costumbre correcta con cualquier texto que venga de fuera
     // del código.
-    tarjeta.querySelector('.tarea-texto').textContent = item.texto;
+    // Desde la v26 el texto va dentro de un <span>: es el que lleva la raya
+    // del tachado (ver ".tarea-texto span" en el CSS).
+    const renglones = document.createElement('span');
+    renglones.textContent = item.texto;
+    tarjeta.querySelector('.tarea-texto').appendChild(renglones);
 
     // Si la idea tiene contexto escrito, se asoma debajo del título. Así la
     // reconoces sin abrirla, que es justo el problema que la nota vino a
@@ -4631,8 +4890,26 @@ function pintarLista() {
     }
 
     const marcar = () => {
-      tareaRecienMovida = item.hecha ? null : item.id;   // solo al completarla
-      alternarTarea(item.id);
+      // Desmarcar, o con "reducir movimiento" activado: como siempre, sin pausa.
+      if (item.hecha || menosMovimiento()) {
+        tareaRecienMovida = item.hecha ? null : item.id;   // solo al completarla
+        alternarTarea(item.id);
+        return;
+      }
+      // Marcar (v26): primero se tacha AQUÍ, donde la tocaste, y después se va
+      // al final de la lista. Si se reordenara en el acto, la raya se dibujaría
+      // en una tarjeta que ya no está bajo tu dedo y no la verías nunca.
+      // Esta tarjeta se va a tirar en el repintado, así que se le pueden poner
+      // clases a mano sin miedo: pintarLista() la reemplaza de todos modos.
+      tarjeta.classList.add('hecha', 'tachando');
+      tarjeta.querySelector('.check').classList.add('celebrar');
+      // Un segundo toque durante la pausa la desmarcaría antes de terminar
+      // de marcarla. Mientras dura, la tarjeta no escucha.
+      tarjeta.style.pointerEvents = 'none';
+      setTimeout(() => {
+        tareaRecienMovida = item.id;
+        alternarTarea(item.id);
+      }, PAUSA_TACHADO);
     };
 
     // El círculo es el ÚNICO sitio que marca. Vale para las dos listas.
@@ -4755,11 +5032,11 @@ function abrirIdea(idTarea) {
   // — el mismo criterio que las flechas de reordenar hábitos.
   document.getElementById('ideaMover').disabled = idea.hecha;
 
-  modalIdea.classList.add('abierto');
+  abrirVentana(modalIdea);
 }
 
 function cerrarIdea() {
-  modalIdea.classList.remove('abierto');
+  cerrarVentana(modalIdea);
   ideaAbierta = null;
 }
 
@@ -4856,6 +5133,18 @@ function refrescarTodo() {
   pintarUltimaCopia();
 }
 
+/* La píldora que se desliza detrás de la opción elegida (v26). Es la misma
+   idea que la de la barra de abajo: un solo marco que viaja, en vez de que
+   cada botón encienda y apague el suyo. El CSS la mueve con --i (en qué
+   posición está); aquí solo se le dice el número.
+   La caja no se redibuja (solo sus botones), por eso el CSS ve el cambio
+   de --i y puede animarlo. Si se redibujara, no habría "antes" desde el
+   cual moverse. -1 = ninguna elegida: se esconde. */
+function ponerPildora(caja, posicion) {
+  caja.style.setProperty('--i', Math.max(posicion, 0));
+  caja.classList.toggle('sin-eleccion', posicion < 0);
+}
+
 /* Dibuja los dos grupos de botones. Se genera desde las listas IDIOMAS y TEMAS
    en vez de escribir cinco botones en el HTML: agregar un idioma mañana es
    agregar un objeto a la lista, sin tocar ni el HTML ni esta función. */
@@ -4869,6 +5158,7 @@ function pintarAjustes() {
     boton.onclick = () => cambiarIdioma(idioma.id);
     cajaIdiomas.appendChild(boton);
   });
+  ponerPildora(cajaIdiomas, IDIOMAS.findIndex(x => x.id === datos.prefs.idioma));
 
   const cajaTemas = document.getElementById('temas');
   cajaTemas.innerHTML = '';
@@ -4879,6 +5169,7 @@ function pintarAjustes() {
     boton.onclick = () => cambiarTema(tema.id);
     cajaTemas.appendChild(boton);
   });
+  ponerPildora(cajaTemas, TEMAS.findIndex(x => x.id === datos.prefs.tema));
 
   document.getElementById('ajusteNombre').value = datos.prefs.nombre || '';
   pintarInsignia();
