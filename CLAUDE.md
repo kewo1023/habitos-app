@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 443 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 192 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 450 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 201 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -537,6 +537,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     vacío → ✓ → ✗ → vacío (`ciclarFecha`). El gesto diario de la lista no
     cambia; el círculo de la lista sigue siendo solo ✓, y tocarlo sobre un
     ✗ lo marca hecho (si al final lo hiciste, lo hiciste).
+    **⚠️ Ampliado en la v27:** el ✗ de HOY también se pone manteniendo
+    oprimido el círculo. Ver Fase 3.14.
   - **Decisión clave:** `datos.fallos` aparte de `datos.registros`, con la
     misma forma. `registros` es la copia de Postgres y `bajarTodo()` la
     reemplaza; aparte, los fallos sobreviven. **Solo local**: no viajan a la
@@ -590,6 +592,33 @@ pantalla, agregarlo a `pruebas-app.js`.
     el mismo sitio se tapan entre sí; escalonarlos (primero la línea, luego
     el borde) es lo que hace que se vean.
   - Todo respeta "reducir movimiento" (CSS y `menosMovimiento()` en JS).
+- **Fase 3.14 — "No logrado" en un gesto (v27)** Salió del uso real: poner
+  un ✗ hoy costaba cinco pasos (calendario, dos toques, bajar, cerrar).
+  **No hay SQL que correr.**
+  - **Mantener oprimido el círculo 0,6 s** pone el ✗ de hoy
+    (`alternarFalloHoy`, sección C, probada). Sobre un ✓ lo cambia a ✗;
+    sobre un ✗ lo deja vacío (no en ✓: para el ✓ está el toque corto).
+  - **Decisión clave: 0,6 s y no 3 s** (Kev propuso 3). Medio segundo es lo
+    que usa iOS en todas las apps; 3 s sin respuesta se sienten como que no
+    funcionó. Safari no deja vibrar a una web, así que la respuesta es un
+    **anillo rojo** que se llena (`.check.sosteniendo`, `@property
+    --llenado`). Espera 0,15 s antes de empezar: el toque diario nunca
+    muestra rojo.
+  - `prepararToqueLargo()` (E1) se cancela si el dedo se mueve más de 10px
+    (empezó un scroll) o se levanta antes. El click que el navegador manda
+    al soltar se ignora durante 700 ms (`ultimoToqueLargo`); sin eso el ✗
+    se volvía ✓ en el mismo gesto.
+  - Solo el círculo, como pidió Kev. Descartados: que el toque cicle ✓ → ✗
+    (corregir un ✓ costaría dos toques) y un botón ✗ en modo edición (no
+    cabe un cuarto botón).
+  - **"Cerrar" arriba en el calendario**, pegajoso (`position: sticky`):
+    se queda visible aunque bajes al mapa del año. El de abajo se conserva.
+  - **Bug de la v26 que encontró Kev en el iPhone:** la píldora de los
+    selectores se desbordaba. `* { box-sizing: border-box }` **no alcanza a
+    `::before`/`::after`**; la píldora medía su borde por fuera. Se arregló
+    solo en ella (cambiar el reset tocaría la franja de importancia y los
+    íconos). **Regla que se lleva:** un pseudo-elemento con borde y ancho
+    calculado necesita su propio `box-sizing`.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -624,7 +653,11 @@ octubre de 2026 y comprobada en el sitio en vivo; falta probarla en el iPhone.
 Ninguna de las v21 a v25 necesitó SQL.
 **`v26`** (animaciones, Fase 3.13), commit `a0931e1`, publicada el 15 de
 octubre de 2026 después de que Kev la aprobara en la maqueta. Comprobada en
-el sitio en vivo; falta probarla en el iPhone. Tampoco necesitó SQL.
+el sitio en vivo. Kev la probó en el iPhone y encontró el desborde de la
+píldora (arreglado en la v27). Tampoco necesitó SQL.
+**`v27`** ("no logrado" manteniendo oprimido, Cerrar arriba en el
+calendario y el arreglo de la píldora, Fase 3.14), publicada el 15 de
+octubre de 2026. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

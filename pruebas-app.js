@@ -121,7 +121,7 @@ eval(script + `
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
-    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario
+    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -835,6 +835,11 @@ function pruebasDeArranque() {
 //     haciendo lo correcto mientras duran.
 // ===========================================================================
 async function pruebasDeMovimiento() {
+  // La sección 10 deja puesta una nube de mentira que solo sabe bajar datos.
+  // Aquí hay esperas largas (el toque largo) y la cola alcanzaría a querer
+  // subir contra ella. Se quita: estas pruebas son de pantalla, no de nube.
+  app.nube = null;
+
   // --- La píldora de los selectores de Ajustes
   app.cambiarVista('habitos');
   app.cambiarTema('claro');
@@ -874,6 +879,48 @@ async function pruebasDeMovimiento() {
   ok('con "reducir movimiento" se cierra de golpe, como antes',
      !$('modalCal').classList.contains('cerrando'));
   pideMenosMovimiento = false;
+
+  // --- v27: mantener oprimido el círculo = no logrado
+  const espera = ms => new Promise(listo => setTimeout(listo, ms));
+  const hab = app.datos.habitos[0];
+  // Las tarjetas salen en el orden de datos.habitos: la primera es la suya.
+  const circulo = () => $('lista').children[0].querySelector('.check');
+  const fallaHoy = () => (app.datos.fallos[app.hoy()] || []).includes(hab.id);
+  if (app.estaHecho(hab.id, app.hoy())) app.alternarHoy(hab.id);   // hoy vacío
+
+  let el = circulo();
+  el.dispatchEvent({ type: 'pointerdown', clientX: 0, clientY: 0 });
+  ok('al apoyar el dedo empieza el anillo', el.classList.contains('sosteniendo'));
+  el.dispatchEvent({ type: 'pointerup' });
+  ok('soltar antes de tiempo lo apaga', !el.classList.contains('sosteniendo'));
+  await espera(app.TOQUE_LARGO + 30);
+  ok('y no marca nada: fue un toque normal', !fallaHoy());
+
+  el = circulo();
+  el.dispatchEvent({ type: 'pointerdown', clientX: 0, clientY: 0 });
+  el.dispatchEvent({ type: 'pointermove', clientX: 2, clientY: 30 });   // empezó un scroll
+  await espera(app.TOQUE_LARGO + 30);
+  ok('si el dedo se mueve (scroll), no cuenta como toque largo', !fallaHoy());
+
+  el = circulo();
+  el.dispatchEvent({ type: 'pointerdown', clientX: 0, clientY: 0 });
+  await espera(app.TOQUE_LARGO + 30);
+  ok('sostenerlo el tiempo completo lo deja no logrado', fallaHoy());
+  el.click();   // el "click" que el navegador manda al soltar el dedo
+  ok('el click al soltar no convierte el ✗ en ✓',
+     fallaHoy() && !app.estaHecho(hab.id, app.hoy()));
+  ok('el ✗ recién puesto sacude el círculo', circulo().classList.contains('negar'));
+
+  el = circulo();
+  el.dispatchEvent({ type: 'pointerdown', clientX: 0, clientY: 0 });
+  await espera(app.TOQUE_LARGO + 30);
+  ok('sostenerlo otra vez quita el ✗', !fallaHoy() && !app.estaHecho(hab.id, app.hoy()));
+
+  // --- v27: "Cerrar" también arriba en el calendario
+  app.abrirCalendario(hab.id);
+  $('calCerrarArriba').click();
+  ok('el Cerrar de arriba cierra el calendario', !$('modalCal').classList.contains('abierto'));
+  await espera(230);
 
   // --- El tachado: primero se tacha donde la tocaste, luego se va abajo
   app.cambiarVista('pendientes');

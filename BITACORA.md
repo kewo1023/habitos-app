@@ -1770,6 +1770,30 @@ va es verlo en el teléfono.
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue siendo
       lo más urgente.
 
+## 2026-10-15 — "No logrado" manteniendo oprimido (v27)
+
+**Hecho**
+
+- Kev probó la v26 en el iPhone y mandó captura: la píldora de Idioma y
+  Apariencia se desbordaba. Causa: el reset `* { box-sizing: border-box }`
+  no se aplica a los pseudo-elementos, y la píldora es un `::before`. Se
+  midió contra el botón (97,7 × 39 px y 149,5 × 39 px, exactos).
+- Pidió marcar "no logrado" más rápido y propuso sostener el círculo 3 s.
+  Se evaluó: la idea sí, los 3 s no (iOS usa medio segundo). Quedó en
+  **0,6 s con un anillo rojo** que se llena mientras sostienes.
+- "Cerrar" arriba en el calendario, pegado al borde mientras bajas.
+- Pruebas: **450** y **201**. Se rompieron a propósito el filtro del click,
+  la cancelación por scroll y el Cerrar de arriba: las tres se pusieron en
+  rojo.
+
+**Pendiente / siguiente**
+
+- [ ] Probar en el iPhone el toque largo: sobre todo que hacer scroll con el
+      dedo encima de un círculo NO ponga un ✗, y que iOS no saque la lupa.
+- [ ] Los puntos grises sobre una tarjeta verde casi no se ven (sigue
+      abierto desde la v26).
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
+
 ---
 
 <!-- Plantilla para la próxima entrada:

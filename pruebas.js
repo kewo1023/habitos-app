@@ -25,6 +25,7 @@ global.crypto = require('crypto').webcrypto;
 global.pintar = () => {};        // en el test no dibujamos nada
 global.pintarLista = () => {};   // lo mismo para pendientes e ideas
 global.habitoRecienMarcado = null;   // la marca de "anima este círculo"; aquí no hay círculo
+global.habitoRecienFallado = null;   // lo mismo para el ✗ (v27)
 
 // El confeti no se puede probar (no hay pantalla), pero sí se puede contar
 // cuántas veces se pidió lanzarlo. Eso es lo que de verdad importa: que salga
@@ -39,7 +40,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1333,6 +1334,26 @@ ok('hoy quedó no logrado', ctx.esFallo(hIng, ctx.hoy()));
 ctx.alternarHoy(hIng);                             // el círculo de la lista
 ok('tocar el círculo lo marca como hecho', ctx.estaHecho(hIng, ctx.hoy()));
 ok('y borra el no logrado: un día no es las dos cosas', !ctx.esFallo(hIng, ctx.hoy()));
+
+// --- v27: mantener oprimido el círculo = alternarFalloHoy()
+// vacío o ✓ → ✗, y ✗ → vacío. Nunca pasa por el ✓.
+limpio();
+ctx.agregarHabito('Correr', '🏃');
+const hLargo = ctx.datos.habitos[0].id;
+ctx.alternarFalloHoy(hLargo);
+ok('mantener oprimido un hábito vacío lo deja no logrado', ctx.esFallo(hLargo, ctx.hoy()));
+ctx.alternarFalloHoy(hLargo);
+ok('otra vez lo deja vacío, no en ✓', !ctx.esFallo(hLargo, ctx.hoy()) && !ctx.estaHecho(hLargo, ctx.hoy()));
+ctx.alternarHoy(hLargo);                           // ✓ con el toque corto
+ctx.alternarFalloHoy(hLargo);                      // y luego mantener oprimido
+ok('sobre un ✓ lo cambia a ✗', ctx.esFallo(hLargo, ctx.hoy()));
+ok('y quita el ✓: un día no es las dos cosas', !ctx.estaHecho(hLargo, ctx.hoy()));
+ok('quitar el ✓ se encola para la nube, igual que desmarcar',
+   ctx.datos.pendientes.some(x => x.tipo === 'desmarcar' && x.id === hLargo));
+marcarDias(hLargo, 4, 1);                          // 4 seguidos hasta ayer
+ok('con hoy en ✗ la racha es 0 (regla de la v25)', ctx.calcularRacha(hLargo) === 0);
+ctx.alternarFalloHoy(hLargo);
+ok('al quitar el ✗ la racha vuelve a contar hasta ayer', ctx.calcularRacha(hLargo) === 4);
 
 // Un fallo rompe la racha igual que un día vacío: ninguna fórmula cambia.
 limpio();

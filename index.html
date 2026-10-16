@@ -467,6 +467,53 @@ header { margin-bottom: 22px; }
    luego aparece el trazo encima. Si fueran a la vez, el ojo no ve el trazo. */
 .check.celebrar svg { animation: trazar-check .32s cubic-bezier(.4,0,.2,1) .08s backwards; }
 
+/* --- El anillo de "mantener oprimido" (v27) ---
+   Mientras sostienes el dedo, un anillo rojo se llena alrededor del círculo;
+   cuando se cierra, queda el ✗. Es la respuesta que dice "te estoy
+   escuchando, sigue": sin ella no sabrías si el gesto funciona.
+
+   Espera .15s antes de empezar a llenarse. Un toque normal dura menos que
+   eso, así que el toque de todos los días nunca muestra ni un pedacito rojo.
+
+   Cómo se llena: conic-gradient pinta un "pastel" de color hasta el ángulo
+   --llenado y transparente después; la máscara le quita el centro y deja
+   solo el aro. Para que un ángulo dentro de un degradado se pueda animar,
+   el navegador tiene que saber que ES un ángulo: eso declara @property. */
+@property --llenado {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes llenar-anillo { to { --llenado: 360deg; } }
+
+.check.sosteniendo::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(var(--fallo) var(--llenado), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 64%, var(--fallo) 66%);
+          mask: radial-gradient(circle, transparent 64%, var(--fallo) 66%);
+  animation: llenar-anillo .45s linear .15s both;
+  pointer-events: none;
+}
+
+/* El círculo no debe abrir la lupa ni el menú de copiar de iOS al sostenerlo:
+   esos son los "mantener oprimido" del sistema y le ganarían al nuestro. */
+.check {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+          user-select: none;
+}
+
+/* El ✗ recién puesto: un sacudón de lado a lado, el "no" con la cabeza. */
+@keyframes negar {
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+.check.negar { animation: negar .32s ease-out; }
+
 /* --- El confeti del día completo ---
    Vive en una capa fija encima de todo. pointer-events: none la vuelve
    invisible al dedo: es decoración, los toques la atraviesan y llegan a la
@@ -624,6 +671,7 @@ header { margin-bottom: 22px; }
   .hito.visible .hito-tarjeta,
   .hito-anillo,
   .check.celebrar svg,
+  .check.negar,
   .tarea.tachando .tarea-texto span,
   .numero-cambia,
   .btn-mas.girando,
@@ -736,6 +784,13 @@ body.editando .panel-datos { display: block; }
   width: calc((100% - (var(--n) - 1) * 6px) / var(--n));
   border: 1.5px solid var(--acento);
   border-radius: 11px;
+  /* El reset de arriba (* { box-sizing: border-box }) NO alcanza a los
+     pseudo-elementos: el asterisco solo elige elementos de verdad, y
+     ::before no lo es. Sin esta línea el borde se sumaba POR FUERA del
+     ancho: la píldora medía 3px más que el botón y, como cada salto se mide
+     con su propio ancho, en la segunda opción se corría 3px más. En el Mac
+     no se notaba; en el iPhone, Kev lo vio desbordado (v27). */
+  box-sizing: border-box;
   transform: translateX(calc(var(--i, 0) * (100% + 6px)));
   transition: transform .4s cubic-bezier(.3, 1.35, .5, 1);
   pointer-events: none;
@@ -1405,6 +1460,36 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
 .cal-cabecera h2 { margin-bottom: 2px; }
 
+/* La barra del "Cerrar" de arriba (v27). position: sticky la deja pegada al
+   borde de arriba de la ventana mientras su contenido se desplaza: la
+   ventana del calendario tiene su propio scroll (.modal, max-height 92vh)
+   y "sticky" se pega al borde de quien hace scroll. Lleva el fondo de la
+   tarjeta para que lo que pasa por debajo no se vea a través.
+   Los márgenes negativos le quitan altura a cuenta del padding de la
+   ventana: el botón necesita 44px de zona de toque (lección de la v22),
+   pero la barra no tiene por qué empujar el calendario 44px hacia abajo. */
+.cal-barra {
+  position: sticky;
+  top: -26px;                 /* el padding de arriba de .modal */
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  margin: -18px -8px 0;
+  padding-top: 8px;
+  background: var(--tarjeta);
+}
+
+.cal-cerrar-arriba {
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  color: var(--acento);
+  font-family: inherit;
+  font-size: 16px; font-weight: 600;
+  cursor: pointer;
+}
+
 .cal-titulo-caja { flex: 1; min-width: 0; text-align: center; }
 
 .cal-mes {
@@ -1778,6 +1863,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
        Los días se generan desde JavaScript, por eso calGrid va vacío. -->
   <div class="fondo-modal" id="modalCal">
     <div class="modal">
+      <!-- "Cerrar" arriba (v27), pegado al borde mientras bajas. El de abajo
+           se queda: es donde termina el dedo después de ver el mapa del año. -->
+      <div class="cal-barra">
+        <button class="cal-cerrar-arriba" id="calCerrarArriba" data-t="cerrar">Cerrar</button>
+      </div>
       <div class="cal-cabecera">
         <button class="cal-flecha" id="calAtras">‹</button>
         <div class="cal-titulo-caja">
@@ -2639,6 +2729,32 @@ function ciclarFecha(idHabito, fecha) {
   return true;
 }
 
+/* "No logrado" HOY desde la lista (v27): lo que hace mantener oprimido el
+   círculo. Antes costaba cinco pasos (abrir el calendario, tocar el día dos
+   veces, bajar, cerrar), y es el segundo estado que más importa.
+   Va y viene entre dos estados, sin pasar por el ✓:
+
+       vacío o ✓  →  ✗          ✗  →  vacío
+
+   Si hoy estaba ✓, se desmarca primero por alternarFecha() y no por un
+   atajo: así el cambio se sube a la nube, igual que en ciclarFecha().
+   Quitar un ✗ lo deja vacío y no en ✓: si sostienes el dedo para deshacer,
+   es que te equivocaste de hábito, no que lo hiciste. Para el ✓ está el
+   toque corto. */
+function alternarFalloHoy(idHabito) {
+  const fecha = hoy();
+  if (esFallo(idHabito, fecha)) {                    // ✗ → vacío
+    ponerFallo(idHabito, fecha, false);
+  } else {                                            // vacío o ✓ → ✗
+    if (estaHecho(idHabito, fecha)) alternarFecha(idHabito, fecha);
+    ponerFallo(idHabito, fecha, true);
+    habitoRecienFallado = idHabito;                   // para su animación
+  }
+  guardar();
+  pintar();
+  return true;
+}
+
 // Marcar hoy pasa a ser un caso particular de lo anterior.
 function alternarHoy(idHabito) {
   return alternarFecha(idHabito, hoy());
@@ -3135,6 +3251,8 @@ const lista = document.getElementById('lista');
 // puesta, la animación volvería a salir al cambiar de idioma o al sincronizar,
 // que también repintan.
 let habitoRecienMarcado = null;
+// Lo mismo para el ✗ que se pone manteniendo oprimido (v27).
+let habitoRecienFallado = null;
 
 /* Traduce todo lo que está escrito directamente en el HTML.
 
@@ -3262,9 +3380,20 @@ function pintar() {
       // Y su racha sube con el mismo gesto que el "3 de 5" de arriba (v26).
       tarjeta.querySelector('.racha').classList.add('numero-cambia');
     }
+    // El ✗ recién puesto da un sacudón corto, el "no" de la cabeza (v27).
+    if (h.id === habitoRecienFallado) {
+      tarjeta.querySelector('.check').classList.add('negar');
+    }
 
-    // Tocar la tarjeta = marcar/desmarcar
-    tarjeta.querySelector('.check').onclick = () => alternarHoy(h.id);
+    // Tocar el círculo = marcar/desmarcar. Mantenerlo oprimido = no logrado.
+    // El toque corto se ignora justo después de un toque largo: al soltar el
+    // dedo el navegador manda igual su "click", y sin este filtro el ✗ recién
+    // puesto se convertiría en ✓ en el mismo gesto.
+    tarjeta.querySelector('.check').onclick = () => {
+      if (Date.now() - ultimoToqueLargo < 700) return;
+      alternarHoy(h.id);
+    };
+    prepararToqueLargo(tarjeta.querySelector('.check'), () => alternarFalloHoy(h.id));
     tarjeta.querySelector('.habito-info').onclick = () => {
       if (!document.body.classList.contains('editando')) alternarHoy(h.id);
     };
@@ -3304,6 +3433,7 @@ function pintar() {
   // Ya se dibujó con su animación. Se limpia para que el siguiente repintado
   // no la repita — mismo cierre que pintarLista() hace con tareaRecienMovida.
   habitoRecienMarcado = null;
+  habitoRecienFallado = null;
 }
 
 /* ---------- E1. AYUDANTES DE MOVIMIENTO (v26) ----------
@@ -3331,6 +3461,51 @@ function reiniciarAnimacion(elemento, clase) {
   elemento.classList.remove(clase);
   void elemento.offsetWidth;
   elemento.classList.add(clase);
+}
+
+/* Mantener oprimido (v27): el círculo de un hábito marca "no logrado".
+   Cómo se distingue de un toque normal, sin librerías:
+     - al apoyar el dedo (pointerdown) arranca un temporizador
+     - si el dedo se levanta, se va del círculo o se mueve más de 10px
+       antes de tiempo, se cancela. Lo de moverse es lo importante: si
+       apoyaste el dedo en el círculo para hacer scroll, no es un toque largo.
+     - si el temporizador llega al final, es un toque largo.
+   0,6s y no 3s: medio segundo es lo que iOS usa para mantener oprimido en
+   todas las apps, y el dedo ya lo conoce. 3s sin respuesta se sienten
+   como que no funcionó.
+   Coincide con el CSS: .15s de espera + .45s del anillo (.check.sosteniendo). */
+const TOQUE_LARGO = 600;
+let ultimoToqueLargo = 0;
+
+function prepararToqueLargo(elemento, alCumplirse) {
+  let reloj = null;
+  let inicioX = 0, inicioY = 0;
+
+  const cancelar = () => {
+    clearTimeout(reloj);
+    reloj = null;
+    elemento.classList.remove('sosteniendo');
+  };
+
+  elemento.addEventListener('pointerdown', ev => {
+    inicioX = ev.clientX; inicioY = ev.clientY;
+    elemento.classList.add('sosteniendo');   // el CSS dibuja el anillo
+    reloj = setTimeout(() => {
+      reloj = null;
+      ultimoToqueLargo = Date.now();
+      elemento.classList.remove('sosteniendo');
+      alCumplirse();
+    }, TOQUE_LARGO);
+  });
+  elemento.addEventListener('pointermove', ev => {
+    if (reloj && Math.hypot(ev.clientX - inicioX, ev.clientY - inicioY) > 10) cancelar();
+  });
+  elemento.addEventListener('pointerup', cancelar);
+  elemento.addEventListener('pointercancel', cancelar);   // iOS empezó un scroll
+  elemento.addEventListener('pointerleave', cancelar);
+  // En el Mac, mantener oprimido con el trackpad abre el menú del clic
+  // derecho. Aquí no hay nada que mostrar en ese menú.
+  elemento.addEventListener('contextmenu', ev => ev.preventDefault());
 }
 
 // Las ventanas que suben desde abajo (nuevo hábito, calendario, idea).
@@ -4097,6 +4272,7 @@ function mostrarAyuda(texto) {
 document.getElementById('calAtras').onclick    = () => moverMes(-1);
 document.getElementById('calAdelante').onclick = () => moverMes(1);
 document.getElementById('calCerrar').onclick   = cerrarCalendario;
+document.getElementById('calCerrarArriba').onclick = cerrarCalendario;
 
 // Tocar el fondo oscuro (no la tarjeta) también cierra
 document.getElementById('modalCal').onclick = ev => {
