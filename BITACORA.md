@@ -1821,6 +1821,34 @@ va es verlo en el teléfono.
       cambiar emoji, que siguen siendo cuadros del sistema.
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
 
+## 2026-10-15 — Cierre de la sesión (v26 a v28)
+
+**Hecho**
+
+- Tres versiones publicadas en el día, todas sin SQL: `v26` animaciones
+  (commit `a0931e1`), `v27` "no logrado" manteniendo oprimido y Cerrar
+  arriba en el calendario (`c84e7b1`), `v28` cuadro de confirmar propio,
+  markdown en las ideas y semáforo de importancia (`9583a02`). Las tres
+  comprobadas en el sitio en vivo; la v26 además probada en el iPhone (de
+  ahí salió el desborde de la píldora que arregló la v27).
+- Forma de trabajo que funcionó: evaluar antes de construir, y para lo
+  visual, una **maqueta** publicada como página privada de claude.ai con
+  datos de ejemplo, para probar en el iPhone antes de tocar GitHub Pages.
+- Pruebas al cerrar: **473** y **213**, todas en verde. Árbol de git limpio
+  antes de esta entrada.
+
+**Pendiente / siguiente** (en orden de urgencia)
+
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue
+      siendo lo más urgente (lista en la entrada del 15 de septiembre).
+- [ ] Probar en el iPhone la v27 y la v28: hacer scroll con el dedo sobre un
+      círculo NO debe poner un ✗; el cuadro de borrar; marcar una casilla
+      de una nota; que la barra B · ☐ no cierre el teclado.
+- [ ] Siguiente tanda posible: reemplazar los `prompt()` de renombrar y
+      cambiar emoji por cuadros propios.
+- [ ] Abiertos sin prisa: los puntos grises sobre una tarjeta verde casi no
+      se ven; la tabla para Excel no distingue ✗ de vacío.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

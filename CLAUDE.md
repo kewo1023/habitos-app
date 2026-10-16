@@ -692,7 +692,8 @@ píldora (arreglado en la v27). Tampoco necesitó SQL.
 calendario y el arreglo de la píldora, Fase 3.14), publicada el 15 de
 octubre de 2026. Sin SQL.
 **`v28`** (cuadro de confirmar, markdown en las ideas y semáforo, Fase
-3.15), publicada el 15 de octubre de 2026. Sin SQL.
+3.15), commit `9583a02`, publicada el 15 de octubre de 2026 y comprobada
+en el sitio en vivo; falta probar la v27 y la v28 en el iPhone. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
