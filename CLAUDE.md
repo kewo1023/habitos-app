@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 572 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 274 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 586 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 290 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -788,6 +788,30 @@ pantalla, agregarlo a `pruebas-app.js`.
     de cada 7 días.
   - Sin "hasta cuándo": una semanal que se termina se borra. Al reactivar
     Supabase, la tabla de fechas (Paso 9) necesitará la columna `cada`.
+- **Fase 3.19 — Quitar emojis y volver a hoy (v32)** Pedido de Kev el 17
+  de octubre, evaluado y construido el mismo día en la rama `v32-fechas`.
+  **No hay SQL que correr.**
+  - **Quitar un emoji lo esconde, no lo borra.** Enlace "Editar" junto a
+    ÍCONO (decisión de Kev, frente a mantener oprimido): pone una ✕ en cada
+    emoji y esconde la casilla "+". Se pueden quitar **también los seis de
+    siempre**. Las fechas que lo usan lo conservan (al abrirlas sale en la
+    casilla "+", marcado). Volver a escribirlo en el "+" lo devuelve.
+  - `datos.prefs.emojisOcultos`: de este teléfono, no viaja. **Trampa:**
+    `{ ...PREFS_POR_DEFECTO }` copia la caja, no la lista de adentro; un
+    `push` cambiaría también la lista por defecto. `ocultarEmoji()` y
+    `mostrarEmoji()` (D3) siempre crean una lista nueva, y hay un test que
+    lo vigila.
+  - Una fecha nueva arranca con el **primer emoji visible**, no con el 📌
+    si lo quitaste.
+  - **Hoy en amarillo** en el calendario de Fechas: aro de 2px de
+    `--celebrar` y un tinte suave, con el número en el color del texto (un
+    número amarillo no se lee en el tema claro). Va entre `.con-fecha` y
+    `.elegido` en el CSS; un test vigila el orden. El calendario de cada
+    hábito no cambió.
+  - **Botón "Hoy"** junto al nombre del mes, solo si miras otro mes
+    (`esOtroMes`, D3). Te devuelve al mes **y elige hoy**. Medido a 375px:
+    con "Septiembre de 2026" quedan 13px de aire a cada lado. Su zona de
+    toque llega a 44px con un `::after`, sin agrandar la cabecera.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -844,6 +868,8 @@ día y comprobada en el sitio en vivo; falta probarla en la app instalada. Sin S
 la rama `v31-fechas` el 17 de octubre de 2026. Commit `933e23b`,
 publicada el mismo día (merge a `main`) y comprobada en el sitio en vivo;
 falta probarla en la app instalada. Sin SQL.
+**`v32`** (quitar emojis y volver a hoy, Fase 3.19), construida en la rama
+`v32-fechas` el 17 de octubre de 2026. **Sin publicar** todavía. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

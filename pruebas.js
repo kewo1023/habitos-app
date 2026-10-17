@@ -41,7 +41,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1015,6 +1015,13 @@ ok('el mapa del año sigue con la ✗ sobre fondo vacío, sin relleno rojo',
 // teñido en vez de lleno.
 const reglaConFecha = (/#fechasGrid \.cal-dia\.con-fecha\s*\{([^}]*)\}/.exec(cuerpoCss) || [])[1] || '';
 ok('en Fechas, un día con algo se tiñe de azul', /color-mix\(in srgb, var\(--acento\)/.test(reglaConFecha));
+// Hoy en amarillo (v32), entre el teñido y el elegido.
+const reglaHoyFechas = (/#fechasGrid \.cal-dia\.hoy\s*\{([^}]*)\}/.exec(cuerpoCss) || [])[1] || '';
+ok('en Fechas, hoy lleva aro amarillo', /border:\s*2px solid var\(--celebrar\)/.test(reglaHoyFechas));
+ok('y va después del teñido azul (si hoy tiene algo, se ve amarillo)',
+   cuerpoCss.indexOf('#fechasGrid .cal-dia.hoy {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.con-fecha {'));
+ok('y antes del elegido (hoy elegido se rellena de azul)',
+   cuerpoCss.indexOf('#fechasGrid .cal-dia.elegido {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.hoy {'));
 ok('y el día elegido le gana (va después en el CSS)',
    cuerpoCss.indexOf('#fechasGrid .cal-dia.elegido {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.con-fecha {'));
 ok('los dos temas definen las mismas variables',
@@ -1696,6 +1703,31 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
      ctx.emojisParaFechas(usadas).join() === ctx.EMOJIS_FECHA.concat(['🎓', '🐶']).join());
   ok('sin fechas, la lista son los seis', ctx.emojisParaFechas([]).length === 6);
   ctx.datos.fechas = [];
+}
+
+// ============================================================
+//  QUITAR EMOJIS Y VOLVER A HOY (v32)
+// ============================================================
+{
+  const usadas = [{ emoji: '🎓' }, { emoji: '🐶' }];
+  ok('un emoji oculto no sale en la lista',
+     ctx.emojisParaFechas(usadas, ['🏥', '🎓']).join() === '📌,🎂,💍,💳,✈️,🐶');
+  ok('sin ocultos, la lista es la de la v31', ctx.emojisParaFechas(usadas).length === 8);
+
+  ctx.datos.prefs = { ...ctx.PREFS_POR_DEFECTO };
+  ok('ocultar uno lo anota', ctx.ocultarEmoji('🏥') && ctx.datos.prefs.emojisOcultos.join() === '🏥');
+  ok('ocultarlo dos veces no lo repite', !ctx.ocultarEmoji('🏥') && ctx.datos.prefs.emojisOcultos.length === 1);
+  // La trampa de la copia superficial: si ocultarEmoji hiciera push, la
+  // lista "por defecto" también tendría el 🏥 y cualquier dato nuevo
+  // arrancaría con él escondido.
+  ok('la lista por defecto no se toca', ctx.PREFS_POR_DEFECTO.emojisOcultos.length === 0);
+  ok('mostrarlo lo devuelve', ctx.mostrarEmoji('🏥') && ctx.datos.prefs.emojisOcultos.length === 0);
+  ok('mostrar uno que no estaba oculto no hace nada', !ctx.mostrarEmoji('🎂'));
+  ok('se guarda en el teléfono', JSON.parse(localStorage.getItem('habitos-app-v1')).prefs.emojisOcultos.length === 0);
+
+  ok('esOtroMes: el mismo mes no es otro', !ctx.esOtroMes({ anio: 2026, mes: 10 }, '2026-10-17'));
+  ok('otro mes del mismo año sí', ctx.esOtroMes({ anio: 2026, mes: 12 }, '2026-10-17'));
+  ok('el mismo mes de otro año también', ctx.esOtroMes({ anio: 2027, mes: 10 }, '2026-10-17'));
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);

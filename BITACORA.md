@@ -2059,6 +2059,33 @@ va es verlo en el teléfono.
 - [ ] Lo de la entrada anterior sigue en pie (Supabase antes del 14 de
       diciembre, probar v27–v30 en la app instalada).
 
+## 2026-10-17 — Quitar emojis y volver a hoy (v32)
+
+**Hecho**
+
+- Rama `v32-fechas`. `VERSION` subida a `v32`. Sin SQL.
+- Fila de Ícono de una fecha: enlace "Editar" que pone una ✕ en cada
+  emoji para quitarlo de la fila (se esconde; las fechas lo conservan).
+- Calendario de Fechas: hoy en amarillo (aro y tinte) y un chip "Hoy"
+  junto al nombre del mes que aparece solo al mirar otro mes.
+- Revisado en el navegador a 375px, en los dos temas.
+- Pruebas: **586** y **290**, todas en verde. Se rompieron a propósito el
+  `push` de la lista y la condición del botón "Hoy": las dos se ponen rojas.
+- Una prueba falló al principio sin que hubiera bug: suponía que la app
+  estaba en el mes de hoy, pero la prueba anterior la había dejado en
+  noviembre. Se corrigió la prueba, no la app.
+
+**Decisiones de la sesión**
+
+- Kev eligió las cuatro recomendaciones: "Editar" en vez de mantener
+  oprimido, también los seis se pueden quitar, "Hoy" junto al título,
+  amarillo para hoy.
+
+**Pendiente / siguiente**
+
+- [ ] Que Kev pruebe la v32 y decidir si se publica.
+- [ ] Probar la v31 en la app instalada (lo de la entrada anterior).
+
 ---
 
 <!-- Plantilla para la próxima entrada:

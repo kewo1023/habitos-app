@@ -1478,6 +1478,31 @@ body.vista-fechas #cajaProgreso { display: none; }
 .fechas-mes-caja .cal-cabecera { margin-bottom: 10px; }
 .fechas-titulo-mes { font-size: 16px; font-weight: 700; }
 
+/* El título y el botón "Hoy" van en una sola línea, centrados juntos. */
+#vistaFechas .cal-titulo-caja {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+#vistaFechas .cal-titulo-caja .fechas-titulo-mes { white-space: nowrap; }
+
+/* "Hoy" (v32): solo aparece cuando miras otro mes. Amarillo, como el día
+   de hoy al que te lleva. Se ve chico, pero el ::after le agranda la zona
+   de toque hasta los 44px de alto (la lección de la v22), sin agrandar la
+   cabecera. */
+.fechas-volver-hoy {
+  position: relative;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--celebrar);
+  color: var(--sobre-celebrar);
+  font-family: inherit;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+}
+.fechas-volver-hoy::after { content: ''; position: absolute; inset: -11px -6px; }
+.fechas-volver-hoy[hidden] { display: none; }
+
 #fechasGrid .cal-dia { position: relative; color: var(--texto); }
 #fechasGrid .cal-dia.relleno { background: none; cursor: default; }
 
@@ -1504,6 +1529,21 @@ body.vista-fechas #cajaProgreso { display: none; }
   margin-left: -3px;
   border-radius: 50%;
   background: var(--acento);
+}
+/* Hoy (v32): amarillo, el mismo del chip "Hoy" y de la fila de hoy en esta
+   pestaña. Antes era un borde azul, y en un calendario donde el día elegido
+   y los días con algo también son azules, hoy casi no se encontraba.
+   Aro de 2px y un tinte suave; el número queda en el color del texto,
+   porque número amarillo sobre fondo claro casi no se lee (el amarillo del
+   tema claro no llega a 3:1 contra el blanco).
+   Va DESPUÉS de .con-fecha (si hoy tiene algo, gana el tinte amarillo y se
+   queda el puntito azul) y ANTES de .elegido (elegido rellena de azul y no
+   toca el borde: hoy elegido es azul con aro amarillo). Un test lo vigila. */
+#fechasGrid .cal-dia.hoy {
+  border: 2px solid var(--celebrar);
+  background: color-mix(in srgb, var(--celebrar) 22%, var(--tarjeta));
+  color: var(--texto);
+  font-weight: 800;
 }
 #fechasGrid .cal-dia.elegido { background: var(--acento); color: var(--sobre-acento); }
 #fechasGrid .cal-dia.elegido.con-fecha::after { background: var(--sobre-acento); }
@@ -1668,7 +1708,26 @@ body.vista-fechas #cajaProgreso { display: none; }
   gap: 7px;
   margin-bottom: 18px;
 }
-#modalFecha .emoji-op { width: auto; height: auto; aspect-ratio: 1; }
+#modalFecha .emoji-op { width: auto; height: auto; aspect-ratio: 1; position: relative; }
+
+/* Modo quitar (v32): una ✕ en la esquina de cada emoji, como al borrar una
+   app en el iPhone. Es un pseudo-elemento, así que necesita su propio
+   box-sizing (la lección de la v27). El borde del color de la tarjeta la
+   despega del emoji en los dos temas. */
+#modalFecha .emoji-op.quitable::after {
+  content: '✕';
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 20px; height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--tarjeta);
+  background: var(--texto-suave);
+  color: var(--tarjeta);
+  font-size: 10px; font-weight: 700;
+  display: grid; place-items: center;
+}
+#modalFecha .emoji-propio[hidden] { display: none; }
 .emojis-lista { display: contents; }
 
 /* La casilla "+" para un emoji propio (v31). Es un <input>, pero tiene que
@@ -2320,7 +2379,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <div class="fechas-mes-caja">
       <div class="cal-cabecera">
         <button class="cal-flecha" id="fechasAtras" data-aria="mesAnterior">‹</button>
-        <div class="cal-titulo-caja"><div class="fechas-titulo-mes" id="fechasTituloMes"></div></div>
+        <div class="cal-titulo-caja">
+          <div class="fechas-titulo-mes" id="fechasTituloMes"></div>
+          <!-- Solo cuando miras otro mes (v32). Te devuelve a hoy. -->
+          <button class="fechas-volver-hoy" id="fechasVolverHoy" data-t="hoy" hidden>Hoy</button>
+        </div>
         <button class="cal-flecha" id="fechasAdelante" data-aria="mesSiguiente">›</button>
       </div>
       <div class="cal-nombres" id="fechasNombres"></div>
@@ -2506,7 +2569,13 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
         <span id="fechaCadaUnidad"></span>
       </div>
 
-      <span class="etiqueta" data-t="icono">Ícono</span>
+      <!-- "Editar" (v32) pone una ✕ en cada emoji para quitarlo de la fila.
+           Reusa la cabecera del día elegido: etiqueta a la izquierda, enlace
+           a la derecha. -->
+      <div class="fechas-dia-cabecera">
+        <span class="etiqueta" data-t="icono">Ícono</span>
+        <button type="button" class="btn-texto" id="fechaEmojisEditar" data-t="editar">Editar</button>
+      </div>
       <!-- Los botones de emoji los pone el JavaScript en #fechaEmojisLista.
            Esa caja tiene display: contents: para el dibujo es como si no
            existiera, y sus botones quedan en la misma fila que la casilla "+".
@@ -2711,7 +2780,7 @@ const TEXTOS = {
     cada: 'Cada', unidadSemana: 'semana', unidadSemanas: 'semanas', unidadMes: 'mes', unidadMeses: 'meses',
     unidadAnio: 'año', unidadAnios: 'años',
     cadaSemana: 'cada semana', cadaNSemanas: 'cada %n semanas', cadaMes: 'cada mes', cadaNMeses: 'cada %n meses',
-    cadaNAnios: 'cada %n años', otroEmoji: 'Escribir otro emoji',
+    cadaNAnios: 'cada %n años', otroEmoji: 'Escribir otro emoji', quitarEmoji: 'Quitar %e',
     notaFecha: 'Nota', phNotaFecha: 'Idea de regalo, número de póliza, lo que quieras tener a mano.',
     aPendiente: '+ A Pendientes', enPendientes: '✓ En Pendientes',
     proximas: 'Próximas', yaPasaron: 'Ya pasaron', nadaEsteDia: 'Nada este día',
@@ -2860,7 +2929,7 @@ const TEXTOS = {
     cada: 'Every', unidadSemana: 'week', unidadSemanas: 'weeks', unidadMes: 'month', unidadMeses: 'months',
     unidadAnio: 'year', unidadAnios: 'years',
     cadaSemana: 'every week', cadaNSemanas: 'every %n weeks', cadaMes: 'every month', cadaNMeses: 'every %n months',
-    cadaNAnios: 'every %n years', otroEmoji: 'Type another emoji',
+    cadaNAnios: 'every %n years', otroEmoji: 'Type another emoji', quitarEmoji: 'Remove %e',
     notaFecha: 'Note', phNotaFecha: 'Gift idea, policy number, anything you want at hand.',
     aPendiente: '+ To To-do', enPendientes: '✓ In To-do',
     proximas: 'Upcoming', yaPasaron: 'Past', nadaEsteDia: 'Nothing this day',
@@ -3051,7 +3120,10 @@ const CLAVE = 'habitos-app-v1';
 const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia: '',
                             // v30: si la lista de próximas fechas está plegada.
                             // Es de este teléfono, como el tema.
-                            proximasPlegadas: false };
+                            proximasPlegadas: false,
+                            // v32: los emojis que quitaste de la fila de
+                            // Ícono de las fechas. También es de este teléfono.
+                            emojisOcultos: [] };
 
 const datosPorDefecto = {
   version: 1, habitos: [], registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [],
@@ -4302,9 +4374,37 @@ function textoRepite(f) {
 // escribiste tú y siguen en uso en alguna fecha (v31). No se guardan aparte:
 // salen de las fechas, así que si borras la última con 🎓, el 🎓 se va solo.
 // En SQL sería un SELECT DISTINCT emoji FROM fechas.
-function emojisParaFechas(fechas) {
+// Menos los que quitaste (v32), que es un WHERE emoji NOT IN (...).
+function emojisParaFechas(fechas, ocultos = []) {
   const propios = fechas.map(f => f.emoji).filter(e => e && !EMOJIS_FECHA.includes(e));
-  return [...EMOJIS_FECHA, ...new Set(propios)];
+  return [...EMOJIS_FECHA, ...new Set(propios)].filter(e => !ocultos.includes(e));
+}
+
+// ¿El mes que estás mirando es otro que el de este día? Decide si se ve el
+// botón "Hoy" (v32). { anio: 2026, mes: 12 } contra '2026-10-17' -> true.
+function esOtroMes({ anio, mes }, dia) {
+  return anio !== Number(dia.slice(0, 4)) || mes !== Number(dia.slice(5, 7));
+}
+
+// Quitar un emoji de la fila (v32) lo ESCONDE, no lo borra: las fechas que
+// lo usan lo conservan. Volver a escribirlo en la casilla "+" lo devuelve.
+// La lista se reemplaza por una nueva en vez de hacerle push: la de
+// PREFS_POR_DEFECTO se copia con {...}, que copia la caja pero no lo de
+// adentro, y un push cambiaría también la lista "por defecto".
+function ocultarEmoji(emoji) {
+  const ocultos = datos.prefs.emojisOcultos || [];
+  if (ocultos.includes(emoji)) return false;
+  datos.prefs.emojisOcultos = [...ocultos, emoji];
+  guardar();
+  return true;
+}
+
+function mostrarEmoji(emoji) {
+  const ocultos = datos.prefs.emojisOcultos || [];
+  if (!ocultos.includes(emoji)) return false;
+  datos.prefs.emojisOcultos = ocultos.filter(e => e !== emoji);
+  guardar();
+  return true;
 }
 
 function fechasDelDia(fechas, dia) {
@@ -6830,6 +6930,8 @@ let fechaAbierta = null;    // el id de la fecha en la ventana; null = nueva
 let repiteElegido = REPITE.no;
 let emojiFechaElegido = EMOJIS_FECHA[0];
 const campoEmojiPropio = document.getElementById('fechaEmojiPropio');
+// true mientras la fila de emojis está en modo "quitar" (v32).
+let quitandoEmojis = false;
 const campoCada = document.getElementById('fechaCada');
 
 // Un día en palabras, en el idioma de la app: "vie, 24 oct".
@@ -6859,6 +6961,9 @@ function pintarMesFechas() {
   const { anio, mes } = fechasMes;
   document.getElementById('fechasTituloMes').textContent = primeraMayuscula(
     new Date(anio, mes - 1, 1).toLocaleDateString(localeFechas(), { month: 'long', year: 'numeric' }));
+
+  // "Hoy" solo cuando el mes que miras no es el de hoy.
+  document.getElementById('fechasVolverHoy').hidden = !esOtroMes(fechasMes, hoy());
 
   const grid = document.getElementById('fechasGrid');
   grid.innerHTML = '';
@@ -7044,6 +7149,9 @@ function moverMesFechas(paso) {
 document.getElementById('fechasAtras').onclick    = () => moverMesFechas(-1);
 document.getElementById('fechasAdelante').onclick = () => moverMesFechas(1);
 document.getElementById('fechasAgregarDia').onclick = () => abrirFecha(null, diaElegido);
+// Volver al mes de hoy, y elegir hoy: si solo cambiara el mes, la lista de
+// abajo seguiría mostrando un día de otro mes.
+document.getElementById('fechasVolverHoy').onclick = () => irAlDia(hoy());
 document.getElementById('fechasPlegar').onclick = () => {
   datos.prefs.proximasPlegadas = !datos.prefs.proximasPlegadas;
   guardar();
@@ -7068,21 +7176,51 @@ function pintarOpcionesFecha() {
   // (si se redibujara, el teclado se cerraría a mitad de escribir).
   const emojis = document.getElementById('fechaEmojisLista');
   emojis.innerHTML = '';
-  const lista = emojisParaFechas(datos.fechas);
+  const lista = emojisParaFechas(datos.fechas, datos.prefs.emojisOcultos);
   lista.forEach(e => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'emoji-op' + (e === emojiFechaElegido ? ' elegido' : '');
     b.textContent = e;
-    b.onclick = () => { emojiFechaElegido = e; pintarOpcionesFecha(); };
+    if (quitandoEmojis) {
+      // En modo quitar no hay elegido que mostrar: el borde azul competiría
+      // con la ✕, y tocar aquí no elige, quita.
+      b.className = 'emoji-op quitable';
+      b.setAttribute('aria-label', t('quitarEmoji').replace('%e', e));
+      b.onclick = () => quitarEmojiDeLaFila(e);
+    } else {
+      b.className = 'emoji-op' + (e === emojiFechaElegido ? ' elegido' : '');
+      b.onclick = () => { emojiFechaElegido = e; pintarOpcionesFecha(); };
+    }
     emojis.appendChild(b);
   });
-  // Si el elegido no está en la lista, es uno que acabas de escribir: se
-  // queda en la casilla, marcado. Si está, la casilla vuelve a ser un "+".
+  // Si el elegido no está en la lista, es uno que acabas de escribir (o uno
+  // que quitaste y esta fecha todavía usa): se queda en la casilla, marcado.
+  // Si está, la casilla vuelve a ser un "+".
   const propio = !lista.includes(emojiFechaElegido);
   campoEmojiPropio.value = propio ? emojiFechaElegido : '';
   campoEmojiPropio.classList.toggle('elegido', propio);
+  // Mientras quitas, la casilla se esconde: tocarla abriría el teclado.
+  campoEmojiPropio.hidden = quitandoEmojis;
+  const editar = document.getElementById('fechaEmojisEditar');
+  editar.textContent = t(quitandoEmojis ? 'listo' : 'editar');
 }
+
+// Quitar un emoji de la fila. Si era el elegido de una fecha NUEVA, se elige
+// el primero que quede: dejarlo elegido lo mandaría a la casilla "+", justo
+// lo que estás tratando de despejar. En una fecha que ya existe se respeta
+// el suyo: quitarlo de la fila no le cambia el emoji a nadie.
+function quitarEmojiDeLaFila(emoji) {
+  ocultarEmoji(emoji);
+  if (!fechaAbierta && emoji === emojiFechaElegido) {
+    emojiFechaElegido = emojisParaFechas(datos.fechas, datos.prefs.emojisOcultos)[0] || EMOJIS_FECHA[0];
+  }
+  pintarOpcionesFecha();
+}
+
+document.getElementById('fechaEmojisEditar').onclick = () => {
+  quitandoEmojis = !quitandoEmojis;
+  pintarOpcionesFecha();
+};
 
 // La línea "Cada [2] semanas". Escondida si no se repite. La unidad va en
 // singular o plural según el número: "cada 1 semana", "cada 3 semanas".
@@ -7107,6 +7245,8 @@ campoEmojiPropio.addEventListener('input', () => {
   const e = primerEmoji(campoEmojiPropio.value);
   if (e) {
     emojiFechaElegido = e;
+    // Si era uno que quitaste, escribirlo es pedirlo de vuelta (v32).
+    mostrarEmoji(e);
     campoEmojiPropio.blur();
   }
   pintarOpcionesFecha();
@@ -7121,7 +7261,11 @@ function abrirFecha(id, dia) {
   document.getElementById('fechaDia').value    = f ? f.fecha : (dia || diaElegido || hoy());
   document.getElementById('fechaNota').value   = f && f.nota ? f.nota : '';
   repiteElegido     = f ? f.repite : REPITE.no;
-  emojiFechaElegido = f ? f.emoji : EMOJIS_FECHA[0];
+  // Una nueva arranca con el primero que se vea en la fila: si quitaste el
+  // 📌, no tiene sentido que siga siendo el de siempre.
+  emojiFechaElegido = f ? f.emoji
+    : (emojisParaFechas(datos.fechas, datos.prefs.emojisOcultos)[0] || EMOJIS_FECHA[0]);
+  quitandoEmojis = false;
   campoCada.value   = f ? cadaDe(f) : 1;
   document.getElementById('fechaAcciones').hidden = !f;
   const aPendiente = document.getElementById('fechaPendiente');

@@ -1164,6 +1164,54 @@ async function pruebasDeFechas() {
   casilla.dispatchEvent({ type: 'input' });
   ok('escribir uno que ya está en la lista marca su botón, no la casilla',
      casilla.value === '' && botonesEmoji().find(b => b.textContent === '🎂').classList.contains('elegido'));
+  // Quitar emojis de la fila (v32).
+  $('fechaEmojisEditar').onclick();
+  ok('"Editar" pone la fila en modo quitar',
+     botonesEmoji().every(b => b.classList.contains('quitable')) && $('fechaEmojisEditar').textContent === 'Listo');
+  ok('y esconde la casilla "+"', casilla.hidden === true);
+  ok('cada ✕ dice qué quita', botonesEmoji()[0].getAttribute('aria-label') === 'Quitar 📌');
+  const elegidoAntes = botonesEmoji().length;
+  botonesEmoji().find(b => b.textContent === '🏥').onclick();
+  ok('tocar un emoji lo quita de la fila', botonesEmoji().length === elegidoAntes - 1 &&
+     !botonesEmoji().some(b => b.textContent === '🏥'));
+  ok('y queda anotado en el teléfono', JSON.parse(almacen['habitos-app-v1']).prefs.emojisOcultos.includes('🏥'));
+  botonesEmoji().find(b => b.textContent === '📌').onclick();
+  $('fechaEmojisEditar').onclick();
+  ok('"Listo" vuelve a elegir, con la casilla de nuevo', casilla.hidden === false &&
+     botonesEmoji().every(b => !b.classList.contains('quitable')) && $('fechaEmojisEditar').textContent === 'Editar');
+  ok('quitar el elegido de una fecha nueva elige el primero que queda',
+     botonesEmoji()[0].textContent === '🎂' && botonesEmoji()[0].classList.contains('elegido'));
+  casilla.value = '🏥';
+  casilla.dispatchEvent({ type: 'input' });
+  ok('escribir uno que quitaste lo devuelve a la fila', botonesEmoji().some(b => b.textContent === '🏥' && b.classList.contains('elegido'))
+     && !app.datos.prefs.emojisOcultos.includes('🏥'));
+  $('fechaCancelar').onclick();
+  app.abrirFecha(null);
+  ok('una fecha nueva arranca sin el 📌 quitado', botonesEmoji()[0].textContent === '🎂' &&
+     botonesEmoji()[0].classList.contains('elegido'));
+  const graduacion = app.datos.fechas.find(f => f.emoji === '🎓');
+  $('fechaEmojisEditar').onclick();
+  botonesEmoji().find(b => b.textContent === '🎓').onclick();
+  $('fechaCancelar').onclick();
+  app.abrirFecha(graduacion.id);
+  ok('una fecha que usa un emoji quitado lo conserva, en la casilla', graduacion.emoji === '🎓' &&
+     casilla.value === '🎓' && casilla.classList.contains('elegido'));
+  ok('y abre fuera del modo quitar', $('fechaEmojisEditar').textContent === 'Editar');
+  app.datos.prefs.emojisOcultos = [];
+
+  // Hoy en amarillo y el botón "Hoy" (v32).
+  // Lo de arriba guardó el seguro mensual y la app quedó parada en su
+  // próxima vez, en noviembre: ahí el botón SÍ debe verse. Se parte de hoy.
+  ok('parada en otro mes (el del seguro), "Hoy" se ve', $('fechasVolverHoy').hidden === false);
+  app.irAlDia(app.hoy());
+  ok('en el mes de hoy no hay botón "Hoy"', $('fechasVolverHoy').hidden === true);
+  $('fechasAdelante').onclick();
+  ok('al ir a otro mes aparece', $('fechasVolverHoy').hidden === false);
+  ok('y hoy no está en la cuadrícula de ese mes', !$('fechasGrid').children.some(c => c.classList.contains('hoy')));
+  $('fechasVolverHoy').onclick();
+  ok('tocarlo vuelve al mes de hoy y lo elige', $('fechasVolverHoy').hidden === true &&
+     $('fechasGrid').children.some(c => c.classList.contains('hoy') && c.classList.contains('elegido')));
+
   $('fechaCancelar').onclick();
   // De vuelta a Hábitos: el cambio de idioma solo retraduce las pestañas
   // desde ahí (límite conocido de la v19, ver CLAUDE.md).
