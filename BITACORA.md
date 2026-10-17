@@ -1974,6 +1974,57 @@ va es verlo en el teléfono.
       (probar antes si la PWA instalada puede entregarlo).
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
 
+## 2026-10-17 — Cierre de la sesión (v29 y v30)
+
+**Hecho**
+
+- Dos versiones publicadas, las dos sin SQL:
+  - `v29` (commit `9629b33`): sello del día completo con la app
+    difuminada y ola por las tarjetas; "Día completo ✓" en la barra; rojo
+    sólido para el "no logrado" en el calendario del mes.
+  - `v30` (commit `e7f2e74`): pestaña Fechas (mes, día elegido, agenda
+    plegable, cumpleaños que se repiten, "+ A Pendientes"), franja de
+    próximas en Hábitos, barra de abajo sin el "+" redondo, y el arreglo
+    del cuadro de confirmar que salía detrás de la ficha de una idea.
+- Las dos aprobadas por Kev en la maqueta antes de publicar, y las dos
+  comprobadas en el sitio en vivo después del deploy (`VERSION` y el HTML
+  nuevo, con curl).
+- Forma de trabajo nueva que funcionó: revisar la app en el navegador de
+  Claude con el servidor local (`.claude/launch.json`) antes de la maqueta.
+  Atrapó lo que las pruebas no ven: el hueco arriba en Fechas, "Octubre De
+  2026" y la pestaña "Pendientes" cortada.
+- La maqueta ahora es la **app real de la rama con datos de ejemplo**, no
+  una página aparte: lo que Kev aprueba es lo que se publica.
+- Pruebas al cerrar: **527** y **259**, todas en verde. Árbol de git limpio
+  y `main` igual a GitHub antes de esta entrada.
+
+**Decisiones de la sesión**
+
+- La celebración del día completo: se recomendó ola + confeti (el sello en
+  el centro se parece a la medalla del hito); Kev eligió sello + ola con
+  fondo difuminado.
+- Sin "+" en la barra (pedido de Kev): cambia la decisión de la v21. Cada
+  sección tiene su forma de agregar y "Listo" abajo reemplaza al "✓".
+- Dejado fuera de la v30 a propósito: el `.ics` con alarma (no está
+  verificado que la PWA instalada pueda entregarlo).
+
+**Pendiente / siguiente** (en orden de urgencia)
+
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue
+      siendo lo más urgente (lista en la entrada del 15 de septiembre). Las
+      fechas importantes se suman a lo que hoy vive solo en el teléfono.
+- [ ] Probar en la app instalada del iPhone la v29 y la v30 (cerrar la app
+      del todo y abrirla; si no aparece Fechas, una segunda vez). También
+      sigue pendiente probar ahí la v27 y la v28.
+- [ ] Guardar una copia de seguridad después de agregar las fechas reales.
+- [ ] Confirmar con Kev si "compilar los eventos próximos" era plegar la
+      agenda de Fechas (lo que se hizo) o la franja de Hábitos.
+- [ ] Siguiente función posible: el `.ics` con alarma (hay una tarjeta de
+      sesión propuesta para eso).
+- [ ] Abiertos sin prisa: la medalla del hito (sin velo) frente al sello;
+      los `prompt()` de renombrar y cambiar emoji; la tabla para Excel no
+      distingue ✗ de vacío.
+
 ---
 
 <!-- Plantilla para la próxima entrada:
