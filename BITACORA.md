@@ -2089,6 +2089,50 @@ va es verlo en el teléfono.
       y la ✕ de los emojis.
 - [ ] Probar la v31 en la app instalada (lo de la entrada anterior).
 
+## 2026-10-17 — Cierre de la sesión (v31 y v32)
+
+**Hecho**
+
+- Dos versiones publicadas, las dos sin SQL y comprobadas en el sitio en
+  vivo después del deploy (`VERSION` y el HTML nuevo, con curl):
+  - `v31` (commit `933e23b`): casilla "+" para un emoji propio en la
+    ventana de una fecha, y "Se repite" con Semana, Mes y Año más "Cada N".
+  - `v32` (commit `91e533a`): "Editar" para quitar emojis de la fila, hoy
+    en amarillo en el calendario de Fechas y chip "Hoy" al mirar otro mes.
+- Cada una se construyó en su rama (`v31-fechas`, `v32-fechas`), se revisó
+  en el navegador a 375px y se unió a `main` cuando Kev lo pidió. La nota de
+  "comprobada en el sitio en vivo" se commiteó solo después de comprobarlo.
+- Pruebas al cerrar: **586** y **290**, todas en verde. Árbol de git limpio
+  y `main` igual a GitHub. `VERSION` queda en `v32`.
+
+**Decisiones de la sesión**
+
+- El primer pedido ("un botón de más junto al último ícono") se entendió
+  mal: se evaluaron la cabecera del mes y la barra de abajo. Era la fila
+  de emojis. Si una frase admite dos lecturas, preguntar antes de evaluar.
+- En las dos rondas Kev eligió las recomendaciones: "cada N" como
+  personalizado (no un quinto botón), semanales en la franja solo el
+  mismo día, emoji propio que se queda mientras se use, "Editar" en vez de
+  mantener oprimido, "Hoy" junto al título y amarillo para hoy.
+
+**Pendiente / siguiente** (en orden de urgencia)
+
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue
+      siendo lo más urgente (lista en la entrada del 15 de septiembre).
+      Cuando se haga el Paso 9 (tabla de fechas), necesitará la columna
+      `cada`.
+- [ ] Probar la v31 y la v32 en la app instalada del iPhone: el teclado de
+      la casilla "+" (se cambia al de emojis con 😀/🌐), la ✕ de los
+      emojis y el chip "Hoy". Sigue pendiente también probar ahí la v27 a
+      la v30.
+- [ ] Guardar una copia de seguridad después de agregar las fechas reales.
+- [ ] Sin construir, a propósito: "hasta cuándo" para las fechas que se
+      repiten (una semanal que se termina se borra) y "cada N días".
+      Retomar si el uso lo pide.
+- [ ] Abiertos sin prisa (de antes): el `.ics` con alarma; la medalla del
+      hito frente al sello; los `prompt()` de renombrar y cambiar emoji; la
+      tabla para Excel no distingue ✗ de vacío.
+
 ---
 
 <!-- Plantilla para la próxima entrada:
