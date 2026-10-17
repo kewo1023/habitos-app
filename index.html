@@ -935,6 +935,7 @@ body.editando .panel-datos { display: block; }
 
 .segmentado.dos  { grid-template-columns: repeat(2, minmax(0, 1fr)); --n: 2; }
 .segmentado.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); --n: 3; }
+.segmentado.cuatro { grid-template-columns: repeat(4, minmax(0, 1fr)); --n: 4; }
 
 /* La píldora que viaja (v26). Es solo un marco de color ENCIMA de los
    botones: no tapa la letra porque no tiene relleno, y pointer-events: none
@@ -1656,7 +1657,81 @@ body.vista-fechas #cajaProgreso { display: none; }
 
 /* La ventana de una fecha */
 #fechaRepite { margin-top: 0; margin-bottom: 18px; }
-#modalFecha .emojis { margin-bottom: 18px; }
+/* Siete columnas fijas (v31): los seis de siempre y la casilla "+" caben
+   en una fila de iPhone. Con el flex de los hábitos, casillas de 46px, el
+   "+" se caía solo a una segunda fila (7 × 46 + 6 huecos = 370px, y hay
+   335). Los emojis propios que vayas usando bajan a la fila siguiente, en
+   las mismas columnas. aspect-ratio deja cada casilla cuadrada. */
+#modalFecha .emojis {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 18px;
+}
+#modalFecha .emoji-op { width: auto; height: auto; aspect-ratio: 1; }
+.emojis-lista { display: contents; }
+
+/* La casilla "+" para un emoji propio (v31). Es un <input>, pero tiene que
+   verse como una casilla más de la fila: por eso se le quita todo lo que
+   le pone la regla general de los campos de texto (margen, la línea que
+   crece). El borde punteado dice "aquí falta algo". El cursor se esconde
+   (caret-color) porque en una casilla de 42px solo estorba. La letra queda
+   en 22px: con menos de 16px el iPhone haría zoom.
+
+   El "+" NO es el placeholder: Chrome lo dibujaba pegado a la izquierda
+   aunque el campo dijera text-align: center (comprobado en el navegador).
+   Son dos rayitas de degradado cruzadas, el mismo truco de la ✗ del mapa
+   del año, en el gris tenue de los íconos de las pestañas. Solo se ven
+   con la casilla vacía (:placeholder-shown; por eso el placeholder es un
+   espacio: sin placeholder, ese selector no funciona). */
+#modalFecha input.emoji-propio {
+  /* block y no el grid de .emoji-op: en un <input>, display: grid hace que
+     Chrome ignore el text-align y el "+" se iba a la izquierda. */
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 2px dashed var(--borde);
+  border-radius: 13px;
+  background: var(--fondo);
+  background-image: none;
+  font-size: 22px;
+  text-align: center;
+  caret-color: transparent;
+  transition: border-color .2s ease;
+}
+#modalFecha input.emoji-propio:placeholder-shown {
+  background-image:
+    linear-gradient(var(--texto-suave), var(--texto-suave)),
+    linear-gradient(var(--texto-suave), var(--texto-suave));
+  background-size: 16px 2px, 2px 16px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+#modalFecha input.emoji-propio:focus { border-style: solid; border-color: var(--acento); }
+#modalFecha input.emoji-propio.elegido { border-style: solid; border-color: var(--acento); }
+
+/* "Cada [2] semanas" (v31). Una línea, no un bloque: es un detalle de la
+   repetición que eligiste arriba, no una pregunta nueva. */
+.fecha-cada {
+  display: flex; align-items: center; gap: 10px;
+  margin: -6px 0 18px;        /* se pega al selector de arriba: es parte de él */
+  font-size: 15px; color: var(--texto-suave);
+}
+.fecha-cada[hidden] { display: none; }
+#modalFecha .fecha-cada input {
+  width: 64px;
+  padding: 10px 8px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 11px;
+  color: var(--texto);
+  font-size: 16px;        /* 16px: menos y el iPhone hace zoom */
+  font-family: inherit;
+  text-align: center;
+}
+#modalFecha .fecha-cada input:focus { outline: none; border-color: var(--acento); }
 
 /* El campo de fecha. En el iPhone toca abre la rueda de fechas del
    sistema, que es mejor que cualquier calendario que dibujáramos. Dos
@@ -2417,13 +2492,34 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <input type="date" id="fechaDia">
 
       <span class="etiqueta" data-t="seRepite">Se repite</span>
-      <div class="segmentado dos" id="fechaRepite">
+      <div class="segmentado cuatro" id="fechaRepite">
         <button type="button" data-repite="no" data-t="unaVez">Una vez</button>
-        <button type="button" data-repite="anual" data-t="cadaAnio">Cada año</button>
+        <button type="button" data-repite="semanal" data-t="repSemana">Semana</button>
+        <button type="button" data-repite="mensual" data-t="repMes">Mes</button>
+        <button type="button" data-repite="anual" data-t="repAnio">Año</button>
+      </div>
+      <!-- "Cada N" (v31): es el "personalizado". Solo aparece si se repite.
+           inputmode="numeric" le pide al iPhone el teclado de números. -->
+      <div class="fecha-cada" id="fechaCadaFila" hidden>
+        <label for="fechaCada" data-t="cada">Cada</label>
+        <input type="number" id="fechaCada" min="1" max="99" step="1" inputmode="numeric">
+        <span id="fechaCadaUnidad"></span>
       </div>
 
       <span class="etiqueta" data-t="icono">Ícono</span>
-      <div class="emojis" id="fechaEmojis"></div>
+      <!-- Los botones de emoji los pone el JavaScript en #fechaEmojisLista.
+           Esa caja tiene display: contents: para el dibujo es como si no
+           existiera, y sus botones quedan en la misma fila que la casilla "+".
+           La casilla (v31) es un campo de texto disfrazado de botón: al
+           tocarla se abre el teclado y el emoji que escribas pasa a ser el de
+           la fecha. Está fuera de la caja que se redibuja a propósito: si se
+           redibujara en cada tecla, perdería el foco y el teclado se cerraría. -->
+      <div class="emojis" id="fechaEmojis">
+        <span class="emojis-lista" id="fechaEmojisLista"></span>
+        <input type="text" class="emoji-op emoji-propio" id="fechaEmojiPropio"
+               maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false"
+               placeholder=" " data-aria="otroEmoji">
+      </div>
 
       <label class="etiqueta" for="fechaNota" data-t="notaFecha">Nota</label>
       <textarea id="fechaNota" maxlength="500" data-ph="phNotaFecha"
@@ -2611,7 +2707,11 @@ const TEXTOS = {
     // --- Fechas importantes (v30) ---
     tituloNuevaFecha: 'Nueva fecha', tituloFecha: 'Fecha',
     queEs: 'Qué es', phFecha: 'Ej: Cumpleaños de Ana', cuando: 'Cuándo',
-    seRepite: 'Se repite', unaVez: 'Una vez', cadaAnio: 'Cada año',
+    seRepite: 'Se repite', unaVez: 'Una vez', repSemana: 'Semana', repMes: 'Mes', repAnio: 'Año',
+    cada: 'Cada', unidadSemana: 'semana', unidadSemanas: 'semanas', unidadMes: 'mes', unidadMeses: 'meses',
+    unidadAnio: 'año', unidadAnios: 'años',
+    cadaSemana: 'cada semana', cadaNSemanas: 'cada %n semanas', cadaMes: 'cada mes', cadaNMeses: 'cada %n meses',
+    cadaNAnios: 'cada %n años', otroEmoji: 'Escribir otro emoji',
     notaFecha: 'Nota', phNotaFecha: 'Idea de regalo, número de póliza, lo que quieras tener a mano.',
     aPendiente: '+ A Pendientes', enPendientes: '✓ En Pendientes',
     proximas: 'Próximas', yaPasaron: 'Ya pasaron', nadaEsteDia: 'Nada este día',
@@ -2756,7 +2856,11 @@ const TEXTOS = {
     // --- Important dates (v30) ---
     tituloNuevaFecha: 'New date', tituloFecha: 'Date',
     queEs: 'What', phFecha: 'E.g. Ana’s birthday', cuando: 'When',
-    seRepite: 'Repeats', unaVez: 'Once', cadaAnio: 'Every year',
+    seRepite: 'Repeats', unaVez: 'Once', repSemana: 'Week', repMes: 'Month', repAnio: 'Year',
+    cada: 'Every', unidadSemana: 'week', unidadSemanas: 'weeks', unidadMes: 'month', unidadMeses: 'months',
+    unidadAnio: 'year', unidadAnios: 'years',
+    cadaSemana: 'every week', cadaNSemanas: 'every %n weeks', cadaMes: 'every month', cadaNMeses: 'every %n months',
+    cadaNAnios: 'every %n years', otroEmoji: 'Type another emoji',
     notaFecha: 'Note', phNotaFecha: 'Gift idea, policy number, anything you want at hand.',
     aPendiente: '+ To To-do', enPendientes: '✓ In To-do',
     proximas: 'Upcoming', yaPasaron: 'Past', nadaEsteDia: 'Nothing this day',
@@ -4054,8 +4158,13 @@ function estadoInsignia(sePuede, permiso) {
    un hábito: tiene día y puede repetirse cada año, y no se "hace". Por eso
    tiene su propio modelo, igual que las tareas lo tuvieron en la v13:
 
-     datos.fechas = [{ id, titulo, fecha: 'AAAA-MM-DD', repite: 'anual' | 'no',
-                       emoji, nota? }]
+     datos.fechas = [{ id, titulo, fecha: 'AAAA-MM-DD',
+                       repite: 'no' | 'semanal' | 'mensual' | 'anual',
+                       cada?, emoji, nota? }]
+
+   `cada` (v31) es el "cada cuánto": cada 2 semanas, cada 3 meses. Si vale 1
+   no se guarda (mismo criterio que la nota vacía), así que las fechas de la
+   v30, que no lo tienen, siguen siendo exactamente lo que eran.
 
    En SQL sería otra tabla. Por ahora vive solo en el teléfono (y en la copia
    de seguridad), como los "no logrados": la nube está en pausa y una tabla
@@ -4068,7 +4177,12 @@ function estadoInsignia(sePuede, permiso) {
    vez?". Un cumpleaños guardado como 1996-03-14 no cae en 1996: cae el
    próximo 14 de marzo. Casi todas las funciones de aquí responden eso. */
 
-const REPITE = { anual: 'anual', no: 'no' };
+const REPITE = { no: 'no', semanal: 'semanal', mensual: 'mensual', anual: 'anual' };
+// El orden de los botones de la ventana. La píldora se mueve con el índice.
+const ORDEN_REPITE = [REPITE.no, REPITE.semanal, REPITE.mensual, REPITE.anual];
+// El tope de "cada N". Cada 99 semanas ya es casi dos años: más que eso
+// es un error de dedo, no una fecha.
+const CADA_MAXIMO = 99;
 const EMOJIS_FECHA = ['📌', '🎂', '💍', '💳', '✈️', '🏥'];
 const LARGO_TITULO_FECHA = 60;
 const LARGO_NOTA_FECHA = 500;
@@ -4085,41 +4199,112 @@ function esFechaValida(texto) {
   return m >= 1 && m <= 12 && d >= 1 && d <= diasDelMes(a, m);
 }
 
-// En qué día cae una fecha anual en un año dado. El caso raro: alguien que
-// nació un 29 de febrero. En los años que no son bisiestos se celebra el 28.
-// (Google Calendar, en cambio, solo lo muestra en los bisiestos: un
-// cumpleaños que desaparece tres años de cada cuatro no sirve de aviso.)
+// ¿Este valor es una de las repeticiones que existen? Mismo papel que
+// esLista() en la v19: preguntar en vez de suponer.
+function seRepite(f) {
+  return f.repite === REPITE.semanal || f.repite === REPITE.mensual || f.repite === REPITE.anual;
+}
+
+// El "cada cuánto" de una fecha. Sin el campo, o con algo raro, es 1.
+function cadaDe(f) {
+  return Number.isInteger(f.cada) && f.cada >= 1 ? f.cada : 1;
+}
+
+// Un día corrido N días: '2026-10-17' + 7 -> '2026-10-24'. Se hace con la
+// fecha del calendario (setDate), no sumando milisegundos: así el cambio de
+// hora de noviembre no se come un día.
+function sumarDias(dia, n) {
+  const d = new Date(dia + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return claveFecha(d);
+}
+
+// La misma fecha N meses después. El caso raro es un día que no existe en
+// el mes de destino: un pago del 31 cae el 30 en abril y el 28 en febrero.
+// Y alguien que nació un 29 de febrero celebra el 28 en los años que no son
+// bisiestos. (Google Calendar, en cambio, se salta esos meses: un aviso que
+// desaparece de algunos meses no sirve de aviso.)
+function sumarMeses(fecha, n) {
+  const [a, m, d] = fecha.split('-').map(Number);
+  const total = (a * 12 + (m - 1)) + n;          // meses contados desde el año 0
+  const anio = Math.floor(total / 12), mes = total % 12 + 1;
+  const dia = Math.min(d, diasDelMes(anio, mes));
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+// Cuántos meses hay de un día a otro, sin mirar el día: de marzo a octubre, 7.
+function mesesEntre(desde, hasta) {
+  const [a1, m1] = desde.split('-').map(Number);
+  const [a2, m2] = hasta.split('-').map(Number);
+  return (a2 - a1) * 12 + (m2 - m1);
+}
+
+// En qué día cae una fecha anual en un año dado. Es sumarMeses con saltos
+// de 12, así que hereda la regla del 29 de febrero.
 function ocurrenciaEnAnio(fecha, anio) {
-  const [, m, d] = fecha.split('-').map(Number);
-  const dia = Math.min(d, diasDelMes(anio, m));
-  return `${anio}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+  return sumarMeses(fecha, (anio - Number(fecha.slice(0, 4))) * 12);
 }
 
 // La próxima vez que toca, contando desde `desde` (incluido: si es hoy, es
 // hoy). Devuelve null si ya pasó y no se repite.
 // Comparar textos AAAA-MM-DD funciona igual que comparar fechas.
+//
+// La idea de fondo es la misma para las tres repeticiones: cuántos "saltos"
+// caben entre la fecha original y `desde`, redondeando hacia arriba. Un pago
+// que empezó el 5 de marzo, cada 2 meses, mirado el 17 de octubre: entre
+// marzo y octubre hay 7 meses, el múltiplo de 2 que sigue es 8 -> noviembre.
 function proximaOcurrencia(f, desde) {
-  if (f.repite !== REPITE.anual) return f.fecha >= desde ? f.fecha : null;
   // Si la fecha original todavía no llega (un aniversario que se cumple por
-  // primera vez el año que viene), la próxima es esa misma.
+  // primera vez el año que viene), la próxima es esa misma. Vale también
+  // para las que no se repiten.
   if (f.fecha >= desde) return f.fecha;
-  const anio = Number(desde.slice(0, 4));
-  const esteAnio = ocurrenciaEnAnio(f.fecha, anio);
-  return esteAnio >= desde ? esteAnio : ocurrenciaEnAnio(f.fecha, anio + 1);
+  if (!seRepite(f)) return null;
+
+  const cada = cadaDe(f);
+  if (f.repite === REPITE.semanal) {
+    const paso = 7 * cada;
+    return sumarDias(f.fecha, Math.ceil(diasEntre(f.fecha, desde) / paso) * paso);
+  }
+  // Mensual y anual son lo mismo: un año son 12 meses.
+  const paso = f.repite === REPITE.anual ? 12 * cada : cada;
+  let saltos = Math.ceil(mesesEntre(f.fecha, desde) / paso) * paso;
+  // Mismo mes pero el día ya pasó (el 5 mirado desde el 17): un salto más.
+  if (sumarMeses(f.fecha, saltos) < desde) saltos += paso;
+  return sumarMeses(f.fecha, saltos);
 }
 
-// Cuántos años se cumplen en esa ocurrencia: el "cumple 30". En una fecha
-// que no se repite no tiene sentido, y el primer año tampoco (cumple 0).
+// Cuántos años se cumplen en esa ocurrencia: el "cumple 30". Solo en las
+// anuales, y el primer año no (cumple 0).
 function aniosQueCumple(f, ocurrencia) {
   if (f.repite !== REPITE.anual) return 0;
   return Number(ocurrencia.slice(0, 4)) - Number(f.fecha.slice(0, 4));
 }
 
 // ¿Esta fecha cae en este día? Es la que usa la cuadrícula del mes.
-// Una anual cae todos los años desde la original; una única, solo ese día.
+// No hace falta otra cuenta: si la próxima vez contando DESDE ese día es
+// ese mismo día, cae ahí. Una sola fórmula para las cuatro repeticiones.
 function caeEnDia(f, dia) {
-  if (f.repite !== REPITE.anual) return f.fecha === dia;
-  return dia >= f.fecha && ocurrenciaEnAnio(f.fecha, Number(dia.slice(0, 4))) === dia;
+  return proximaOcurrencia(f, dia) === dia;
+}
+
+// "cada 2 semanas", "cada mes". Va debajo del título de la fila, para que
+// se sepa que vuelve. Las anuales de cada año no lo llevan: ya dicen
+// "30 años", y una fecha única no vuelve.
+function textoRepite(f) {
+  const cada = cadaDe(f);
+  if (f.repite === REPITE.semanal) return cada === 1 ? t('cadaSemana') : t('cadaNSemanas').replace('%n', cada);
+  if (f.repite === REPITE.mensual) return cada === 1 ? t('cadaMes')    : t('cadaNMeses').replace('%n', cada);
+  if (f.repite === REPITE.anual && cada > 1) return t('cadaNAnios').replace('%n', cada);
+  return '';
+}
+
+// Los emojis que ofrece la ventana: los seis de siempre y, detrás, los que
+// escribiste tú y siguen en uso en alguna fecha (v31). No se guardan aparte:
+// salen de las fechas, así que si borras la última con 🎓, el 🎓 se va solo.
+// En SQL sería un SELECT DISTINCT emoji FROM fechas.
+function emojisParaFechas(fechas) {
+  const propios = fechas.map(f => f.emoji).filter(e => e && !EMOJIS_FECHA.includes(e));
+  return [...EMOJIS_FECHA, ...new Set(propios)];
 }
 
 function fechasDelDia(fechas, dia) {
@@ -4154,13 +4339,17 @@ function agendaFechas(fechas, desde) {
 // Las que ya pasaron y no vuelven: la más reciente primero.
 function fechasPasadas(fechas, desde) {
   return fechas
-    .filter(f => f.repite !== REPITE.anual && f.fecha < desde)
+    .filter(f => !seRepite(f) && f.fecha < desde)
     .sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
 }
 
 // Lo que sale en la franja de Hábitos: lo de hoy y los próximos días.
+// Las semanales, solo el mismo día (v31, decisión de Kev): avisando 3 días
+// antes, una semanal tendría la franja encendida 4 de cada 7 días, y una
+// franja que está siempre deja de verse.
 function proximasFechas(fechas, desde, dias = DIAS_PROXIMAS) {
-  return agendaFechas(fechas, desde).filter(fila => fila.faltan <= dias);
+  return agendaFechas(fechas, desde)
+    .filter(fila => fila.faltan <= (fila.fecha.repite === REPITE.semanal ? 0 : dias));
 }
 
 // "Hoy", "Mañana", "12 días". Con la regla de la v15: frases en A0, aquí
@@ -4175,15 +4364,24 @@ function textoFaltan(faltan) {
 // falta lo esencial: sin título o sin una fecha real no hay nada que guardar.
 // Mejor rechazar que adivinar (la lección de la v19 con las listas): un
 // `repite` desconocido NO se convierte en anual, queda en "no".
-function limpiarFecha({ titulo, fecha, repite, emoji, nota }) {
+function limpiarFecha({ titulo, fecha, repite, cada, emoji, nota }) {
   const limpio = (titulo || '').trim().slice(0, LARGO_TITULO_FECHA);
   if (!limpio || !esFechaValida(fecha)) return null;
   const fila = {
     titulo: limpio,
     fecha,
-    repite: repite === REPITE.anual ? REPITE.anual : REPITE.no,
-    emoji: EMOJIS_FECHA.includes(emoji) ? emoji : EMOJIS_FECHA[0]
+    repite: ORDEN_REPITE.includes(repite) ? repite : REPITE.no,
+    // Hasta la v30 solo valían los seis de la lista, y cualquier otro se
+    // volvía 📌 sin avisar: el emoji que escribieras se perdía al guardar.
+    // Ahora vale cualquier emoji de verdad (primerEmoji, sección F0, el
+    // mismo filtro del emoji libre de los hábitos). Un texto que no es
+    // emoji sí cae en 📌.
+    emoji: primerEmoji(emoji) || EMOJIS_FECHA[0]
   };
+  // "Cada N": solo si se repite y si N es un entero de 2 a 99. Con 1 no se
+  // guarda (es lo normal); con algo raro tampoco (vuelve a ser 1).
+  const n = Number(cada);
+  if (seRepite(fila) && Number.isInteger(n) && n >= 2 && n <= CADA_MAXIMO) fila.cada = n;
   // La nota es opcional y, si está vacía, no existe (mismo criterio que la
   // nota de las ideas en la v14): no se guarda como ''.
   const textoNota = (nota || '').trim().slice(0, LARGO_NOTA_FECHA);
@@ -4207,8 +4405,10 @@ function editarFecha(id, campos) {
   const fila = limpiarFecha(campos);
   if (!f || !fila) return false;
   // Se reemplazan los campos uno por uno en vez del objeto entero, para que
-  // el id se quede. Y la nota se borra si quedó vacía.
+  // el id se quede. La nota y el "cada" se borran primero: si quedaron
+  // vacíos, limpiarFecha no los trae y no deben sobrevivir los viejos.
   delete f.nota;
+  delete f.cada;
   Object.assign(f, fila);
   guardar();
   pintarFechas();
@@ -6629,6 +6829,8 @@ let diaElegido = null;      // el día que tocaste, 'AAAA-MM-DD'
 let fechaAbierta = null;    // el id de la fecha en la ventana; null = nueva
 let repiteElegido = REPITE.no;
 let emojiFechaElegido = EMOJIS_FECHA[0];
+const campoEmojiPropio = document.getElementById('fechaEmojiPropio');
+const campoCada = document.getElementById('fechaCada');
 
 // Un día en palabras, en el idioma de la app: "vie, 24 oct".
 function diaEnPalabras(dia, formato) {
@@ -6705,7 +6907,8 @@ function filaFecha(f, cuando, { pasada = false } = {}) {
   sub.textContent = pasada
     ? diaEnPalabras(cuando, { day: 'numeric', month: 'short', year: 'numeric' })
     : diaEnPalabras(cuando, { weekday: 'short', day: 'numeric', month: 'short' })
-      + (anios > 0 ? ' · ' + t('aniosCumple').replace('%n', anios) : '');
+      + (anios > 0 ? ' · ' + t('aniosCumple').replace('%n', anios) : '')
+      + (textoRepite(f) ? ' · ' + textoRepite(f) : '');
   info.append(titulo, sub);
   fila.append(emoji, info);
 
@@ -6850,19 +7053,23 @@ document.getElementById('fechasPlegar').onclick = () => {
 /* --- La ventana de una fecha --- */
 const modalFecha = document.getElementById('modalFecha');
 
-// Los dos selectores de la ventana: "una vez / cada año" y el emoji. Se
+// Los selectores de la ventana: cada cuánto se repite y el emoji. Se
 // dibujan desde las variables de estado, como Ajustes.
 function pintarOpcionesFecha() {
   const caja = document.getElementById('fechaRepite');
-  [...caja.children].forEach((boton, i) => {
+  [...caja.children].forEach(boton => {
     boton.classList.toggle('activo', boton.dataset.repite === repiteElegido);
     boton.onclick = () => { repiteElegido = boton.dataset.repite; pintarOpcionesFecha(); };
   });
-  ponerPildora(caja, repiteElegido === REPITE.anual ? 1 : 0);
+  ponerPildora(caja, ORDEN_REPITE.indexOf(repiteElegido));
+  pintarCada();
 
-  const emojis = document.getElementById('fechaEmojis');
+  // Los botones se quitan y se vuelven a poner; la casilla "+" se queda
+  // (si se redibujara, el teclado se cerraría a mitad de escribir).
+  const emojis = document.getElementById('fechaEmojisLista');
   emojis.innerHTML = '';
-  EMOJIS_FECHA.forEach(e => {
+  const lista = emojisParaFechas(datos.fechas);
+  lista.forEach(e => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'emoji-op' + (e === emojiFechaElegido ? ' elegido' : '');
@@ -6870,7 +7077,40 @@ function pintarOpcionesFecha() {
     b.onclick = () => { emojiFechaElegido = e; pintarOpcionesFecha(); };
     emojis.appendChild(b);
   });
+  // Si el elegido no está en la lista, es uno que acabas de escribir: se
+  // queda en la casilla, marcado. Si está, la casilla vuelve a ser un "+".
+  const propio = !lista.includes(emojiFechaElegido);
+  campoEmojiPropio.value = propio ? emojiFechaElegido : '';
+  campoEmojiPropio.classList.toggle('elegido', propio);
 }
+
+// La línea "Cada [2] semanas". Escondida si no se repite. La unidad va en
+// singular o plural según el número: "cada 1 semana", "cada 3 semanas".
+function pintarCada() {
+  const fila = document.getElementById('fechaCadaFila');
+  fila.hidden = repiteElegido === REPITE.no;
+  if (fila.hidden) return;
+  const uno = Number(campoCada.value) === 1;
+  const claves = {
+    [REPITE.semanal]: uno ? 'unidadSemana' : 'unidadSemanas',
+    [REPITE.mensual]: uno ? 'unidadMes'    : 'unidadMeses',
+    [REPITE.anual]:   uno ? 'unidadAnio'   : 'unidadAnios'
+  };
+  document.getElementById('fechaCadaUnidad').textContent = t(claves[repiteElegido]);
+}
+campoCada.addEventListener('input', pintarCada);
+
+// Escribir en la casilla "+". Lo que no sea un emoji se borra solo (el
+// mismo filtro de los hábitos, primerEmoji); si es un emoji, pasa a ser el
+// elegido y el teclado se cierra para que lo veas marcado.
+campoEmojiPropio.addEventListener('input', () => {
+  const e = primerEmoji(campoEmojiPropio.value);
+  if (e) {
+    emojiFechaElegido = e;
+    campoEmojiPropio.blur();
+  }
+  pintarOpcionesFecha();
+});
 
 // id = null abre una nueva, con el día `dia` ya puesto.
 function abrirFecha(id, dia) {
@@ -6882,6 +7122,7 @@ function abrirFecha(id, dia) {
   document.getElementById('fechaNota').value   = f && f.nota ? f.nota : '';
   repiteElegido     = f ? f.repite : REPITE.no;
   emojiFechaElegido = f ? f.emoji : EMOJIS_FECHA[0];
+  campoCada.value   = f ? cadaDe(f) : 1;
   document.getElementById('fechaAcciones').hidden = !f;
   const aPendiente = document.getElementById('fechaPendiente');
   aPendiente.textContent = t('aPendiente');
@@ -6903,6 +7144,7 @@ function guardarFechaDeVentana() {
     titulo: document.getElementById('fechaNombre').value,
     fecha:  document.getElementById('fechaDia').value,
     repite: repiteElegido,
+    cada:   Number(campoCada.value),
     emoji:  emojiFechaElegido,
     nota:   document.getElementById('fechaNota').value
   };

@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 527 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 259 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 572 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 274 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -752,6 +752,42 @@ pantalla, agregarlo a `pruebas-app.js`.
     daría avisos sin servidor.
   - Las fechas usan `diasEntre()` (sección C), que redondea: el cambio de
     hora de noviembre no convierte "3 días" en "2,96".
+- **Fase 3.18 — Emoji propio y fechas que se repiten (v31)** Pedido de
+  Kev el 17 de octubre; evaluado con los cuatro ejes y construido el mismo
+  día en la rama `v31-fechas`. **No hay SQL que correr.**
+  - **Primero se entendió mal:** "un botón de más al lado del último ícono"
+    se leyó como la cabecera del mes o la barra de abajo. Era la fila de
+    emojis de la ventana de una fecha. **Lección:** ante una frase con dos
+    lecturas, preguntar cuál antes de evaluar las dos a fondo.
+  - **Casilla "+" para un emoji propio:** es un `<input>` disfrazado de
+    casilla, al final de la fila (`#fechaEmojiPropio`). Al escribir un emoji
+    queda elegido y el teclado se cierra; una letra se borra sola
+    (`primerEmoji`, F0). **Bug que destapó:** `limpiarFecha()` solo aceptaba
+    los seis de `EMOJIS_FECHA` y convertía cualquier otro en 📌 en silencio.
+  - **Decisión de Kev:** el emoji propio **se queda en la lista mientras
+    alguna fecha lo use** (`emojisParaFechas`, D3). No se guarda aparte:
+    sale de las fechas, como un `SELECT DISTINCT`.
+  - La fila de emojis de Fechas es una **cuadrícula de 7 columnas** (los
+    seis y el "+" caben en 375px; con el flex de los hábitos el "+" caía a
+    otra fila). Los botones van en `#fechaEmojisLista` con `display:
+    contents`, para que la casilla no se redibuje y no pierda el foco.
+  - **El "+" son dos degradados**, no el placeholder: Chrome dibujaba el
+    placeholder a la izquierda aunque dijera `text-align: center`.
+  - **Repeticiones:** `repite` ganó `'semanal'` y `'mensual'`, y hay un campo
+    nuevo `cada` (de 2 a 99; con 1 no se guarda). **Decisión de Kev:**
+    cuatro botones (Una vez · Semana · Mes · Año) y la línea "Cada [N]
+    semanas" hace de "personalizado". No hay "cada N días". Las fechas de
+    la v30 no cambian: sin `cada`, son lo que eran.
+  - `proximaOcurrencia()` es una sola idea para las tres: cuántos saltos
+    caben entre la fecha original y hoy, redondeando hacia arriba. Anual es
+    mensual con saltos de 12, así que `sumarMeses()` lleva la regla del día
+    que no existe: el 31 cae el 30 o el 28, igual que el 29 de febrero.
+    `caeEnDia(f, dia)` es ahora `proximaOcurrencia(f, dia) === dia`.
+  - **Decisión de Kev:** en la franja de Hábitos, las semanales salen
+    **solo el mismo día**. Avisando 3 días antes, la tendrían encendida 4
+    de cada 7 días.
+  - Sin "hasta cuándo": una semanal que se termina se borra. Al reactivar
+    Supabase, la tabla de fechas (Paso 9) necesitará la columna `cada`.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -804,6 +840,9 @@ Comprobada en el sitio en vivo; falta probarla ya publicada en el iPhone
 tres cambios antes de publicar (sin "+" en la barra, más contraste en los
 días con algo, "Próximas" plegable). Commit `e7f2e74`, publicada el mismo
 día y comprobada en el sitio en vivo; falta probarla en la app instalada. Sin SQL.
+**`v31`** (emoji propio y fechas que se repiten, Fase 3.18), construida en
+la rama `v31-fechas` el 17 de octubre de 2026. **Sin publicar** todavía.
+Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

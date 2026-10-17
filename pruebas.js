@@ -41,7 +41,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1567,7 +1567,7 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ok('un emoji desconocido cae en 📌',
      ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', emoji: '<b>' }).emoji === '📌');
   ok('un "repite" desconocido NO se vuelve anual',
-     ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', repite: 'semanal' }).repite === 'no');
+     ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', repite: 'quincenal' }).repite === 'no');
   ok('editar cambia los campos y conserva el id',
      ctx.editarFecha(idF, { titulo: 'Cumple de Ana', fecha: '1996-12-04', repite: 'anual', emoji: '🎂', nota: 'Le gusta el café' })
      && ctx.datos.fechas[0].id === idF && ctx.datos.fechas[0].fecha === '1996-12-04' && ctx.datos.fechas[0].nota === 'Le gusta el café');
@@ -1593,6 +1593,109 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ok('una copia vieja, sin fechas, entra con la lista vacía', Array.isArray(ctx.datos.fechas) && ctx.datos.fechas.length === 0);
   ctx.aplicarCopia({ habitos: [], registros: {}, fechas: [{ id: 'z', titulo: 'Vuelo', fecha: '2026-11-05', repite: 'no', emoji: '✈️' }] });
   ok('y una copia nueva trae sus fechas', ctx.datos.fechas.length === 1 && ctx.datos.fechas[0].titulo === 'Vuelo');
+}
+
+// ============================================================
+//  FECHAS QUE SE REPITEN Y EMOJI PROPIO (v31)
+//  Mismo truco que arriba: un `desde` fijo. La regla que más fácil se
+//  rompe es el día que no existe (31 en abril, 29 de febrero).
+// ============================================================
+{
+  const semanal = (fecha, cada) => ({ fecha, repite: 'semanal', ...(cada ? { cada } : {}) });
+  const mensual = (fecha, cada) => ({ fecha, repite: 'mensual', ...(cada ? { cada } : {}) });
+  const anual   = (fecha, cada) => ({ fecha, repite: 'anual',   ...(cada ? { cada } : {}) });
+
+  // Las piezas
+  ok('sumarDias corre una semana', ctx.sumarDias('2026-10-17', 7) === '2026-10-24');
+  ok('sumarDias cruza el cambio de hora de noviembre sin perder un día',
+     ctx.sumarDias('2026-10-30', 7) === '2026-11-06');
+  ok('sumarDias cruza el año', ctx.sumarDias('2026-12-29', 7) === '2027-01-05');
+  ok('sumarMeses: el 31 de enero más un mes cae el 28 de febrero', ctx.sumarMeses('2026-01-31', 1) === '2026-02-28');
+  ok('y en un año bisiesto, el 29', ctx.sumarMeses('2028-01-31', 1) === '2028-02-29');
+  ok('sumarMeses cruza el año', ctx.sumarMeses('2026-11-15', 3) === '2027-02-15');
+  ok('mesesEntre no mira el día', ctx.mesesEntre('2026-03-31', '2026-10-01') === 7);
+  ok('cadaDe sin campo es 1', ctx.cadaDe({}) === 1 && ctx.cadaDe({ cada: 0 }) === 1 && ctx.cadaDe({ cada: 'x' }) === 1);
+
+  // Semanal
+  ok('una semanal que empezó un sábado cae el sábado siguiente',
+     ctx.proximaOcurrencia(semanal('2026-10-03'), '2026-10-15') === '2026-10-17');
+  ok('si hoy le toca, es hoy', ctx.proximaOcurrencia(semanal('2026-10-03'), '2026-10-17') === '2026-10-17');
+  ok('cada 2 semanas se salta una',
+     ctx.proximaOcurrencia(semanal('2026-10-03', 2), '2026-10-04') === '2026-10-17');
+  ok('y no cae en la semana que se salta', !ctx.caeEnDia(semanal('2026-10-03', 2), '2026-10-10'));
+  ok('una semanal que todavía no empieza cae el primer día',
+     ctx.proximaOcurrencia(semanal('2026-11-01'), '2026-10-17') === '2026-11-01');
+  ok('una semanal no cae antes de empezar', !ctx.caeEnDia(semanal('2026-10-17'), '2026-10-10'));
+  ok('el mes con una semanal tiene sus 5 sábados',
+     [...ctx.diasConFechas([semanal('2026-10-03')], 2026, 10)].join() === '3,10,17,24,31');
+
+  // Mensual
+  ok('una mensual del 5 mirada el 17 cae el 5 del mes siguiente',
+     ctx.proximaOcurrencia(mensual('2026-03-05'), '2026-10-17') === '2026-11-05');
+  ok('una mensual del 20 mirada el 17 cae este mes',
+     ctx.proximaOcurrencia(mensual('2026-03-20'), '2026-10-17') === '2026-10-20');
+  ok('un pago del 31 cae el 30 en noviembre',
+     ctx.proximaOcurrencia(mensual('2026-01-31'), '2026-11-01') === '2026-11-30');
+  ok('y vuelve al 31 en diciembre (no se queda en 30)',
+     ctx.proximaOcurrencia(mensual('2026-01-31'), '2026-12-01') === '2026-12-31');
+  ok('cada 2 meses: de marzo, mirado en octubre, cae en noviembre',
+     ctx.proximaOcurrencia(mensual('2026-03-05', 2), '2026-10-01') === '2026-11-05');
+  ok('cada 2 meses: el día ya pasado del mes que toca salta 2 meses, no 1',
+     ctx.proximaOcurrencia(mensual('2026-03-05', 2), '2026-11-06') === '2027-01-05');
+  ok('cada 3 meses no cae en los meses de en medio',
+     ctx.caeEnDia(mensual('2026-01-10', 3), '2026-04-10') && !ctx.caeEnDia(mensual('2026-01-10', 3), '2026-03-10'));
+
+  // Anual (la v30 sigue igual) y cada N años
+  ok('una anual sin "cada" sigue como en la v30',
+     ctx.proximaOcurrencia(anual('1996-03-14'), '2026-10-17') === '2027-03-14');
+  ok('cada 2 años se salta uno',
+     ctx.proximaOcurrencia(anual('2024-03-14', 2), '2026-10-17') === '2028-03-14');
+
+  // Lo que se dice y lo que sale en la franja
+  ok('textoRepite dice "cada semana"', ctx.textoRepite(semanal('2026-10-03')) === 'cada semana');
+  ok('y "cada 3 meses"', ctx.textoRepite(mensual('2026-10-03', 3)) === 'cada 3 meses');
+  ok('una anual de cada año no dice nada (ya dice los años)', ctx.textoRepite(anual('1996-10-03')) === '');
+  ok('una única no dice nada', ctx.textoRepite({ fecha: '2026-10-03', repite: 'no' }) === '');
+  const conSemanal = [
+    { id: 's', fecha: '2026-10-03', repite: 'semanal' },   // le toca el 17 y el 24
+    { id: 'm', fecha: '2026-09-19', repite: 'mensual' },   // le toca el 19
+  ];
+  ok('la semanal sale en la franja el mismo día',
+     ctx.proximasFechas(conSemanal, '2026-10-17').map(f => f.fecha.id).join() === 's,m');
+  // Ojo: el día de esta prueba tiene que estar a 3 días o menos de la
+  // semanal. Primero se escribió con el 18 (a 6 días del 24) y seguía en
+  // verde aunque se quitara la regla: ahí no sale con regla ni sin ella.
+  ok('pero no los días antes (a 2 días del sábado 24 no sale)',
+     ctx.proximasFechas(conSemanal, '2026-10-22').length === 0);
+  ok('la mensual sí avisa días antes',
+     ctx.proximasFechas(conSemanal, '2026-11-17').map(f => f.fecha.id).join() === 'm');
+  ok('las que se repiten nunca están en "Ya pasaron"',
+     ctx.fechasPasadas(conSemanal, '2026-12-01').length === 0);
+
+  // Guardar
+  const limpia = (c) => ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', ...c });
+  ok('semanal y mensual se guardan', limpia({ repite: 'semanal' }).repite === 'semanal' && limpia({ repite: 'mensual' }).repite === 'mensual');
+  ok('cada 1 no se guarda', !('cada' in limpia({ repite: 'mensual', cada: 1 })));
+  ok('cada 2 sí', limpia({ repite: 'mensual', cada: 2 }).cada === 2);
+  ok('"cada" llega como texto del campo y se entiende', limpia({ repite: 'semanal', cada: '3' }).cada === 3);
+  ok('un "cada" raro no se guarda', !('cada' in limpia({ repite: 'mensual', cada: 0 }))
+     && !('cada' in limpia({ repite: 'mensual', cada: 2.5 })) && !('cada' in limpia({ repite: 'mensual', cada: 100 })));
+  ok('una fecha única nunca lleva "cada"', !('cada' in limpia({ repite: 'no', cada: 4 })));
+  ctx.datos.fechas = [];
+  const idC = ctx.agregarFecha({ titulo: 'Gimnasio', fecha: '2026-10-03', repite: 'semanal', cada: 2, emoji: '📌' });
+  ctx.editarFecha(idC, { titulo: 'Gimnasio', fecha: '2026-10-03', repite: 'semanal', cada: 1, emoji: '📌' });
+  ok('al editar a "cada 1" el "cada" viejo se borra', !('cada' in ctx.datos.fechas[0]));
+
+  // Emoji propio
+  ok('un emoji que no está en la lista se guarda', limpia({ emoji: '🎓' }).emoji === '🎓');
+  ok('una bandera también (son dos piezas pegadas)', limpia({ emoji: '🇨🇴' }).emoji === '🇨🇴');
+  ok('si escribes varios, se queda el primero', limpia({ emoji: '🐶🐱' }).emoji === '🐶');
+  ok('una letra no es un emoji: cae en 📌', limpia({ emoji: 'a' }).emoji === '📌');
+  const usadas = [{ emoji: '🎂' }, { emoji: '🎓' }, { emoji: '🐶' }, { emoji: '🎓' }];
+  ok('la lista trae los seis y detrás los propios en uso, sin repetir',
+     ctx.emojisParaFechas(usadas).join() === ctx.EMOJIS_FECHA.concat(['🎓', '🐶']).join());
+  ok('sin fechas, la lista son los seis', ctx.emojisParaFechas([]).length === 6);
+  ctx.datos.fechas = [];
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);

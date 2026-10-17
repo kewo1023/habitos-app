@@ -1122,6 +1122,53 @@ async function pruebasDeFechas() {
   app.cambiarVista('habitos');
   ok('algo dentro de mucho no sale en la franja', $('franjaFechas').hidden === true);
 
+  // Repeticiones (v31). mini-dom no lee los botones escritos en el HTML,
+  // así que se prueba abriendo una fecha que ya trae su repetición.
+  app.datos.fechas = [{ id: 'pago', titulo: 'Seguro', fecha: '2026-01-05', repite: 'mensual', cada: 3, emoji: '💳' }];
+  app.cambiarVista('fechas');
+  ok('una mensual dice en su fila cada cuánto vuelve',
+     $('fechasAgenda').querySelector('.fecha-sub').textContent.includes('cada 3 meses'));
+  app.abrirFecha('pago');
+  ok('al abrirla, la línea "Cada" se ve con su número', $('fechaCadaFila').hidden === false && $('fechaCada').value === '3');
+  ok('y la unidad va en plural', $('fechaCadaUnidad').textContent === 'meses');
+  $('fechaCada').value = '1';
+  $('fechaCada').dispatchEvent({ type: 'input' });
+  ok('con 1, en singular', $('fechaCadaUnidad').textContent === 'mes');
+  $('fechaGuardar').onclick();
+  ok('guardar con 1 quita el "cada"', !('cada' in app.datos.fechas[0]) && app.datos.fechas[0].repite === 'mensual');
+  app.abrirFecha(null);
+  ok('una nueva arranca en "Una vez", sin la línea "Cada"', $('fechaCadaFila').hidden === true);
+
+  // La casilla "+" del emoji propio (v31).
+  const casilla = $('fechaEmojiPropio');
+  let cerroTeclado = false;
+  casilla.blur = () => { cerroTeclado = true; };   // mini-dom no trae blur
+  const botonesEmoji = () => $('fechaEmojisLista').children;
+  ok('la ventana trae los seis emojis de siempre', botonesEmoji().length === 6);
+  ok('y la casilla "+" vacía, sin marcar', casilla.value === '' && !casilla.classList.contains('elegido'));
+  casilla.value = 'a';
+  casilla.dispatchEvent({ type: 'input' });
+  ok('una letra en la casilla se borra sola', casilla.value === '' && !cerroTeclado);
+  casilla.value = '🎓';
+  casilla.dispatchEvent({ type: 'input' });
+  ok('un emoji en la casilla queda marcado y cierra el teclado',
+     casilla.value === '🎓' && casilla.classList.contains('elegido') && cerroTeclado);
+  ok('y ningún botón de la lista queda marcado', !botonesEmoji().some(b => b.classList.contains('elegido')));
+  $('fechaNombre').value = 'Graduación';
+  $('fechaGuardar').onclick();
+  ok('la fecha se guarda con el emoji propio', app.datos.fechas.some(f => f.titulo === 'Graduación' && f.emoji === '🎓'));
+  app.abrirFecha(null);
+  ok('la próxima vez, el 🎓 ya está en la lista', botonesEmoji().length === 7 && botonesEmoji()[6].textContent === '🎓');
+  ok('y la casilla vuelve a ser un "+"', casilla.value === '' && !casilla.classList.contains('elegido'));
+  casilla.value = '🎂';
+  casilla.dispatchEvent({ type: 'input' });
+  ok('escribir uno que ya está en la lista marca su botón, no la casilla',
+     casilla.value === '' && botonesEmoji().find(b => b.textContent === '🎂').classList.contains('elegido'));
+  $('fechaCancelar').onclick();
+  // De vuelta a Hábitos: el cambio de idioma solo retraduce las pestañas
+  // desde ahí (límite conocido de la v19, ver CLAUDE.md).
+  app.cambiarVista('habitos');
+
   app.cambiarIdioma('en');
   ok('en inglés la pestaña dice "Dates"', $('pestanaFechas').textContent === 'Dates');
   app.cambiarIdioma('es');

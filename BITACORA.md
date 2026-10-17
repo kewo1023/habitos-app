@@ -2025,6 +2025,40 @@ va es verlo en el teléfono.
       los `prompt()` de renombrar y cambiar emoji; la tabla para Excel no
       distingue ✗ de vacío.
 
+## 2026-10-17 — Emoji propio y fechas que se repiten (v31)
+
+**Hecho**
+
+- Rama `v31-fechas`. `VERSION` subida a `v31`. Sin SQL.
+- Ventana de una fecha: casilla "+" al final de la fila de emojis para
+  escribir uno propio. Se queda en la lista mientras una fecha lo use.
+- "Se repite" pasó de 2 a 4 opciones (Una vez · Semana · Mes · Año) con
+  una línea "Cada [N] semanas/meses/años". La fila de la agenda dice
+  "cada 2 semanas" o "cada 3 meses".
+- Arreglado de paso: `limpiarFecha()` convertía en 📌 cualquier emoji que
+  no fuera de los seis.
+- Revisado en el navegador a 375px: el "+" se caía a otra fila (ahora la
+  fila es una cuadrícula de 7) y no se centraba (ahora son dos degradados).
+- Pruebas: **572** y **274**, todas en verde. Se rompieron a propósito tres
+  arreglos para comprobar que se ponen rojas; la prueba de la franja no lo
+  hacía (miraba un día a 6 de la semanal) y se corrigió.
+
+**Decisiones de la sesión**
+
+- Primero se entendió mal el pedido del "+" (se evaluó la cabecera del mes
+  y la barra de abajo). Kev aclaró que era la fila de emojis.
+- Kev eligió las tres recomendaciones: emoji propio que se queda mientras
+  se use, "cada N" como personalizado, semanales en la franja solo el día.
+
+**Pendiente / siguiente**
+
+- [ ] Que Kev pruebe la v31 y decidir si se publica (merge de
+      `v31-fechas` a `main`, push).
+- [ ] Probar en el iPhone que la casilla "+" abre el teclado y que el de
+      emojis se alcanza con 😀/🌐 (en la web no se puede abrir directo).
+- [ ] Lo de la entrada anterior sigue en pie (Supabase antes del 14 de
+      diciembre, probar v27–v30 en la app instalada).
+
 ---
 
 <!-- Plantilla para la próxima entrada:
