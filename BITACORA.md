@@ -2083,7 +2083,10 @@ va es verlo en el teléfono.
 
 **Pendiente / siguiente**
 
-- [ ] Que Kev pruebe la v32 y decidir si se publica.
+- [x] Publicada: commit `91e533a`, `v32-fechas` unida a `main` y
+      comprobada en el sitio en vivo.
+- [ ] Probar la v32 en la app instalada: el chip "Hoy" al cambiar de mes
+      y la ✕ de los emojis.
 - [ ] Probar la v31 en la app instalada (lo de la entrada anterior).
 
 ---

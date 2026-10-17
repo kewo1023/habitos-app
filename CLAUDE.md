@@ -869,7 +869,9 @@ la rama `v31-fechas` el 17 de octubre de 2026. Commit `933e23b`,
 publicada el mismo día (merge a `main`) y comprobada en el sitio en vivo;
 falta probarla en la app instalada. Sin SQL.
 **`v32`** (quitar emojis y volver a hoy, Fase 3.19), construida en la rama
-`v32-fechas` el 17 de octubre de 2026. **Sin publicar** todavía. Sin SQL.
+`v32-fechas` el 17 de octubre de 2026. Commit `91e533a`, publicada el
+mismo día (merge a `main`) y comprobada en el sitio en vivo; falta
+probarla en la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
