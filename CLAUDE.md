@@ -733,9 +733,10 @@ octubre de 2026. Sin SQL.
 3.15), commit `9583a02`, publicada el 15 de octubre de 2026 y comprobada
 en el sitio en vivo; falta probar la v27 y la v28 en el iPhone. Sin SQL.
 **`v29`** (sello del día completo con ola, y rojo sólido en el
-calendario, Fase 3.16), construida en la rama `v29-sello` el 16 de octubre
-de 2026. Kev la probó en la maqueta desde el iPhone y la aprobó el 17 de
-octubre. Sin SQL.
+calendario, Fase 3.16), commit `9629b33`, publicada el 17 de octubre de
+2026 después de que Kev la aprobara en la maqueta desde el iPhone.
+Comprobada en el sitio en vivo; falta probarla ya publicada en el iPhone
+(la app instalada). Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

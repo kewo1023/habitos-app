@@ -1898,11 +1898,12 @@ va es verlo en el teléfono.
 
 **Pendiente / siguiente**
 
-- [ ] Kev prueba la maqueta en el iPhone: marcar "Inglés 15 min" (el
-      quinto), ver el sello difuminado, que tocar lo despida, la ola, y el
-      rojo del calendario en claro y en oscuro.
-- [ ] Si la aprueba: commit en `v29-sello`, merge a `main`, publicar y
-      probar en el iPhone.
+- [x] Kev probó la maqueta en el iPhone y la aprobó (17 de octubre).
+- [x] Publicada: commit `9629b33` en `main` (merge directo de `v29-sello`).
+      El sitio en vivo sirve `VERSION = 'v29'` y el sello, comprobado con
+      curl al terminar el deploy de GitHub Pages.
+- [ ] Probarla ya publicada en la app instalada del iPhone: cerrar la app
+      del todo, abrirla, completar el día y abrir un calendario.
 - [ ] Vigilar si la medalla del hito (sin velo) se siente menor que el sello.
 - [ ] Siguiente función grande posible: el calendario de fechas.
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
