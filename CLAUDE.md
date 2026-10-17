@@ -841,8 +841,9 @@ tres cambios antes de publicar (sin "+" en la barra, más contraste en los
 días con algo, "Próximas" plegable). Commit `e7f2e74`, publicada el mismo
 día y comprobada en el sitio en vivo; falta probarla en la app instalada. Sin SQL.
 **`v31`** (emoji propio y fechas que se repiten, Fase 3.18), construida en
-la rama `v31-fechas` el 17 de octubre de 2026. **Sin publicar** todavía.
-Sin SQL.
+la rama `v31-fechas` el 17 de octubre de 2026. Commit `933e23b`,
+publicada el mismo día (merge a `main`) y comprobada en el sitio en vivo;
+falta probarla en la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

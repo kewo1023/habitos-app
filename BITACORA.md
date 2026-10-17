@@ -2052,8 +2052,8 @@ va es verlo en el teléfono.
 
 **Pendiente / siguiente**
 
-- [ ] Que Kev pruebe la v31 y decidir si se publica (merge de
-      `v31-fechas` a `main`, push).
+- [x] Publicada: commit `933e23b`, `v31-fechas` unida a `main` y
+      comprobada en el sitio en vivo.
 - [ ] Probar en el iPhone que la casilla "+" abre el teclado y que el de
       emojis se alcanza con 😀/🌐 (en la web no se puede abrir directo).
 - [ ] Lo de la entrada anterior sigue en pie (Supabase antes del 14 de
