@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 473 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 213 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 477 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 224 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -652,6 +652,44 @@ pantalla, agregarlo a `pruebas-app.js`.
     y el amarillo salía café. Una franja solo necesita 3:1, y para que el
     amarillo se lea amarillo se aceptó 1,9:1: el orden de la lista también
     dice la importancia.
+- **Fase 3.16 — Sello del día completo y rojo sólido (v29)** Se evaluaron
+  cinco celebraciones en una maqueta (referencias de uiverse) y Kev eligió.
+  **No hay SQL que correr.**
+  - **El día completo ya no es confeti.** Ahora es el **sello** (aro verde
+    que se dibuja, se llena, ✓ y 12 rayitas) con la **app difuminada**
+    detrás (`.sello-velo`, `backdrop-filter`), y al irse vuela hacia la
+    barra de progreso y dispara la **ola**: cada tarjeta se levanta con un
+    brillo, en orden (`--retraso`, 70 ms; desde la octava, todas juntas).
+    Sección E2: `celebrarDiaCompleto()`, `irseSello()`, `lanzarOla()`.
+    Referencia: Yaya12085/nasty-firefox-13, rehecha con las variables.
+  - **Decisión de Kev, contra la recomendación:** se le propuso la ola +
+    confeti porque el sello sale en el centro, como la medalla del hito, y
+    podía restarle peso. Eligió el sello + ola con fondo difuminado. Ojo:
+    hoy el sello (con velo) es más vistoso que la medalla (sin velo). Si
+    el hito empieza a sentirse menor, darle el mismo velo.
+  - La capa del sello **sí recibe toques**, al revés del confeti: con la app
+    borrosa detrás, un toque que la atravesara caería en algo que no ves.
+    Tocar adelanta la salida (`irseSello`): nunca hace esperar.
+  - **"Día completo ✓"** reemplaza a "Hoy" en la barra mientras el día esté
+    completo. Lo pone `pintar()`, no la animación: es el único pedazo que
+    queda con "reducir movimiento" y lo que lee VoiceOver.
+  - El confeti de lluvia se quitó (keyframes `caer`). `.papelito`,
+    `PAPELITOS` y `coloresConfeti()` siguen vivos: los usa el estallido del
+    hito.
+  - **Rojo sólido en el calendario del mes:** `.cal-dia.fallo` lleno de
+    `--fallo`, con el número en `--sobre-fallo` (oscuro en el tema oscuro,
+    blanco en el claro) y **todavía tachado**: el tachado es el símbolo que
+    no depende del color. **El mapa del año no cambia** (pedido de Kev):
+    sigue la ✗ roja sobre fondo vacío. Hay un test que vigila las dos cosas.
+  - Trampa encontrada: el test "los dos temas definen las mismas variables"
+    cuenta todo lo que parezca `--nombre:`, **también dentro de un
+    comentario**. Un comentario que decía "igual que --sobre-exito: ..." lo
+    puso en rojo. Al comentar variables en la sección 1, no escribir el
+    nombre seguido de dos puntos.
+  - Pendiente, evaluado y no construido: **calendario de fechas
+    importantes** (pestaña "Fechas" con agenda, cumpleaños que se repiten
+    cada año, cuenta regresiva y franja "Próximas" en Hábitos). Evaluación
+    en `BITACORA.md`, 16 de octubre de 2026.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -694,6 +732,10 @@ octubre de 2026. Sin SQL.
 **`v28`** (cuadro de confirmar, markdown en las ideas y semáforo, Fase
 3.15), commit `9583a02`, publicada el 15 de octubre de 2026 y comprobada
 en el sitio en vivo; falta probar la v27 y la v28 en el iPhone. Sin SQL.
+**`v29`** (sello del día completo con ola, y rojo sólido en el
+calendario, Fase 3.16), construida en la rama `v29-sello` el 16 de octubre
+de 2026. Kev la probó en la maqueta desde el iPhone y la aprobó el 17 de
+octubre. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

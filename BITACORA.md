@@ -1849,6 +1849,64 @@ va es verlo en el teléfono.
 - [ ] Abiertos sin prisa: los puntos grises sobre una tarjeta verde casi no
       se ven; la tabla para Excel no distingue ✗ de vacío.
 
+## 2026-10-16 — Sello del día completo, rojo sólido y fechas evaluadas (v29)
+
+**Hecho**
+
+- Kev pidió tres cosas: un calendario de fechas importantes, mejorar la
+  animación del día completo (con referencias de uiverse) y el rojo sólido
+  para el "no logrado" en el calendario.
+- **Calendario de fechas: evaluado, no construido** (regla del 5 de agosto).
+  Resumen de la evaluación:
+  - *Utilidad:* lo único que da que el calendario del iPhone no da es ver
+    las fechas en el gesto que ya haces a diario. Se toma de Google Calendar
+    solo eso: fechas que se repiten cada año (cumpleaños, "cumple 30"),
+    cuenta regresiva, vista de agenda, mes con puntos y crear un pendiente
+    desde una fecha. Nada de horas, invitados ni compartir.
+  - *Fricción:* no toca el gesto diario; el costo es espacio. Una quinta
+    pestaña deja ~57 px por pestaña (hoy ~72); "Pendientes" puede no caber
+    (sin medir). La franja "Próximas" en Hábitos saldría solo con algo en
+    los próximos 3 días.
+  - *Código:* modelo nuevo `datos.fechas` `{ id, titulo, fecha, repite,
+    nota }`. No es un cuarto valor de `lista`: tiene día y repetición, y no
+    tiene "hecha". Lógica pura nueva (próxima ocurrencia, días que faltan,
+    29 de febrero). ~2 sesiones.
+  - *Lo que no se ve:* sin servidor no hay avisos. Salida propuesta: botón
+    que baje un `.ics` con alarma para el calendario del iPhone
+    (**sin verificar** desde la PWA instalada). Solo local hasta reactivar
+    Supabase. Los cumpleaños con nombre son datos de terceros.
+  - Recomendación: pestaña "Fechas" con agenda + franja "Próximas", después
+    de la v29.
+- **Celebración:** maqueta con 5 opciones (confeti con física, sello,
+  estrella, ola, ola + confeti) frente a la lluvia actual. Se recomendó ola
+  + confeti; **Kev eligió sello + ola con el fondo difuminado**. Construido
+  en la rama `v29-sello`. Detalles en la Fase 3.16 de `CLAUDE.md`.
+- **Rojo sólido** en el calendario del mes, número tachado. El mapa del año
+  queda como estaba (pedido de Kev al ver la maqueta).
+- Segunda maqueta: la **app real** de la rama, con datos de ejemplo, en el
+  mismo enlace privado de claude.ai. La copia de seguridad no funciona
+  ahí (la página no puede descargar archivos).
+- Pruebas: **477** y **224**. Se rompieron a propósito el rojo sólido, el
+  verde de la etiqueta, el "reducir movimiento" y la ola: las cuatro se
+  pusieron en rojo.
+
+**Sin verificar**
+
+- Nadie ha visto todavía el sello ni la ola funcionando en pantalla: el
+  navegador de Claude no tiene la sesión de claude.ai para abrir la maqueta.
+  Las pruebas confirman que se arman, no cómo se ven.
+
+**Pendiente / siguiente**
+
+- [ ] Kev prueba la maqueta en el iPhone: marcar "Inglés 15 min" (el
+      quinto), ver el sello difuminado, que tocar lo despida, la ola, y el
+      rojo del calendario en claro y en oscuro.
+- [ ] Si la aprueba: commit en `v29-sello`, merge a `main`, publicar y
+      probar en el iPhone.
+- [ ] Vigilar si la medalla del hito (sin velo) se siente menor que el sello.
+- [ ] Siguiente función grande posible: el calendario de fechas.
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
+
 ---
 
 <!-- Plantilla para la próxima entrada:

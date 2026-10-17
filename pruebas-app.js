@@ -121,7 +121,8 @@ eval(script + `
     abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
-    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarIdea
+    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarIdea,
+    lanzarOla, irseSello
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -496,17 +497,39 @@ ok('y sin no logrados, el resumen no los menciona', !$('calResumen').textContent
 app.cerrarCalendario && app.cerrarCalendario();
 
 // ===========================================================================
-// 9. El confeti del día completo
-//    Que se vea bonito no se puede probar aquí. Lo que sí: que se creen los
-//    papelitos, que tengan color en los dos temas y que el ajuste de
-//    accesibilidad del teléfono lo apague de verdad.
+// 9. El sello y la ola del día completo (v29; hasta la v28 era confeti)
+//    Que se vea bonito no se puede probar aquí. Lo que sí: que el sello se
+//    arme con su texto en el idioma de la app, que no quede lluvia de la
+//    versión vieja, que tocarlo lo despida, que la ola llegue a todas las
+//    tarjetas y que el ajuste de accesibilidad del teléfono lo apague.
 // ===========================================================================
+app.cambiarVista('habitos');
+$('confeti').innerHTML = '';
 app.celebrarDiaCompleto();
-ok('el confeti crea papelitos', $('confeti').children.length > 0);
-ok('cada papelito lleva su clase', $('confeti').children.every(p => p.className === 'papelito'));
-ok('y sus tres variables de animación',
-   $('confeti').children.every(p =>
-     p.style['--dx'] && p.style['--giro'] && p.style['--dur']));
+ok('el sello se hace visible', $('sello').classList.contains('visible'));
+ok('con el fondo difuminado detrás', !!$('sello').querySelector('.sello-velo'));
+ok('dice "Día completo"', $('sello').querySelector('.sello-titulo').textContent === 'Día completo');
+const totalHabitos = app.datos.habitos.length;
+ok('y cuántos hábitos completaste',
+   $('sello').querySelector('.sello-cuenta').textContent === `${totalHabitos} de ${totalHabitos}`);
+ok('ya no cae la lluvia de papelitos de la v28', $('confeti').children.length === 0);
+
+app.cambiarIdioma('en');
+app.celebrarDiaCompleto();
+ok('en inglés dice "Day complete"', $('sello').querySelector('.sello-titulo').textContent === 'Day complete');
+ok('y un segundo sello reemplaza al primero, no se apila',
+   $('sello').querySelectorAll('.sello-figura').length === 1);
+app.cambiarIdioma('es');
+
+app.irseSello();
+ok('tocarlo (o que pase el tiempo) lo manda hacia la barra', $('sello').classList.contains('vete'));
+
+app.lanzarOla();
+const tarjetasOla = $('lista').querySelectorAll('.habito');
+ok('la ola llega a todas las tarjetas', tarjetasOla.length > 0 &&
+   tarjetasOla.every(tj => tj.classList.contains('ola')));
+ok('cada una con su retraso, en orden', tarjetasOla.every((tj, i) => tj.style['--retraso'] === i * 70 + 'ms'));
+ok('y la barra de progreso recibe su brillo', $('progresoFondo').classList.contains('ola'));
 
 // Los colores salen de las variables de la app. Este test es el que atrapa el
 // olvido más fácil: agregar un color al tema oscuro y no al claro.
@@ -523,12 +546,30 @@ ok('y no son los mismos: el claro tiene sus propios valores',
 app.cambiarTema('auto');
 
 // El ajuste de Accesibilidad > Movimiento del teléfono.
-$('confeti').innerHTML = '';
+$('sello').classList.remove('visible');
+$('sello').innerHTML = '';
 pideMenosMovimiento = true;
 app.celebrarDiaCompleto();
-ok('con "reducir movimiento" no se crea ni un papelito',
-   $('confeti').children.length === 0);
+ok('con "reducir movimiento" no sale el sello', !$('sello').classList.contains('visible'));
 pideMenosMovimiento = false;
+
+// La etiqueta de la barra: con el día completo, "Hoy" dice "Día completo ✓".
+// Es la parte de la celebración que no se mueve, así que es la que queda
+// con "reducir movimiento" y la que lee VoiceOver.
+app.cambiarVista('habitos');
+app.datos.habitos.forEach(h => { if (!app.estaHecho(h.id, app.hoy())) app.alternarHoy(h.id); });
+ok('con todo marcado, la barra dice "Día completo ✓"',
+   $('progresoEtiqueta').textContent === 'Día completo ✓' && $('progresoEtiqueta').classList.contains('completo'));
+app.cambiarVista('pendientes');
+ok('al pasar a Pendientes, la etiqueta vuelve a ser la suya y sin verde',
+   $('progresoEtiqueta').textContent !== 'Día completo ✓' && !$('progresoEtiqueta').classList.contains('completo'));
+app.cambiarVista('habitos');
+app.alternarHoy(app.datos.habitos[0].id);
+ok('al desmarcar uno, vuelve a decir "Hoy"',
+   $('progresoEtiqueta').textContent === 'Hoy' && !$('progresoEtiqueta').classList.contains('completo'));
+app.alternarHoy(app.datos.habitos[0].id);
+$('sello').classList.remove('visible', 'vete');
+$('sello').innerHTML = '';
 
 // ===========================================================================
 // 9b. La medalla del hito de racha (v21)

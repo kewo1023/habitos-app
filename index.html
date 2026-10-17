@@ -130,6 +130,14 @@
      "hecho". Pero nunca va solo: siempre lleva una ✗ dibujada, para que se
      distinga también sin ver bien el rojo. */
   --fallo:        #ff7a7a;
+  /* El número encima del rojo sólido del calendario (v29). Oscuro, como el
+     de --sobre-exito, porque este rojo es claro para brillar sobre negro, y un
+     número blanco encima casi no se leería. */
+  --sobre-fallo:  #2a0d0b;
+
+  /* El brillo que cruza las tarjetas en la ola del día completo (v29). En
+     oscuro, un blanco casi invisible: lo que se nota es que ALGO pasa. */
+  --brillo:       rgba(255,255,255,.14);
 }
 
 /* El tema claro. No es "el oscuro con los números al revés": el fondo no es
@@ -192,6 +200,9 @@
   --prio-ninguna: #a1a9b8;   /* gris */
 
   --fallo:        #c0392b;
+  --sobre-fallo:  #ffffff;   /* este rojo es oscuro: el blanco encima se lee (5,4:1) */
+
+  --brillo:       rgba(255,255,255,.75);
 }
 
 /* ---------- 2. RESET: quitar los estilos raros por defecto ---------- */
@@ -530,10 +541,11 @@ header { margin-bottom: 22px; }
 }
 .check.negar { animation: negar .32s ease-out; }
 
-/* --- El confeti del día completo ---
+/* --- La capa del confeti ---
    Vive en una capa fija encima de todo. pointer-events: none la vuelve
    invisible al dedo: es decoración, los toques la atraviesan y llegan a la
-   app que hay debajo. */
+   app que hay debajo. Desde la v29 solo la usa el estallido del hito: el
+   día completo dejó la lluvia de papelitos por el sello y la ola (abajo). */
 .confeti {
   position: fixed;
   inset: 0;
@@ -542,8 +554,10 @@ header { margin-bottom: 22px; }
   z-index: 100;
 }
 
-/* Cada papelito recibe sus propias variables (--dx, --giro, --dur) desde
-   JavaScript. Así la animación es una sola y el CSS no sabe nada de azar. */
+/* --- El estallido del hito de racha ---
+   Cada papelito recibe sus propias variables (--dx, --dy, --giro, --dur)
+   desde JavaScript. Así la animación es una sola y el CSS no sabe nada de
+   azar. Todos nacen en el centro, detrás de la medalla, y salen volando. */
 .papelito {
   position: absolute;
   width: 8px;
@@ -552,22 +566,10 @@ header { margin-bottom: 22px; }
   /* Le avisa al navegador qué va a cambiar, para que lo prepare en la tarjeta
      gráfica en vez de recalcularlo cuadro a cuadro. En un iPhone se nota. */
   will-change: transform, opacity;
-  animation: caer var(--dur) cubic-bezier(.15,.6,.5,1) forwards;
 }
 
-@keyframes caer {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
-  85%  { opacity: 1; }
-  100% { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--giro)); opacity: 0; }
-}
-
-/* --- El estallido del hito de racha ---
-   Los mismos papelitos, otro movimiento. El día completo LLUEVE desde arriba;
-   el hito ESTALLA desde el centro, detrás de la medalla. Si las dos
-   celebraciones se movieran igual, el hito parecería un día completo más. */
 .papelito.estallido {
-  animation-name: estallar;
-  animation-timing-function: cubic-bezier(.1,.75,.3,1);
+  animation: estallar var(--dur) cubic-bezier(.1,.75,.3,1) forwards;
 }
 
 @keyframes estallar {
@@ -575,6 +577,147 @@ header { margin-bottom: 22px; }
   75%  { opacity: 1; }
   100% { transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--giro)) scale(1); opacity: 0; }
 }
+
+/* --- El sello del día completo (v29) ---
+   Kev eligió en la maqueta el "sello" + la ola, con el fondo difuminado para
+   que el sello resalte. El orden cuenta una historia en tres tiempos:
+     1. la app se difumina y en el centro se dibuja un aro verde, se llena,
+        aparece el ✓ y salen rayitas (el mismo estallido del círculo de cada
+        hábito, en grande);
+     2. el sello vuela hacia la barra de progreso y el fondo se aclara;
+     3. al "aterrizar", una ola recorre las tarjetas (más abajo).
+   La capa SÍ recibe toques (a diferencia del confeti): con la app borrosa
+   detrás, un toque que la atravesara caería en algo que no estás viendo.
+   Tocarla adelanta la salida, así que nunca te hace esperar. */
+.sello {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+}
+.sello.visible { display: block; }
+
+/* El fondo difuminado. backdrop-filter desenfoca lo que hay DETRÁS (como la
+   barra de abajo, sección 6), y el color medio transparente lo aclara u
+   oscurece según el tema, para que el verde del sello se despegue.
+   La primera línea de background es el plan B para un Safari sin color-mix. */
+.sello-velo {
+  position: absolute;
+  inset: 0;
+  background: var(--velo);
+  background: color-mix(in srgb, var(--fondo) 55%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  animation: velo-entra .3s ease-out both;
+}
+.sello.vete .sello-velo { animation: velo-sale .45s ease-in forwards; }
+
+.sello-figura {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+}
+.sello.vete .sello-figura { animation: sello-se-va .45s cubic-bezier(.5,0,.75,0) forwards; }
+
+.sello-circulo { position: relative; width: 120px; height: 120px; }
+.sello-circulo svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* El aro se dibuja con el mismo truco que el ✓ (sección 4): un guion tan
+   largo como la circunferencia (2·π·50 ≈ 314), corrido hasta esconderse, y
+   la animación lo devuelve a 0. Empieza arriba (-90°) como un reloj. */
+.sello-aro {
+  fill: none;
+  stroke: var(--exito);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 315;
+  stroke-dashoffset: 315;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  animation: sello-trazo .45s cubic-bezier(.4,0,.2,1) forwards;
+}
+.sello-relleno {
+  fill: var(--exito);
+  transform: scale(0);
+  transform-origin: 50% 50%;
+  animation: sello-llenar .32s cubic-bezier(.2,.9,.3,1.3) .42s forwards;
+}
+.sello-palomita {
+  fill: none;
+  stroke: var(--sobre-exito);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 64;
+  stroke-dashoffset: 64;
+  animation: sello-trazo .3s cubic-bezier(.4,0,.2,1) .68s forwards;
+}
+/* Las rayitas: el mismo dibujo que .check.celebrar::after, con 12 en vez de 8. */
+.sello-rayos {
+  position: absolute;
+  inset: -36px;
+  border-radius: 50%;
+  opacity: 0;
+  background: repeating-conic-gradient(from -3deg, var(--exito) 0 5deg, transparent 5deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 52%, var(--exito) 53% 74%, transparent 75%);
+          mask: radial-gradient(circle, transparent 52%, var(--exito) 53% 74%, transparent 75%);
+  animation: sello-rayos .6s cubic-bezier(.2,.8,.2,1) .7s forwards;
+}
+.sello-texto { text-align: center; opacity: 0; animation: sello-texto .35s ease-out .8s forwards; }
+.sello-titulo { font-size: 21px; font-weight: 700; color: var(--texto-fuerte); }
+.sello-cuenta { font-size: 14px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+
+@keyframes sello-trazo  { to { stroke-dashoffset: 0; } }
+@keyframes sello-llenar { to { transform: scale(1); } }
+@keyframes sello-rayos  { 0% { opacity: 1; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.25); } }
+@keyframes sello-texto  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* --hacia-barra lo calcula JS: cuántos px hay del centro de la pantalla a
+   la barra de progreso. Si la barra quedó arriba fuera de la pantalla, el
+   sello vuela igual hacia arriba y se pierde por el borde. */
+@keyframes sello-se-va  { to { opacity: 0; transform: translateY(var(--hacia-barra, -40vh)) scale(.2); } }
+
+/* --- La ola (v29) ---
+   Cuando el sello aterriza, cada tarjeta se levanta un poco, en orden de
+   arriba abajo (--retraso: 70ms más que la anterior), con un brillo que la
+   cruza y el emoji dando un saltico. La barra recibe el mismo brillo.
+   El brillo es un ::after que viaja de izquierda a derecha; overflow:
+   hidden en la tarjeta lo recorta para que no se salga de sus bordes. */
+.habito.ola {
+  position: relative;
+  overflow: hidden;
+  /* Sin "both" a propósito: al terminar, la tarjeta vuelve a ser suya y el
+     :active (encoger al tocar) sigue funcionando. */
+  animation: ola .55s cubic-bezier(.3,.7,.4,1) var(--retraso);
+}
+.habito.ola::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, var(--brillo) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: brillo .7s ease-out var(--retraso) forwards;
+}
+.habito.ola .habito-emoji { animation: saltar .5s cubic-bezier(.3,.7,.4,1.4) var(--retraso); }
+.progreso-fondo { position: relative; }
+.progreso-fondo.ola::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--brillo), transparent);
+  transform: translateX(-100%);
+  animation: brillo .8s ease-out forwards;
+}
+@keyframes ola    { 35% { transform: translateY(-4px) scale(1.02); } }
+@keyframes brillo { to { transform: translateX(100%); } }
+@keyframes saltar { 40% { transform: translateY(-6px) rotate(-8deg); } 70% { transform: rotate(5deg); } }
+
+/* "Día completo ✓" en verde donde normalmente dice "Hoy". No es animación,
+   es un estado: se queda mientras el día esté completo. */
+#progresoEtiqueta.completo { color: var(--exito); font-weight: 600; }
 
 /* --- La medalla del hito ---
    Una capa fija que tapa toda la pantalla y centra la medalla. Igual que el
@@ -682,7 +825,11 @@ header { margin-bottom: 22px; }
 @media (prefers-reduced-motion: reduce) {
   .check.celebrar,
   .check.celebrar::after,
-  .papelito,
+  .papelito.estallido,
+  .habito.ola,
+  .habito.ola::after,
+  .habito.ola .habito-emoji,
+  .progreso-fondo.ola::after,
   .tarea.recien-movida,
   .hito.visible .hito-tarjeta,
   .hito-anillo,
@@ -1684,12 +1831,16 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
 .cal-dia.hecho   { background: var(--exito); color: var(--sobre-exito); }
 
-/* El día "no logrado": borde y número en rojo, y el número tachado. El
-   tachado es la ✗ de este cuadro: el número tiene que seguir leyéndose. */
+/* El día "no logrado": rojo lleno, igual que el hecho es verde lleno (v29,
+   pedido de Kev; hasta la v28 era solo el borde y el número en rojo). El
+   número sigue TACHADO a propósito: el tachado es la ✗ de este cuadro, y es
+   lo que distingue el rojo del verde para quien no ve bien los colores.
+   El mapa del año no cambia: ahí sigue la ✗ roja sobre fondo vacío. */
 .cal-dia.fallo {
-  border-color: var(--fallo);
-  color: var(--fallo);
+  background: var(--fallo);
+  color: var(--sobre-fallo);
   text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
@@ -1815,6 +1966,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
        solo adorno. -->
   <div class="confeti" id="confeti" aria-hidden="true"></div>
 
+  <!-- El sello del día completo (v29). También fuera de la lista, por lo
+       mismo. aria-hidden porque lo que dice ("Día completo") ya lo dice la
+       etiqueta de la barra de progreso, que VoiceOver sí lee. -->
+  <div class="sello" id="sello" aria-hidden="true"></div>
+
   <!-- La medalla del hito de racha (7, 30, 100, 365 días). Fuera de la lista
        por lo mismo que el confeti. Esta SÍ tiene información, así que no va
        aria-hidden: role="status" hace que VoiceOver lea "30 días seguidos"
@@ -1838,7 +1994,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
         <span id="progresoEtiqueta">Hoy</span>
         <span id="progresoTexto">0 de 0</span>
       </div>
-      <div class="progreso-fondo"><div class="progreso-barra" id="barra"></div></div>
+      <div class="progreso-fondo" id="progresoFondo"><div class="progreso-barra" id="barra"></div></div>
     </div>
   </header>
 
@@ -2137,6 +2293,7 @@ const TEXTOS = {
     tituloApp: 'Mis Hábitos',
     saludoManana: 'Buenos días', saludoTarde: 'Buenas tardes', saludoNoche: 'Buenas noches',
     hoy: 'Hoy', de: 'de',
+    diaCompletoEtiqueta: 'Día completo ✓', selloTitulo: 'Día completo',
     habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas', compras: 'Compras',
 
     // --- Hábitos ---
@@ -2271,6 +2428,7 @@ const TEXTOS = {
     tituloApp: 'My Habits',
     saludoManana: 'Good morning', saludoTarde: 'Good afternoon', saludoNoche: 'Good evening',
     hoy: 'Today', de: 'of',
+    diaCompletoEtiqueta: 'Day complete ✓', selloTitulo: 'Day complete',
     habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas', compras: 'Shopping',
 
     nuevoHabito: '+ New habit', tituloNuevoHabito: 'New habit',
@@ -3624,7 +3782,13 @@ function pintar() {
   // para que también se actualice al cambiar de idioma.
   pintarBotonMas();
   if (vista === 'habitos') {
-    document.getElementById('progresoEtiqueta').textContent = t('hoy');
+    // Con el día completo, "Hoy" pasa a decir "Día completo ✓" (v29). Es la
+    // única parte de la celebración que no se mueve: por eso se queda
+    // también con "reducir movimiento", y es lo que lee VoiceOver.
+    const completo = diaCompleto(hoy());
+    const etiqueta = document.getElementById('progresoEtiqueta');
+    etiqueta.textContent = t(completo ? 'diaCompletoEtiqueta' : 'hoy');
+    etiqueta.classList.toggle('completo', completo);
   }
 
   // Caso: todavía no hay hábitos
@@ -3920,15 +4084,27 @@ function ponerProgreso(texto) {
   if (cambio && !menosMovimiento()) reiniciarAnimacion(caja, 'numero-cambia');
 }
 
-/* ---------- E2. EL CONFETI DEL DÍA COMPLETO ----------
+/* ---------- E2. EL SELLO Y LA OLA DEL DÍA COMPLETO (v29) ----------
+   Hasta la v28 aquí caía una lluvia de 34 papelitos. Kev la cambió, después
+   de probar cinco opciones en una maqueta, por un sello en el centro con la
+   app difuminada detrás, seguido de una ola por la lista.
+
    Esto no se puede probar con pruebas.js: no hay pantalla que mirar. Lo que
    sí se prueba es la condición que lo dispara, diaCompleto(), que vive arriba
    en la sección C. Esa es la razón de haberlas separado — la parte que puede
-   equivocarse es la decisión, no la animación.                              */
+   equivocarse es la decisión, no la animación. Por lo mismo, cambiar la
+   lluvia por el sello no tocó ni una prueba de pruebas.js.                  */
 
 const capaConfeti = document.getElementById('confeti');
+const capaSello   = document.getElementById('sello');
 
-const PAPELITOS = 34;   // suficientes para que se vea, pocos para que no pese
+const PAPELITOS = 34;   // los del estallido del hito (E3)
+
+// Cuánto se queda el sello quieto en el centro antes de irse. Lo justo para
+// que se dibuje (~1s) y se alcance a leer "Día completo".
+const DURACION_SELLO = 1700;
+const SALIDA_SELLO   = 450;    // lo que dura el vuelo hacia la barra (.sello-se-va)
+let temporizadoresSello = [];
 
 // Los colores se leen del CSS en el momento de lanzar, no al abrir la app.
 // Motivo: el tema pudo haber cambiado desde entonces, y unos papelitos
@@ -3947,40 +4123,86 @@ function entre(min, max) {
 
 function celebrarDiaCompleto() {
   // Si el teléfono pide menos movimiento (Ajustes > Accesibilidad > Movimiento),
-  // no se lanza nada. Se comprueba aquí y no solo en el CSS porque así ni
-  // siquiera se crean los 34 elementos: es más barato no hacer el trabajo que
-  // hacerlo y esconderlo.
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // no sale nada. La información no se pierde: la barra de arriba ya dice
+  // "Día completo ✓" (eso lo pone pintar(), sin animación).
+  if (menosMovimiento()) return;
 
-  const colores = coloresConfeti();
+  // Si quedaba un sello a medias (desmarcaste y volviste a marcar rápido),
+  // se cancelan sus temporizadores: si no, el viejo escondería al nuevo.
+  temporizadoresSello.forEach(clearTimeout);
+  temporizadoresSello = [];
 
-  // Si quedara confeti de una celebración anterior a medias, se limpia. Puede
-  // pasar si desmarcas y vuelves a marcar rápido.
-  capaConfeti.innerHTML = '';
+  // El dibujo se arma con createElement + textContent, como la medalla del
+  // hito. El SVG sí va como texto porque no lleva nada que hayas escrito tú.
+  const velo    = document.createElement('div');
+  const figura  = document.createElement('div');
+  const circulo = document.createElement('div');
+  const texto   = document.createElement('div');
+  const titulo  = document.createElement('div');
+  const cuenta  = document.createElement('div');
+  velo.className    = 'sello-velo';
+  figura.className  = 'sello-figura';
+  circulo.className = 'sello-circulo';
+  texto.className   = 'sello-texto';
+  titulo.className  = 'sello-titulo';
+  cuenta.className  = 'sello-cuenta';
+  circulo.innerHTML = `<div class="sello-rayos"></div>
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="sello-relleno" cx="60" cy="60" r="47"/>
+      <circle class="sello-aro" cx="60" cy="60" r="50"/>
+      <path class="sello-palomita" d="M39 62l14 14 29-31"/>
+    </svg>`;
+  titulo.textContent = t('selloTitulo');
+  const total = datos.habitos.length;
+  cuenta.textContent = `${total} ${t('de')} ${total}`;
+  texto.append(titulo, cuenta);
+  figura.append(circulo, texto);
 
-  for (let i = 0; i < PAPELITOS; i++) {
-    const papel = document.createElement('div');
-    papel.className = 'papelito';
+  capaSello.innerHTML = '';
+  capaSello.classList.remove('vete');
+  capaSello.append(velo, figura);
+  capaSello.classList.add('visible');
 
-    papel.style.left            = entre(0, 100) + 'vw';
-    papel.style.top             = entre(-15, -5) + 'vh';   // arrancan fuera de la pantalla, arriba
-    papel.style.background      = colores[i % colores.length];
-    papel.style.borderRadius    = Math.random() < .35 ? '50%' : '2px';
-
-    // Las tres variables que usa la animación 'caer'. El azar vive en
-    // JavaScript y el movimiento en CSS: así el navegador anima en la tarjeta
-    // gráfica en vez de que nosotros movamos cada papelito con un temporizador.
-    papel.style.setProperty('--dx',   entre(-70, 70) + 'px');
-    papel.style.setProperty('--giro', entre(-540, 540) + 'deg');
-    papel.style.setProperty('--dur',  entre(1.6, 2.8) + 's');
-
-    capaConfeti.appendChild(papel);
+  // Hacia dónde vuela: la distancia del centro de la pantalla a la barra de
+  // progreso. Se mide ahora y no en el CSS porque depende de cuánto hayas
+  // bajado en la lista.
+  const barra = document.getElementById('progresoFondo');
+  if (barra && barra.getBoundingClientRect) {
+    const r = barra.getBoundingClientRect();
+    const destino = (r.top + r.height / 2) - window.innerHeight / 2;
+    figura.style.setProperty('--hacia-barra', Math.round(destino) + 'px');
   }
 
-  // Borrar los elementos cuando termina la animación. Sin esto se irían
-  // acumulando 34 divs invisibles por cada día completado, para siempre.
-  // 3000 ms cubre el papelito más lento (2.8s) con margen.
-  setTimeout(() => { capaConfeti.innerHTML = ''; }, 3000);
+  // Tocar el fondo adelanta la salida: la celebración nunca te hace esperar.
+  capaSello.onclick = irseSello;
+  temporizadoresSello.push(setTimeout(irseSello, DURACION_SELLO));
+}
+
+function irseSello() {
+  if (!capaSello.classList.contains('visible') || capaSello.classList.contains('vete')) return;
+  temporizadoresSello.forEach(clearTimeout);
+  capaSello.classList.add('vete');
+  temporizadoresSello = [setTimeout(() => {
+    capaSello.classList.remove('visible', 'vete');
+    capaSello.innerHTML = '';
+    capaSello.onclick = null;
+    lanzarOla();          // el sello "aterriza" en la barra y empieza la ola
+  }, SALIDA_SELLO)];
+}
+
+// La ola: cada tarjeta se levanta un poco, en orden de arriba abajo. Se
+// aplica sobre las tarjetas que hay ahora en pantalla; si tocas algo justo
+// en ese momento, pintar() las rehace y la ola se corta. Es adorno: no pasa
+// nada si se corta.
+function lanzarOla() {
+  if (vista !== 'habitos' || menosMovimiento()) return;
+  document.getElementById('lista').querySelectorAll('.habito').forEach((tarjeta, i) => {
+    // Con muchos hábitos la ola no debe tardar una eternidad en llegar al
+    // último: a partir del octavo salen todos juntos.
+    tarjeta.style.setProperty('--retraso', Math.min(i, 8) * 70 + 'ms');
+    reiniciarAnimacion(tarjeta, 'ola');
+  });
+  reiniciarAnimacion(document.getElementById('progresoFondo'), 'ola');
 }
 
 /* ---------- E3. LA MEDALLA DEL HITO DE RACHA ----------
@@ -5323,6 +5545,7 @@ function cambiarVista(nueva) {
   // variable con el mismo nombre la taparía dentro de esta función.
   const palabras = TEXTOS_LISTA[vista];
   document.getElementById('progresoEtiqueta').textContent = t(palabras.etiqueta);
+  document.getElementById('progresoEtiqueta').classList.remove('completo');
   campoTarea.placeholder = t(palabras.placeholder);
   campoTarea.value = '';          // lo que ibas a escribir era para la otra lista
 

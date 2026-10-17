@@ -999,6 +999,15 @@ const coloresSueltos = [...cuerpoCss.matchAll(/(#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*
 ok('no quedan colores escritos a mano fuera de las variables' +
    (coloresSueltos.length ? ' -> ' + coloresSueltos.join(', ') : ''),
    coloresSueltos.length === 0);
+// El "no logrado" del calendario (v29): rojo lleno como el verde, pero con
+// el número tachado. Lo tachado es lo que lo distingue sin ver colores.
+const reglaFallo = (/\.cal-dia\.fallo\s*\{([^}]*)\}/.exec(cuerpoCss) || [])[1] || '';
+ok('en el calendario, el día no logrado va relleno de rojo',
+   /background:\s*var\(--fallo\)/.test(reglaFallo) && /color:\s*var\(--sobre-fallo\)/.test(reglaFallo));
+ok('y conserva el tachado (no depende solo del color)', reglaFallo.includes('line-through'));
+ok('--sobre-fallo existe en los dos temas', (variables.match(/--sobre-fallo:/g) || []).length === 2);
+ok('el mapa del año sigue con la ✗ sobre fondo vacío, sin relleno rojo',
+   !/\.anio-dia\.fallo\s*\{[^}]*background:\s*var\(--fallo\)\s*;/.test(cuerpoCss));
 ok('los dos temas definen las mismas variables',
    (variables.match(/--[a-z-]+:/g) || []).length % 2 === 0);
 
