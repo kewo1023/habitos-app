@@ -24,6 +24,7 @@ global.localStorage = { getItem:k=>store[k]??null, setItem:(k,v)=>store[k]=Strin
 global.crypto = require('crypto').webcrypto;
 global.pintar = () => {};        // en el test no dibujamos nada
 global.pintarLista = () => {};   // lo mismo para pendientes e ideas
+global.pintarFechas = () => {};  // y para las fechas importantes (v30)
 global.habitoRecienMarcado = null;   // la marca de "anima este círculo"; aquí no hay círculo
 global.habitoRecienFallado = null;   // lo mismo para el ✗ (v27)
 
@@ -40,7 +41,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1008,6 +1009,14 @@ ok('y conserva el tachado (no depende solo del color)', reglaFallo.includes('lin
 ok('--sobre-fallo existe en los dos temas', (variables.match(/--sobre-fallo:/g) || []).length === 2);
 ok('el mapa del año sigue con la ✗ sobre fondo vacío, sin relleno rojo',
    !/\.anio-dia\.fallo\s*\{[^}]*background:\s*var\(--fallo\)\s*;/.test(cuerpoCss));
+// Los días con algo en Fechas (v30): teñidos de azul, no solo el puntito.
+// Y el día elegido (azul lleno) tiene que ir DESPUÉS en el CSS: con la misma
+// especificidad gana el último, y si no, un día elegido con evento se vería
+// teñido en vez de lleno.
+const reglaConFecha = (/#fechasGrid \.cal-dia\.con-fecha\s*\{([^}]*)\}/.exec(cuerpoCss) || [])[1] || '';
+ok('en Fechas, un día con algo se tiñe de azul', /color-mix\(in srgb, var\(--acento\)/.test(reglaConFecha));
+ok('y el día elegido le gana (va después en el CSS)',
+   cuerpoCss.indexOf('#fechasGrid .cal-dia.elegido {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.con-fecha {'));
 ok('los dos temas definen las mismas variables',
    (variables.match(/--[a-z-]+:/g) || []).length % 2 === 0);
 
@@ -1470,6 +1479,121 @@ ok('importar una copia trae sus no logrados', ctx.esFallo('a', ayer));
 ctx.importar(JSON.stringify({ habitos: [{ id: 'a', nombre: 'Leer' }], registros: {} }));
 ok('y una copia vieja, sin ellos, entra con la lista vacía',
    JSON.stringify(ctx.datos.fallos) === '{}');
+
+
+// ============================================================
+//  FECHAS IMPORTANTES (v30)
+//  La pregunta central es "¿cuándo es la próxima vez?". Se prueba con un
+//  `desde` fijo, no con hoy(): así las pruebas dan lo mismo el día que sea.
+// ============================================================
+{
+  const anual = (fecha) => ({ fecha, repite: 'anual' });
+  const unica = (fecha) => ({ fecha, repite: 'no' });
+
+  ok('esFechaValida acepta un día real', ctx.esFechaValida('2026-10-17'));
+  ok('y rechaza el 30 de febrero', !ctx.esFechaValida('2026-02-30'));
+  ok('y el 29 de febrero de un año no bisiesto', !ctx.esFechaValida('2027-02-29'));
+  ok('pero acepta el de un bisiesto', ctx.esFechaValida('2028-02-29'));
+  ok('y rechaza cualquier otra forma', !ctx.esFechaValida('17/10/2026') && !ctx.esFechaValida(''));
+
+  ok('un cumpleaños que aún no llega este año cae este año',
+     ctx.proximaOcurrencia(anual('1996-12-03'), '2026-10-17') === '2026-12-03');
+  ok('uno que ya pasó este año cae el año que viene',
+     ctx.proximaOcurrencia(anual('1996-03-14'), '2026-10-17') === '2027-03-14');
+  ok('si es hoy, es hoy (no el año que viene)',
+     ctx.proximaOcurrencia(anual('1996-10-17'), '2026-10-17') === '2026-10-17');
+  ok('el 31 de diciembre mirado desde el 1 de enero no se salta el año',
+     ctx.proximaOcurrencia(anual('2000-12-31'), '2026-01-01') === '2026-12-31');
+  ok('el 29 de febrero se celebra el 28 en un año no bisiesto',
+     ctx.proximaOcurrencia(anual('2000-02-29'), '2026-10-17') === '2027-02-28');
+  ok('y el 29 en uno bisiesto',
+     ctx.proximaOcurrencia(anual('2000-02-29'), '2027-10-17') === '2028-02-29');
+  // Ojo con esta prueba: con una fecha del año que viene (2027) daría lo
+  // mismo con o sin el arreglo, porque "el próximo 1 de junio" ES ese. Hace
+  // falta una a dos años para ver la diferencia. Se comprobó rompiendo el
+  // arreglo a propósito: con 2027 seguía en verde.
+  ok('un aniversario que empieza dentro de dos años no aparece antes',
+     ctx.proximaOcurrencia(anual('2028-06-01'), '2026-10-17') === '2028-06-01');
+  ok('una fecha única que no ha llegado cae ese día',
+     ctx.proximaOcurrencia(unica('2026-11-05'), '2026-10-17') === '2026-11-05');
+  ok('una fecha única que ya pasó no tiene próxima vez',
+     ctx.proximaOcurrencia(unica('2026-10-01'), '2026-10-17') === null);
+
+  ok('cumple 30 en 2026 quien nació en 1996',
+     ctx.aniosQueCumple(anual('1996-12-03'), '2026-12-03') === 30);
+  ok('una fecha única no cumple años', ctx.aniosQueCumple(unica('2026-11-05'), '2026-11-05') === 0);
+
+  ok('una anual cae en su día de cualquier año posterior', ctx.caeEnDia(anual('1996-12-03'), '2031-12-03'));
+  ok('pero no en años anteriores a la original', !ctx.caeEnDia(anual('1996-12-03'), '1990-12-03'));
+  ok('una única solo cae en su día exacto',
+     ctx.caeEnDia(unica('2026-11-05'), '2026-11-05') && !ctx.caeEnDia(unica('2026-11-05'), '2027-11-05'));
+
+  const lista = [
+    { id: 'a', titulo: 'Cumple Ana', fecha: '1996-12-03', repite: 'anual' },
+    { id: 'b', titulo: 'Pagar seguro', fecha: '2026-10-20', repite: 'no' },
+    { id: 'c', titulo: 'Cita médica', fecha: '2026-10-01', repite: 'no' },
+    { id: 'd', titulo: 'Aniversario', fecha: '2020-10-17', repite: 'anual' },
+    { id: 'e', titulo: 'Vuelo', fecha: '2026-10-20', repite: 'no' },
+  ];
+  const agenda = ctx.agendaFechas(lista, '2026-10-17');
+  ok('la agenda va de lo más cercano a lo más lejano',
+     agenda.map(f => f.fecha.id).join() === 'd,b,e,a');
+  ok('a igual día respeta el orden en que se agregaron (seguro antes que vuelo)',
+     agenda[1].fecha.id === 'b' && agenda[2].fecha.id === 'e');
+  ok('la agenda no trae lo que ya pasó', !agenda.some(f => f.fecha.id === 'c'));
+  ok('cada fila sabe cuántos días faltan', agenda[0].faltan === 0 && agenda[1].faltan === 3);
+  ok('y cuántos años cumple', agenda[0].anios === 6 && agenda[3].anios === 30);
+  ok('las pasadas son solo las únicas que ya fueron',
+     ctx.fechasPasadas(lista, '2026-10-17').map(f => f.id).join() === 'c');
+  ok('la franja muestra solo lo de los próximos 3 días',
+     ctx.proximasFechas(lista, '2026-10-17').map(f => f.fecha.id).join() === 'd,b,e');
+  ok('el puntito del mes marca los días que tienen algo',
+     [...ctx.diasConFechas(lista, 2026, 10)].join() === '1,17,20');
+  ok('y fechasDelDia trae las de ese día', ctx.fechasDelDia(lista, '2026-10-20').length === 2);
+
+  ok('faltan 0 dice "Hoy"', ctx.textoFaltan(0) === 'Hoy');
+  ok('faltan 1 dice "Mañana"', ctx.textoFaltan(1) === 'Mañana');
+  ok('faltan 12 dice "12 días"', ctx.textoFaltan(12) === '12 días');
+
+  // Guardar, editar, borrar
+  ctx.datos.fechas = [];
+  ok('sin título no se guarda', ctx.agregarFecha({ titulo: '  ', fecha: '2026-12-03' }) === null);
+  ok('con una fecha que no existe tampoco', ctx.agregarFecha({ titulo: 'X', fecha: '2026-02-30' }) === null);
+  const idF = ctx.agregarFecha({ titulo: '  Cumple Ana ', fecha: '1996-12-03', repite: 'anual', emoji: '🎂', nota: '' });
+  const f = ctx.datos.fechas.find(x => x.id === idF);
+  ok('con título y fecha sí se guarda', !!f);
+  ok('el título llega sin espacios de sobra', f.titulo === 'Cumple Ana');
+  ok('una nota vacía no se guarda como ""', !('nota' in f));
+  ok('un emoji desconocido cae en 📌',
+     ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', emoji: '<b>' }).emoji === '📌');
+  ok('un "repite" desconocido NO se vuelve anual',
+     ctx.limpiarFecha({ titulo: 'X', fecha: '2026-01-01', repite: 'semanal' }).repite === 'no');
+  ok('editar cambia los campos y conserva el id',
+     ctx.editarFecha(idF, { titulo: 'Cumple de Ana', fecha: '1996-12-04', repite: 'anual', emoji: '🎂', nota: 'Le gusta el café' })
+     && ctx.datos.fechas[0].id === idF && ctx.datos.fechas[0].fecha === '1996-12-04' && ctx.datos.fechas[0].nota === 'Le gusta el café');
+  ctx.editarFecha(idF, { titulo: 'Cumple de Ana', fecha: '1996-12-04', repite: 'anual', emoji: '🎂', nota: '' });
+  ok('y borrar la nota la quita del todo', !('nota' in ctx.datos.fechas[0]));
+  ok('editar con un título vacío no cambia nada',
+     !ctx.editarFecha(idF, { titulo: '', fecha: '1996-12-04' }) && ctx.datos.fechas[0].titulo === 'Cumple de Ana');
+
+  const tareasAntes = ctx.datos.tareas.length;
+  ok('una fecha se puede mandar a Pendientes', ctx.fechaAPendiente(idF, '2026-10-17'));
+  const nueva = ctx.datos.tareas[ctx.datos.tareas.length - 1];
+  ok('y llega como pendiente con su emoji y su título',
+     ctx.datos.tareas.length === tareasAntes + 1 && nueva.lista === 'pendientes' && nueva.texto.startsWith('🎂 Cumple de Ana · '));
+
+  ok('borrar la quita', ctx.borrarFecha(idF) && ctx.datos.fechas.length === 0);
+  ok('borrar algo que no existe devuelve false', ctx.borrarFecha('no-existe') === false);
+
+  // Los datos viejos y las copias
+  localStorage.setItem('habitos-app-v1', JSON.stringify({ version: 1, habitos: [], registros: {} }));
+  ok('unos datos de antes de la v30 cargan con la lista de fechas vacía',
+     Array.isArray(ctx.cargar().fechas) && ctx.cargar().fechas.length === 0);
+  ctx.aplicarCopia({ habitos: [], registros: {} });
+  ok('una copia vieja, sin fechas, entra con la lista vacía', Array.isArray(ctx.datos.fechas) && ctx.datos.fechas.length === 0);
+  ctx.aplicarCopia({ habitos: [], registros: {}, fechas: [{ id: 'z', titulo: 'Vuelo', fecha: '2026-11-05', repite: 'no', emoji: '✈️' }] });
+  ok('y una copia nueva trae sus fechas', ctx.datos.fechas.length === 1 && ctx.datos.fechas[0].titulo === 'Vuelo');
+}
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
 process.exit(fallos ? 1 : 0);

@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 477 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 224 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 527 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 259 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -507,6 +507,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     arriba. **Decisión clave:** en modo edición el "+" se vuelve "✓" y
     sale del modo, porque el "Listo" de arriba queda fuera de la pantalla
     al bajar a Ajustes. `alternarEdicion()` es la única que entra y sale.
+    **⚠️ Reemplazado en la v30:** el "+" redondo se quitó (pedido de Kev);
+    el "✓" lo reemplaza un "Listo" al final de los paneles. Ver Fase 3.17.
     El "Liquid Glass" de iOS no se puede imitar desde la web: esto es
     vidrio esmerilado (`backdrop-filter`).
   - ~~**Color por hábito**~~ — **quitado en la v24** a pedido de Kev (ver
@@ -686,10 +688,70 @@ pantalla, agregarlo a `pruebas-app.js`.
     comentario**. Un comentario que decía "igual que --sobre-exito: ..." lo
     puso en rojo. Al comentar variables en la sección 1, no escribir el
     nombre seguido de dos puntos.
-  - Pendiente, evaluado y no construido: **calendario de fechas
-    importantes** (pestaña "Fechas" con agenda, cumpleaños que se repiten
-    cada año, cuenta regresiva y franja "Próximas" en Hábitos). Evaluación
-    en `BITACORA.md`, 16 de octubre de 2026.
+  - El calendario de fechas importantes se construyó en la v30 (Fase 3.17).
+- **Fase 3.17 — Fechas importantes (v30)** Quinta pestaña. Evaluada el 16
+  de octubre (cuatro ejes, en `BITACORA.md`) y construida el 17.
+  **No hay SQL que correr:** las fechas viven solo en el teléfono y en la
+  copia de seguridad, como los "no logrados". Al reactivar Supabase, su
+  tabla sería el Paso 9.
+  - **Decisión clave:** modelo propio, `datos.fechas` con `{ id, titulo,
+    fecha, repite: 'anual' | 'no', emoji, nota? }`. **No** es un cuarto
+    valor de `lista` en las tareas, como Compras: una fecha tiene día y
+    repetición, y no se "hace". Mismo criterio que "una tarea no es un
+    hábito".
+  - **Lo que se tomó de Google Calendar, y lo que no:** fechas que se
+    repiten cada año con los años que se cumplen ("32 años"), la vista de
+    agenda agrupada por mes (la "Programación"), el mes con puntitos y
+    crear un pendiente desde una fecha. **No** se tomaron horas, invitados
+    ni compartir: para eso ya existe Google Calendar. La utilidad que
+    justifica la pestaña es ver las fechas en el gesto que ya haces a diario.
+  - Lógica pura en **D3** (probada): `proximaOcurrencia()` es el corazón
+    ("¿cuándo es la próxima vez?"). Dibujo en **P**.
+  - **Decisión clave: el 29 de febrero se celebra el 28** en los años no
+    bisiestos (`ocurrenciaEnAnio`). Google Calendar lo muestra solo en los
+    bisiestos; un cumpleaños que desaparece tres años de cada cuatro no
+    sirve de aviso.
+  - **Franja "Próximas" en Hábitos:** solo si hay algo en los próximos 3
+    días (`DIAS_PROXIMAS`), máximo 2 filas y "y N más". Una franja que
+    estuviera siempre dejaría de verse. Tocarla lleva a Fechas en ese día.
+  - Colores: el puntito del mes es **azul**, no verde (un cumpleaños no se
+    "hace"); lo de **hoy** va en amarillo (`--celebrar`, con su nuevo
+    `--sobre-celebrar` para el texto del chip).
+  - En Fechas no hay modo edición (todo se cambia desde la ficha): "Editar"
+    y la barra de progreso se esconden con `body.vista-fechas`.
+  - **Cinco pestañas en 375px, medido en el navegador:** con el "+" al
+    lado, cada pestaña medía 55px y "Pendientes" (58,7px) no cabía. Se
+    probó bajar la letra a 10px y quitar la negrilla; al probar la maqueta,
+    **Kev pidió quitar el "+" redondo** para darles espacio. Sin él cada
+    pestaña mide ~68px y la letra (10,5px) y la negrilla volvieron.
+  - **Decisión de Kev: sin botón "+" en la barra** (cambia la decisión de
+    la v21). Lo que hacía, ahora lo hace cada sección por su cuenta:
+    Hábitos tiene **"+ Nuevo hábito"** al final de la lista (`.btn-nuevo`,
+    fuera de `#lista`); Pendientes, Ideas y Compras ya tenían el campo de
+    arriba con su "+"; Fechas tiene **"+ Agregar"** junto al día elegido; y
+    el "✓" que sacaba del modo edición lo reemplaza **"Listo"** al final de
+    los paneles (`#btnListoAbajo`). `pintarBotonMas()` y las claves
+    `boton` de `TEXTOS_LISTA` desaparecieron.
+  - **Más contraste en los días con algo** (pedido de Kev al probar): el
+    cuadro se tiñe de azul suave, el número va en azul y negrilla, y el
+    puntito pasó de 5 a 6px. El día elegido (azul lleno) tiene que ir
+    DESPUÉS en el CSS para ganarle al teñido; un test lo vigila.
+  - **"Próximas" se pliega** (pedido de Kev: decidir si verlas o no).
+    Tocar el título pliega o despliega la agenda, con la cuenta siempre a
+    la vista. Se recuerda en `datos.prefs.proximasPlegadas`: es de este
+    teléfono, no viaja (mismo criterio que el tema). Sin ninguna fecha no
+    se pliega: lo de adentro es la explicación de cómo agregar la primera.
+  - **Bug viejo encontrado de paso (v28):** el cuadro de confirmar estaba
+    antes que la ficha de la idea en el HTML, con la misma capa (z-index
+    10), así que "Borrar" desde la ficha de una idea abría la pregunta
+    DETRÁS de la ficha. Comprobado en el navegador. Ahora `#modalConfirmar`
+    tiene z-index 11.
+  - **Sin construir, a propósito:** el botón "Agregar al calendario del
+    iPhone" (un `.ics` con alarma, para que avise el teléfono). Hay que
+    probar primero si una PWA instalada puede entregarlo; es lo único que
+    daría avisos sin servidor.
+  - Las fechas usan `diasEntre()` (sección C), que redondea: el cambio de
+    hora de noviembre no convierte "3 días" en "2,96".
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -737,6 +799,10 @@ calendario, Fase 3.16), commit `9629b33`, publicada el 17 de octubre de
 2026 después de que Kev la aprobara en la maqueta desde el iPhone.
 Comprobada en el sitio en vivo; falta probarla ya publicada en el iPhone
 (la app instalada). Sin SQL.
+**`v30`** (fechas importantes, Fase 3.17), construida en la rama
+`v30-fechas` el 17 de octubre de 2026. Kev la probó en la maqueta y pidió
+tres cambios antes de publicar (sin "+" en la barra, más contraste en los
+días con algo, "Próximas" plegable). Publicada el mismo día. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

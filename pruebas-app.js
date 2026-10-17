@@ -122,7 +122,7 @@ eval(script + `
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
     TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarIdea,
-    lanzarOla, irseSello
+    lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -174,14 +174,14 @@ ok('el botón del tema activo se resalta', botonesTema.includes('Automático:act
 // 3. El idioma
 // ===========================================================================
 ok('las pestañas arrancan en español', $('pestanaHabitos').textContent === 'Hábitos');
-// Desde la v21 el botón de abajo es un "+" redondo: lo que dice en palabras
-// vive en su aria-label, que es lo que lee VoiceOver.
-ok('el botón de abajo muestra solo el +', $('btnAgregar').textContent === '+');
-ok('el botón de abajo arranca en español', $('btnAgregar').getAttribute('aria-label') === 'Nuevo hábito');
+// Desde la v30 no hay "+" redondo en la barra: crear un hábito es el botón
+// "+ Nuevo hábito" al final de la lista.
+ok('ya no existe el botón redondo de la barra', $('btnAgregar') === null);
+ok('"+ Nuevo hábito" arranca en español', $('btnNuevoHabito').textContent === '+ Nuevo hábito');
 
 app.cambiarIdioma('en');
 ok('cambiar a inglés traduce las pestañas', $('pestanaHabitos').textContent === 'Habits');
-ok('traduce también el botón grande', $('btnAgregar').getAttribute('aria-label') === 'New habit');
+ok('traduce también "+ Nuevo hábito"', $('btnNuevoHabito').textContent === '+ New habit');
 ok('traduce los botones del modo edición', $('btnEditar').textContent === 'Edit');
 ok('traduce los textos guía de los campos', $('correo').placeholder === 'you@email.com');
 ok('traduce el panel de copia', $('btnExportar').textContent === '↓ Save backup');
@@ -231,22 +231,20 @@ app.cambiarIdioma('en');
 ok('el progreso se traduce', $('progresoTexto').textContent === '0 of 1');
 
 app.cambiarVista('pendientes');
-ok('en Pendientes el botón grande está en inglés', $('btnAgregar').getAttribute('aria-label') === 'New to-do');
 ok('y el texto guía del campo también', $('tareaNueva').placeholder === "What's on your list?");
 ok('y la etiqueta de la barra de progreso', $('progresoEtiqueta').textContent === 'To-do');
 
 app.cambiarVista('ideas');
-ok('en Ideas el botón grande está en inglés', $('btnAgregar').getAttribute('aria-label') === 'New idea');
+ok('en Ideas el texto guía del campo está en inglés', $('tareaNueva').placeholder === 'What came to mind?');
 
 app.cambiarVista('habitos');
-ok('volver a Hábitos restaura su botón', $('btnAgregar').getAttribute('aria-label') === 'New habit');
 ok('y su etiqueta "Today"', $('progresoEtiqueta').textContent === 'Today');
 
 // cambiar de idioma ESTANDO en otra sección tiene que repintar esa sección
 app.cambiarVista('ideas');
 app.cambiarIdioma('es');
 ok('cambiar de idioma dentro de Ideas repinta Ideas',
-   $('btnAgregar').getAttribute('aria-label') === 'Nueva idea');
+   $('tareaNueva').placeholder === '¿Qué se te ocurrió?');
 app.cambiarVista('habitos');
 
 // ===========================================================================
@@ -263,26 +261,25 @@ ok('la píldora viaja hasta la tercera pestaña', $('pestanas').style['--i'] ===
 app.cambiarVista('habitos');
 ok('y vuelve a la primera', $('pestanas').style['--i'] === '0');
 
+// v30: sin el "+" redondo, salir del modo edición desde abajo es el botón
+// "Listo" al final de los paneles (antes era el ✓ del "+").
 $('btnEditar').click();
-ok('en modo edición el + se vuelve ✓', $('btnAgregar').textContent === '✓');
-ok('y VoiceOver lo lee como "Listo"', $('btnAgregar').getAttribute('aria-label') === 'Listo');
-ok('arriba también dice Listo', $('btnEditar').textContent === 'Listo');
-$('btnAgregar').click();
-ok('tocar el ✓ sale del modo edición', !doc.body.classList.contains('editando'));
-ok('y los dos botones vuelven a la vez', $('btnAgregar').textContent === '+' &&
-   $('btnEditar').textContent === 'Editar');
-// v26: el botón gira al cambiar de cara, y SOLO entonces. pintar() lo
-// repinta en cada toque; si girara siempre, giraría al marcar un hábito.
-ok('al cambiar de + a ✓ (y de vuelta) el botón gira', $('btnAgregar').classList.contains('girando'));
-$('btnAgregar').classList.remove('girando');
-app.pintar();
-ok('pero repintar sin cambiar de cara no lo hace girar', !$('btnAgregar').classList.contains('girando'));
+ok('arriba dice Listo', $('btnEditar').textContent === 'Listo');
+ok('y abajo hay otro "Listo"', $('btnListoAbajo').textContent === 'Listo');
+$('btnListoAbajo').onclick();
+ok('tocar el Listo de abajo sale del modo edición', !doc.body.classList.contains('editando'));
+ok('y el de arriba vuelve a decir Editar', $('btnEditar').textContent === 'Editar');
 ok('sin abrir de paso la ventana de nuevo hábito', !$('modal').classList.contains('abierto'));
 
-$('btnEditar').click();
-app.cambiarVista('compras');
-ok('cambiar de sección también devuelve el +', $('btnAgregar').textContent === '+' &&
-   $('btnAgregar').getAttribute('aria-label') === 'Agregar a la lista');
+// Lo que hacía el "+" en cada sección, ahora en la sección misma.
+$('btnNuevoHabito').onclick();
+ok('en Hábitos, "+ Nuevo hábito" abre la ventana de crear', $('modal').classList.contains('abierto'));
+$('btnCancelar').onclick();
+['pendientes', 'ideas', 'compras'].forEach(lista => {
+  app.cambiarVista(lista);
+  ok(`en ${lista}, el campo de escribir (con su +) está a la vista`,
+     $('listaTareas').hidden === false && !!$('formTarea') && !!$('btnAgregarTarea'));
+});
 app.cambiarVista('habitos');
 
 // ===========================================================================
@@ -700,7 +697,6 @@ app.cambiarVista('compras');
 ok('cambiar a Compras la marca como activa', $('pestanaCompras').className.includes('activa'));
 ok('y apaga las otras', !$('pestanaIdeas').className.includes('activa')
                        && !$('pestanaTareas').className.includes('activa'));
-ok('el botón grande dice lo suyo', $('btnAgregar').getAttribute('aria-label') === 'Agregar a la lista');
 ok('y el texto guía del campo también', $('tareaNueva').placeholder === '¿Qué hay que comprar?');
 ok('la lista vacía muestra su mensaje', $('tareasCuerpo').textContent.includes('Lista vacía'));
 
@@ -1030,8 +1026,111 @@ async function pruebasDeMovimiento() {
   ok('desmarcar es inmediato', tarea().hecha === false);
 }
 
+// ===========================================================================
+// 15. Fechas importantes (v30)
+//     La lógica (próxima vez, 29 de febrero, agenda) la prueba pruebas.js.
+//     Aquí: que la quinta pestaña lleve a su sección, que el + abra la
+//     ventana correcta, que guardar dibuje la fecha en el mes y en la agenda,
+//     que la franja de Hábitos aparezca solo cuando toca, y que borrar
+//     pregunte con el cuadro propio.
+// ===========================================================================
+async function pruebasDeFechas() {
+  app.datos.fechas = [];
+  app.cambiarVista('habitos');
+  ok('hay una quinta pestaña, "Fechas"', $('pestanaFechas') && $('pestanaFechas').textContent === 'Fechas');
+  ok('y "fechas" es la quinta sección de la lista', app.VISTAS.indexOf('fechas') === 4);
+  ok('sin fechas, la franja de Hábitos no se ve', $('franjaFechas').hidden === true);
+
+  $('pestanaFechas').onclick();
+  ok('tocar la pestaña muestra Fechas', app.vista === 'fechas' && $('vistaFechas').hidden === false);
+  ok('y esconde los hábitos y las listas', $('lista').hidden && $('listaTareas').hidden);
+  ok('la pestaña se ilumina y la píldora viaja a la quinta',
+     $('pestanaFechas').classList.contains('activa') && $('pestanas').style['--i'] === '4');
+  ok('el body sabe que está en Fechas (el CSS esconde "Editar" y la barra de progreso)',
+     doc.body.classList.contains('vista-fechas'));
+  ok('vacía, explica cómo agregar la primera', $('fechasAgenda').innerHTML.includes('+ Agregar'));
+  ok('el mes tiene sus días', $('fechasGrid').children.filter(c => !c.classList.contains('relleno')).length >= 28);
+  ok('y hoy está marcado y elegido',
+     $('fechasGrid').children.some(c => c.classList.contains('hoy') && c.classList.contains('elegido')));
+  $('fechasAgregarDia').onclick();
+  ok('"+ Agregar" (junto al día) abre la ventana de una fecha nueva',
+     $('modalFecha').classList.contains('abierto') && $('fechaVentanaTitulo').textContent === 'Nueva fecha');
+  ok('con hoy ya puesto como día', $('fechaDia').value === app.hoy());
+  ok('y sin "Borrar" ni "A Pendientes": todavía no existe', $('fechaAcciones').hidden === true);
+
+  $('fechaGuardar').onclick();
+  ok('sin título no se guarda y la ventana sigue abierta',
+     app.datos.fechas.length === 0 && $('modalFecha').classList.contains('abierto'));
+
+  $('fechaNombre').value = 'Cumple de <b>Ana</b>';
+  $('fechaGuardar').onclick();
+  ok('con título se guarda y la ventana se cierra',
+     app.datos.fechas.length === 1 && !$('modalFecha').classList.contains('abierto'));
+  ok('el día queda con su puntito en el mes',
+     $('fechasGrid').children.some(c => c.classList.contains('hoy') && c.classList.contains('con-fecha')));
+  const filas = () => $('fechasAgenda').querySelectorAll('.fecha-fila');
+  ok('y aparece en la agenda', filas().length === 1);
+  ok('el título entra como texto, no como HTML',
+     filas()[0].querySelector('.fecha-titulo').textContent === 'Cumple de <b>Ana</b>');
+  ok('como es hoy, lleva el chip "Hoy"', filas()[0].querySelector('.fecha-faltan').textContent === 'Hoy');
+
+  // Plegar la agenda (v30): un ajuste de este teléfono.
+  ok('"Próximas" muestra cuántas hay', $('fechasCuenta').textContent === '1');
+  ok('y arranca desplegada', $('fechasAgenda').hidden === false &&
+     $('fechasPlegar').getAttribute('aria-expanded') === 'true');
+  $('fechasPlegar').onclick();
+  ok('tocar "Próximas" la pliega', $('fechasAgenda').hidden === true &&
+     $('fechasPlegar').getAttribute('aria-expanded') === 'false');
+  ok('plegada, la cuenta sigue a la vista', $('fechasCuenta').textContent === '1');
+  ok('y se recuerda en el teléfono', JSON.parse(almacen['habitos-app-v1']).prefs.proximasPlegadas === true);
+  app.cambiarVista('habitos'); app.cambiarVista('fechas');
+  ok('al volver a Fechas sigue plegada', $('fechasAgenda').hidden === true);
+  $('fechasPlegar').onclick();
+  ok('tocarla otra vez la despliega', $('fechasAgenda').hidden === false);
+
+  app.cambiarVista('pendientes');
+  ok('en Pendientes la franja no se ve', $('franjaFechas').hidden === true);
+  app.cambiarVista('habitos');
+  ok('en Hábitos, con algo hoy, la franja aparece', $('franjaFechas').hidden === false);
+  ok('y dice qué es', $('franjaFechas').querySelector('.franja-titulo').textContent === 'Cumple de <b>Ana</b>');
+  $('franjaFechas').onclick();
+  ok('tocarla lleva a Fechas', app.vista === 'fechas');
+
+  // Una fecha que ya existe: se abre para leer, con sus acciones.
+  const id = app.datos.fechas[0].id;
+  app.abrirFecha(id);
+  ok('una fecha que existe abre con su título', $('fechaVentanaTitulo').textContent === 'Fecha' &&
+     $('fechaNombre').value === 'Cumple de <b>Ana</b>');
+  ok('y con sus acciones', $('fechaAcciones').hidden === false);
+  const tareasAntes = app.datos.tareas.length;
+  $('fechaPendiente').onclick();
+  ok('"A Pendientes" crea el pendiente', app.datos.tareas.length === tareasAntes + 1);
+  ok('y el botón avisa y se apaga', $('fechaPendiente').textContent === '✓ En Pendientes' && $('fechaPendiente').disabled);
+
+  // Borrar pregunta con el cuadro propio, encima de la ficha.
+  respuestaConfirm = true;
+  const borrando = $('fechaBorrar').onclick();
+  ok('borrar pregunta antes', $('modalConfirmar').classList.contains('abierto') &&
+     $('confirmarTitulo').textContent === '¿Borrar esta fecha?');
+  $('confirmarSi').onclick();
+  await borrando;
+  ok('al decir que sí se borra y la ficha se cierra',
+     app.datos.fechas.length === 0 && !$('modalFecha').classList.contains('abierto'));
+
+  // Una fecha lejana no sale en la franja.
+  app.datos.fechas = [{ id: 'lejos', titulo: 'Vuelo', fecha: '2099-01-01', repite: 'no', emoji: '✈️' }];
+  app.cambiarVista('habitos');
+  ok('algo dentro de mucho no sale en la franja', $('franjaFechas').hidden === true);
+
+  app.cambiarIdioma('en');
+  ok('en inglés la pestaña dice "Dates"', $('pestanaFechas').textContent === 'Dates');
+  app.cambiarIdioma('es');
+  app.datos.fechas = [];
+  app.cambiarVista('habitos');
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

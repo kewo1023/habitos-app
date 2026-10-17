@@ -91,6 +91,7 @@
   /* El tercer color del confeti. El verde y el azul ya los tiene la app; hacía
      falta uno cálido para que los papelitos no parezcan más de lo mismo. */
   --celebrar:      #f2c14e;
+  --sobre-celebrar: #2b2000;              /* texto encima del amarillo: el chip "Hoy" de Fechas (v30) */
 
   /* La sombra de lo que flota encima de todo (la medalla del hito, la barra
      de abajo). En oscuro tiene que ser casi negra para notarse; en claro, la
@@ -171,6 +172,7 @@
   /* El mismo amarillo, un punto más oscuro: sobre fondo claro el de arriba
      casi desaparece. Es el mismo ajuste que hubo que hacerle al verde. */
   --celebrar:      #d99e10;
+  --sobre-celebrar: #2b2000;
 
   --sombra:        rgba(15,17,21,.16);
 
@@ -837,12 +839,12 @@ header { margin-bottom: 22px; }
   .check.negar,
   .tarea.tachando .tarea-texto span,
   .numero-cambia,
-  .btn-mas.girando,
   #modalConfirmar.abierto .icono-basurero .tapa,
   #modalConfirmar.abierto .icono-restaurar,
   .fondo-modal.abierto,
   .modal { animation: none; }
   .pestana-indicador,
+  .plegar-flecha,
   .segmentado::before,
   input[type=text], input[type=email], input[type=password] { transition: none; }
 }
@@ -1049,8 +1051,10 @@ body.editando .panel-datos { display: block; }
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
-  /* Medido a 375px: cada pestaña tiene 69px y "Pendientes" a 10.5px mide
-     59px. Si se cambia la letra o se agrega una quinta, medir otra vez. */
+  /* Medido a 375px (v30): con cinco pestañas y el "+" al lado cada una
+     medía 55px y "Pendientes" (58,7px) no cabía. Sin el "+", cada pestaña
+     mide ~68px y la letra vuelve a ser la de siempre. Si se cambia la letra,
+     un nombre o se agrega una sexta pestaña, MEDIR OTRA VEZ. */
   font-size: 10.5px; font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -1074,6 +1078,7 @@ body.editando .panel-datos { display: block; }
 #pestanaHabitos { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l2.7 2.7L16 9.8'/%3E%3C/svg%3E"); }
 #pestanaTareas  { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 6h10M10 12h10M10 18h10'/%3E%3Cpath d='M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17'/%3E%3C/svg%3E"); }
 #pestanaIdeas   { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 18h5M10.5 21h3'/%3E%3Cpath d='M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E"); }
+#pestanaFechas  { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='3'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Ccircle cx='12' cy='15' r='1.4' fill='black' stroke='none'/%3E%3C/svg%3E"); }
 #pestanaCompras { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9.5' cy='20' r='1.2'/%3E%3Ccircle cx='17.5' cy='20' r='1.2'/%3E%3Cpath d='M2.5 3.5h2.8l2.3 11a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.4-1.1L21 8H6.3'/%3E%3C/svg%3E"); }
 
 /* La pestaña en la que estás parado: color de acento y negrilla. La píldora
@@ -1084,8 +1089,8 @@ body.editando .panel-datos { display: block; }
 }
 
 /* La píldora que viaja detrás de la pestaña activa.
-   Mide un cuarto del ancho útil (sin los 5px de cada lado) y se desplaza
-   con translateX en múltiplos de su propio ancho: --i = 0, 1, 2 o 3, que lo
+   Mide un quinto del ancho útil (sin los 5px de cada lado) y se desplaza
+   con translateX en múltiplos de su propio ancho: --i = 0 a 4, que lo
    pone cambiarVista(). translateX(100%) es "córrete lo que mides", así que
    no hace falta saber cuántos píxeles tiene cada pestaña.
 
@@ -1095,7 +1100,7 @@ body.editando .panel-datos { display: block; }
 .pestana-indicador {
   position: absolute;
   top: 5px; bottom: 5px; left: 5px;
-  width: calc((100% - 10px) / 4);
+  width: calc((100% - 10px) / 5);
   border-radius: 21px;
   background: var(--vidrio-activo);
   transform: translateX(calc(var(--i, 0) * 100%));
@@ -1447,6 +1452,237 @@ body.editando .mover { display: none; }
 
 .limpiar-hechas:active { background: var(--tarjeta); }
 
+/* ---------- 4d. FECHAS IMPORTANTES (v30) ----------
+   Tres bloques, de arriba abajo: el mes (con un puntito en los días que
+   tienen algo), el día que tocaste y la agenda de lo que viene. Reutiliza
+   la cuadrícula del calendario de hábitos (.cal-nombres, .cal-grid,
+   .cal-dia): misma forma, otra pregunta. */
+
+/* En Fechas no hay modo edición: todo se cambia desde la ficha de cada
+   fecha. Un "Editar" que no hace nada visible confunde más que no tenerlo. */
+body.vista-fechas #btnEditar { visibility: hidden; }
+
+/* Fechas no tiene barra de progreso. En Ideas la caja se esconde con
+   visibility (deja su hueco, para que la lista no salte); aquí el mes
+   ocupa ese lugar y el hueco sobraba: 80px vacíos arriba. */
+body.vista-fechas #cajaProgreso { display: none; }
+
+.fechas-mes-caja {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: 12px 12px 14px;
+  margin-bottom: 18px;
+}
+.fechas-mes-caja .cal-cabecera { margin-bottom: 10px; }
+.fechas-titulo-mes { font-size: 16px; font-weight: 700; }
+
+#fechasGrid .cal-dia { position: relative; color: var(--texto); }
+#fechasGrid .cal-dia.relleno { background: none; cursor: default; }
+
+/* Un día que tiene algo. Azul (acento) y no verde: el verde es "hecho", y
+   un cumpleaños no se hace. Tres señales a la vez, porque con solo el
+   puntito (la primera versión) Kev pidió más contraste al probarla:
+     - el cuadro se tiñe de azul suave (como el verde suave de un hábito
+       hecho: mismo color-mix, otro color)
+     - el número va en azul y en negrilla
+     - y el puntito, un poco más grande.
+   En el día elegido, que ya es azul lleno, el punto pasa a blanco. */
+#fechasGrid .cal-dia.con-fecha {
+  background: var(--tarjeta-alta);
+  background: color-mix(in srgb, var(--acento) 18%, var(--tarjeta));
+  color: var(--acento);
+  font-weight: 800;
+}
+#fechasGrid .cal-dia.con-fecha::after {
+  content: '';
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  width: 6px; height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--acento);
+}
+#fechasGrid .cal-dia.elegido { background: var(--acento); color: var(--sobre-acento); }
+#fechasGrid .cal-dia.elegido.con-fecha::after { background: var(--sobre-acento); }
+
+.fechas-dia { margin-bottom: 22px; }
+.fechas-dia-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.fechas-dia-cabecera .etiqueta { margin: 0; }
+
+/* Un botón que se ve como un enlace: acción secundaria, como "Editar". */
+.btn-texto {
+  background: none;
+  border: none;
+  color: var(--acento);
+  font-family: inherit;
+  font-size: 14px; font-weight: 600;
+  padding: 12px 0 12px 16px;   /* 44px de alto para el dedo, sin agrandar la fila */
+  margin: -12px 0;
+  cursor: pointer;
+}
+.fechas-nada { font-size: 14px; color: var(--texto-suave); padding: 2px 2px 0; }
+
+/* Una fila de la agenda (y del día elegido). */
+.fecha-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  padding: 11px 14px;
+  margin-bottom: 8px;
+  color: var(--texto);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.fecha-fila:active { transform: scale(.98); }
+.fecha-fila.pasada { opacity: .55; }
+
+/* Lo que es HOY se tiñe de amarillo: el color de celebrar, que en esta app
+   ya es el del confeti y el de las medallas. Un cumpleaños hoy es eso. */
+.fecha-fila.es-hoy {
+  border-color: var(--celebrar);
+  background: var(--tarjeta);
+  background: color-mix(in srgb, var(--celebrar) 12%, var(--tarjeta));
+}
+
+.fecha-emoji {
+  font-size: 21px;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: var(--tarjeta-alta);
+  flex-shrink: 0;
+}
+.fecha-info { flex: 1; min-width: 0; }
+.fecha-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fecha-sub { font-size: 12.5px; color: var(--texto-suave); margin-top: 2px; }
+
+/* "Hoy", "Mañana", "12 días". Tres pesos: lo lejano callado, lo de los
+   próximos tres días en azul, lo de hoy en amarillo lleno. */
+.fecha-faltan {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: var(--tarjeta-alta);
+  color: var(--texto-suave);
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.fecha-faltan.pronto {
+  color: var(--acento);
+  background: var(--tarjeta-alta);
+  background: color-mix(in srgb, var(--acento) 14%, var(--tarjeta));
+}
+.fecha-faltan.hoy { background: var(--celebrar); color: var(--sobre-celebrar); }
+
+/* "Próximas ›": el título de la agenda es también el botón que la pliega.
+   La cuenta va siempre, abierta o plegada: plegada, es lo único que dice
+   cuánto hay ahí dentro sin abrirla. */
+.plegar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 2px;           /* 44px de alto para el dedo */
+  margin: -12px 0 0;
+  background: none;
+  border: none;
+  color: var(--texto-suave);
+  font-family: inherit;
+  cursor: pointer;
+}
+.plegar .etiqueta { margin: 0; }
+.plegar-cuenta {
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--tarjeta-alta);
+  font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.plegar-cuenta:empty { display: none; }
+/* La flechita es un cuadrito con dos bordes, girado: 45° apunta abajo
+   (abierta), -45° apunta a la derecha (plegada). */
+.plegar-flecha {
+  margin-left: auto;
+  width: 8px; height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .2s ease;
+}
+.plegar[aria-expanded="false"] .plegar-flecha { transform: rotate(-45deg); }
+
+/* El nombre del mes entre grupos de la agenda, como en la vista
+   "Programación" de Google Calendar. */
+.agenda-mes {
+  font-size: 14px; font-weight: 700;
+  color: var(--texto);
+  margin: 18px 2px 8px;
+}
+.agenda-mes:first-child { margin-top: 4px; }
+
+/* La franja de Hábitos: lo que viene en los próximos días, encima de la
+   lista. Solo aparece si hay algo; si estuviera siempre, dejaría de verse. */
+.franja-fechas {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  color: var(--texto);
+  font-family: inherit;
+  cursor: pointer;
+}
+.franja-fila { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 14px; }
+.franja-titulo { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.franja-mas { font-size: 12.5px; color: var(--texto-suave); padding: 3px 0 1px; }
+
+/* La ventana de una fecha */
+#fechaRepite { margin-top: 0; margin-bottom: 18px; }
+#modalFecha .emojis { margin-bottom: 18px; }
+
+/* El campo de fecha. En el iPhone toca abre la rueda de fechas del
+   sistema, que es mejor que cualquier calendario que dibujáramos. Dos
+   trampas de Safari: un campo de fecha vacío mide 0 de alto (de ahí el
+   min-height), y centra el texto por su cuenta (de ahí el text-align en su
+   pedazo interno). font-size 16px por lo mismo que los demás: menos, y
+   el iPhone hace zoom. */
+input[type=date] {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  padding: 13px 14px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 13px;
+  color: var(--texto);
+  font-size: 16px;
+  font-family: inherit;
+  margin-bottom: 18px;
+  -webkit-appearance: none;
+          appearance: none;
+  text-align: left;
+}
+input[type=date]::-webkit-date-and-time-value { text-align: left; }
+input[type=date]:focus { outline: none; border-color: var(--acento); }
+
 /* ---------- 5. ESTADO VACÍO ---------- */
 .vacio {
   text-align: center;
@@ -1458,8 +1694,8 @@ body.editando .mover { display: none; }
 
 /* ---------- 6. LA BARRA DE ABAJO (v21) ----------
    Flota: no toca los bordes de la pantalla (12px a cada lado y 10px
-   encima de la rayita de inicio del iPhone). Las pestañas ocupan lo que
-   sobra y el "+" mide fijo.
+   encima de la rayita de inicio del iPhone). Desde la v30 las pestañas
+   ocupan todo el ancho: el "+" redondo ya no está.
 
    left + right + max-width + margin: auto = "pégate a 12px de cada lado,
    pero si la pantalla es muy ancha (un iPad, el Mac) no pases de 596px y
@@ -1476,51 +1712,38 @@ body.editando .mover { display: none; }
   z-index: 5;
 }
 
-/* El botón redondo. 56px porque es el gesto principal de la pantalla y
-   tiene que poder tocarse sin mirar. */
-.btn-mas {
-  flex: 0 0 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--acento);
-  color: var(--sobre-acento);
+/* Desde la v30 la barra solo tiene las pestañas: el botón redondo "+" se
+   quitó a pedido de Kev para darles espacio (con cinco pestañas, cada una
+   medía 55px y "Pendientes" no cabía). Lo que hacía el "+" lo hace ahora
+   cada sección por su cuenta:
+     - Hábitos:   "+ Nuevo hábito" al final de la lista (.btn-nuevo)
+     - Listas:    el campo de escribir de arriba, con su propio "+"
+     - Fechas:    "+ Agregar" junto al día elegido
+     - Edición:   el "✓" para salir lo reemplaza "Listo" al final de los
+                  paneles (.btn-listo-abajo), que es donde terminas.        */
+
+/* "+ Nuevo hábito", al final de la lista. Borde punteado: la pista de
+   "aquí va uno más", como un espacio vacío por llenar. */
+.btn-nuevo {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  border: 1.5px dashed var(--borde);
+  border-radius: 18px;
+  background: none;
+  color: var(--acento);
   font-family: inherit;
-  font-size: 30px; font-weight: 400; line-height: 1;
+  font-size: 15px; font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 24px var(--sombra);
-  transition: transform .15s ease, background .2s ease, box-shadow .15s ease;
 }
+.btn-nuevo:active { background: var(--tarjeta-alta); }
+body.vista-tareas .btn-nuevo { display: none; }
 
-/* Al apretarlo se hunde como una tecla (v26): además de encoger, baja un
-   poco y su sombra se achica. La sombra es lo que dice "estoy despegado del
-   fondo"; si se achica, el ojo entiende que el botón bajó. Encoger solo
-   parecía alejarse, no hundirse. */
-.btn-mas:active {
-  transform: translateY(2px) scale(.93);
-  box-shadow: 0 3px 10px var(--sombra);
-}
-
-/* Al entrar o salir del modo edición el símbolo cambia (+ <-> ✓) y el botón
-   da un giro corto. El giro tapa el cambio de símbolo: sin él, el + se
-   convierte en ✓ de un frame al siguiente.
-   Se usan rotate y scale sueltos, no transform: así no chocan con el
-   transform del :active de arriba (si los dos usaran transform, uno
-   borraría al otro). */
-@keyframes girar-mas {
-  from { rotate: -90deg; scale: .7; }
-  to   { rotate: 0deg;   scale: 1; }
-}
-.btn-mas.girando { animation: girar-mas .38s cubic-bezier(.3, 1.35, .5, 1); }
-
-/* En modo edición el "+" se vuelve "✓" y sirve para salir. Los paneles de
-   Ajustes y copia aparecen al final de la lista, y el "Listo" de arriba
-   quedaría fuera de la pantalla justo cuando terminas de usarlos. */
-.btn-mas.listo {
-  background: var(--exito);
-  color: var(--sobre-exito);
-  font-size: 24px; font-weight: 700;
-}
+/* "Listo" al final del modo edición. Los paneles de copia, Ajustes y cuenta
+   aparecen abajo del todo, y el "Listo" de arriba queda fuera de la
+   pantalla justo cuando terminas de usarlos (por eso existía el ✓). */
+.btn-listo-abajo { display: none; width: 100%; margin-top: 18px; }
+body.editando .btn-listo-abajo { display: block; }
 
 /* "Editar", arriba a la derecha. Texto de color, sin caja: es lo que hace
    iOS con las acciones secundarias de una cabecera. */
@@ -1617,6 +1840,11 @@ body.editando .mover { display: none; }
 }
 /* Cuál de los dos íconos se ve lo decide una clase en el fondo. */
 .icono-restaurar { display: none; }
+/* El cuadro de confirmar se abre ENCIMA de otra ventana (borrar desde la
+   ficha de una idea o de una fecha). Con la misma capa que las demás, gana
+   la que esté más abajo en el HTML, y la ficha lo tapaba. Una capa más. */
+#modalConfirmar { z-index: 11; }
+
 #modalConfirmar.restaurar .icono-basurero { display: none; }
 #modalConfirmar.restaurar .icono-restaurar { display: block; }
 
@@ -1998,8 +2226,49 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     </div>
   </header>
 
+  <!-- Lo que viene en los próximos días (v30). Fuera de #lista porque
+       pintar() borra y rehace la lista entera. Solo se ve en Hábitos y solo
+       si hay algo: lo decide pintarFranjaFechas(). -->
+  <button class="franja-fechas" id="franjaFechas" hidden></button>
+
   <!-- Aquí JavaScript va a insertar las tarjetas de hábitos -->
   <main id="lista"></main>
+
+  <!-- Crear un hábito (v30). Hasta la v29 lo hacía el "+" redondo de la
+       barra de abajo. Va fuera de #lista, que pintar() borra y rehace. -->
+  <button class="btn-nuevo" id="btnNuevoHabito" data-t="nuevoHabito">+ Nuevo hábito</button>
+
+  <!-- Fechas importantes (v30): cumpleaños, aniversarios, pagos. Arriba el
+       mes, en medio el día que tocaste, abajo lo que viene. Los tres los
+       dibuja la sección P desde datos.fechas. -->
+  <main id="vistaFechas" hidden>
+    <div class="fechas-mes-caja">
+      <div class="cal-cabecera">
+        <button class="cal-flecha" id="fechasAtras" data-aria="mesAnterior">‹</button>
+        <div class="cal-titulo-caja"><div class="fechas-titulo-mes" id="fechasTituloMes"></div></div>
+        <button class="cal-flecha" id="fechasAdelante" data-aria="mesSiguiente">›</button>
+      </div>
+      <div class="cal-nombres" id="fechasNombres"></div>
+      <div class="cal-grid" id="fechasGrid"></div>
+    </div>
+
+    <section class="fechas-dia">
+      <div class="fechas-dia-cabecera">
+        <span class="etiqueta" id="fechasDiaTitulo"></span>
+        <button class="btn-texto" id="fechasAgregarDia" data-t="agregarEsteDia">+ Agregar</button>
+      </div>
+      <div id="fechasDiaLista"></div>
+    </section>
+
+    <!-- Tocar "Próximas" pliega o despliega la agenda (v30, pedido de Kev).
+         aria-expanded le dice a VoiceOver si está abierta. -->
+    <button class="plegar" id="fechasPlegar" aria-expanded="true" aria-controls="fechasAgenda">
+      <span class="etiqueta" data-t="proximas">Próximas</span>
+      <span class="plegar-cuenta" id="fechasCuenta"></span>
+      <span class="plegar-flecha" aria-hidden="true"></span>
+    </button>
+    <div id="fechasAgenda"></div>
+  </main>
 
   <!-- Pendientes, Ideas y Compras comparten este mismo bloque: las tres son
        una lista de textos y solo cambian las palabras y a qué lista van.
@@ -2107,12 +2376,16 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <p class="sesion-estado" id="sesionEstado"></p>
   </section>
 
-  <!-- La barra de abajo (v21): las pestañas y el botón de agregar, flotando
+  <!-- Salir del modo edición desde abajo (v30; antes era el ✓ del "+"). -->
+  <button class="btn btn-principal btn-listo-abajo" id="btnListoAbajo" data-t="listo">Listo</button>
+
+  <!-- La barra de abajo (v21): las pestañas (y hasta la v29, el "+"), flotando
        encima de la lista con efecto vidrio. Abajo porque es donde llega el
        pulgar sosteniendo el teléfono con una mano.
 
-       Las cuatro secciones siguen al mismo nivel: un toque para llegar a
-       cualquiera. Solo Pendientes lleva contador — una idea sin hacer no es
+       Las cinco secciones siguen al mismo nivel: un toque para llegar a
+       cualquiera (Fechas llegó en la v30, la última porque es la que menos
+       se usa a diario). Solo Pendientes lleva contador — una idea sin hacer no es
        una deuda, y doce cosas por comprar tampoco.
 
        El indicador es la "píldora" que se desliza detrás de la pestaña
@@ -2125,11 +2398,50 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <button class="pestana" id="pestanaTareas"><span data-t="pendientes">Pendientes</span><span class="cuantas" id="contadorTareas"></span></button>
       <button class="pestana" id="pestanaIdeas" data-t="ideas">Ideas</button>
       <button class="pestana" id="pestanaCompras" data-t="compras">Compras</button>
+      <button class="pestana" id="pestanaFechas" data-t="fechas">Fechas</button>
     </div>
-    <!-- El "+" agrega lo que toque según la sección. Su nombre para VoiceOver
-         (aria-label) lo pone pintarBotonMas(), porque cambia con la sección. -->
-    <button class="btn-mas" id="btnAgregar">+</button>
   </nav>
+
+  <!-- La ficha de una fecha (v30): la misma ventana para crear una nueva y
+       para ver o cambiar una que ya existe. Va ANTES del cuadro de
+       confirmar, que tiene que poder abrirse encima de ella. -->
+  <div class="fondo-modal" id="modalFecha">
+    <div class="modal">
+      <h2 id="fechaVentanaTitulo"></h2>
+
+      <label class="etiqueta" for="fechaNombre" data-t="queEs">Qué es</label>
+      <input type="text" id="fechaNombre" maxlength="60" autocomplete="off"
+             data-ph="phFecha" placeholder="Ej: Cumpleaños de Ana">
+
+      <label class="etiqueta" for="fechaDia" data-t="cuando">Cuándo</label>
+      <input type="date" id="fechaDia">
+
+      <span class="etiqueta" data-t="seRepite">Se repite</span>
+      <div class="segmentado dos" id="fechaRepite">
+        <button type="button" data-repite="no" data-t="unaVez">Una vez</button>
+        <button type="button" data-repite="anual" data-t="cadaAnio">Cada año</button>
+      </div>
+
+      <span class="etiqueta" data-t="icono">Ícono</span>
+      <div class="emojis" id="fechaEmojis"></div>
+
+      <label class="etiqueta" for="fechaNota" data-t="notaFecha">Nota</label>
+      <textarea id="fechaNota" maxlength="500" data-ph="phNotaFecha"
+                placeholder="Idea de regalo, número de póliza, lo que quieras tener a mano."></textarea>
+
+      <!-- Solo con una fecha que ya existe: no se manda a Pendientes ni se
+           borra algo que todavía no guardaste. -->
+      <div class="ficha-acciones" id="fechaAcciones">
+        <button class="btn-mini" id="fechaPendiente"></button>
+        <button class="btn-mini btn-peligro" id="fechaBorrar" data-t="borrar">Borrar</button>
+      </div>
+
+      <div style="display:flex; gap:10px">
+        <button class="btn btn-secundario" id="fechaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
+        <button class="btn btn-principal"  id="fechaGuardar" data-t="guardar">Guardar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Ventana emergente para crear un hábito -->
   <div class="fondo-modal" id="modal">
@@ -2294,7 +2606,19 @@ const TEXTOS = {
     saludoManana: 'Buenos días', saludoTarde: 'Buenas tardes', saludoNoche: 'Buenas noches',
     hoy: 'Hoy', de: 'de',
     diaCompletoEtiqueta: 'Día completo ✓', selloTitulo: 'Día completo',
-    habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas', compras: 'Compras',
+    habitos: 'Hábitos', pendientes: 'Pendientes', ideas: 'Ideas', compras: 'Compras', fechas: 'Fechas',
+
+    // --- Fechas importantes (v30) ---
+    tituloNuevaFecha: 'Nueva fecha', tituloFecha: 'Fecha',
+    queEs: 'Qué es', phFecha: 'Ej: Cumpleaños de Ana', cuando: 'Cuándo',
+    seRepite: 'Se repite', unaVez: 'Una vez', cadaAnio: 'Cada año',
+    notaFecha: 'Nota', phNotaFecha: 'Idea de regalo, número de póliza, lo que quieras tener a mano.',
+    aPendiente: '+ A Pendientes', enPendientes: '✓ En Pendientes',
+    proximas: 'Próximas', yaPasaron: 'Ya pasaron', nadaEsteDia: 'Nada este día',
+    agregarEsteDia: '+ Agregar', fechaManana: 'Mañana', fechaEnDias: '%n días',
+    aniosCumple: '%n años', franjaMas: 'y %n más',
+    vacioFechas: 'Cumpleaños, aniversarios, pagos que vencen… Toca un día y luego «+ Agregar».',
+    borrarFechaTitulo: '¿Borrar esta fecha?', mesAnterior: 'Mes anterior', mesSiguiente: 'Mes siguiente',
 
     // --- Hábitos ---
     nuevoHabito: '+ Nuevo hábito', tituloNuevoHabito: 'Nuevo hábito',
@@ -2312,8 +2636,6 @@ const TEXTOS = {
     agregar: 'Agregar',
     phPendiente: '¿Qué tienes pendiente?', phIdea: '¿Qué se te ocurrió?',
     phCompra: '¿Qué hay que comprar?',
-    nuevoPendiente: '+ Nuevo pendiente', nuevaIdea: '+ Nueva idea',
-    nuevaCompra: '+ Agregar a la lista',
     vacioPendientes: 'Nada pendiente.<br>Escribe algo arriba cuando aparezca.',
     vacioIdeas: 'Sin ideas guardadas.<br>Apunta lo que se te ocurra, sin compromiso.',
     vacioCompras: 'Lista vacía.<br>Anota lo que falte en casa y táchalo en la tienda.',
@@ -2429,7 +2751,19 @@ const TEXTOS = {
     saludoManana: 'Good morning', saludoTarde: 'Good afternoon', saludoNoche: 'Good evening',
     hoy: 'Today', de: 'of',
     diaCompletoEtiqueta: 'Day complete ✓', selloTitulo: 'Day complete',
-    habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas', compras: 'Shopping',
+    habitos: 'Habits', pendientes: 'To-do', ideas: 'Ideas', compras: 'Shopping', fechas: 'Dates',
+
+    // --- Important dates (v30) ---
+    tituloNuevaFecha: 'New date', tituloFecha: 'Date',
+    queEs: 'What', phFecha: 'E.g. Ana’s birthday', cuando: 'When',
+    seRepite: 'Repeats', unaVez: 'Once', cadaAnio: 'Every year',
+    notaFecha: 'Note', phNotaFecha: 'Gift idea, policy number, anything you want at hand.',
+    aPendiente: '+ To To-do', enPendientes: '✓ In To-do',
+    proximas: 'Upcoming', yaPasaron: 'Past', nadaEsteDia: 'Nothing this day',
+    agregarEsteDia: '+ Add', fechaManana: 'Tomorrow', fechaEnDias: '%n days',
+    aniosCumple: '%n years', franjaMas: 'and %n more',
+    vacioFechas: 'Birthdays, anniversaries, bills due… Tap a day, then “+ Add”.',
+    borrarFechaTitulo: 'Delete this date?', mesAnterior: 'Previous month', mesSiguiente: 'Next month',
 
     nuevoHabito: '+ New habit', tituloNuevoHabito: 'New habit',
     nombre: 'Name', icono: 'Icon',
@@ -2445,8 +2779,6 @@ const TEXTOS = {
     agregar: 'Add',
     phPendiente: "What's on your list?", phIdea: 'What came to mind?',
     phCompra: 'What do you need to buy?',
-    nuevoPendiente: '+ New to-do', nuevaIdea: '+ New idea',
-    nuevaCompra: '+ Add to the list',
     vacioPendientes: 'Nothing pending.<br>Type something above when it comes up.',
     vacioIdeas: 'No ideas saved.<br>Jot down whatever comes to mind, no commitment.',
     vacioCompras: "Empty list.<br>Jot down what's missing at home and tick it off at the store.",
@@ -2612,10 +2944,13 @@ const CLAVE = 'habitos-app-v1';
 // son datos de hábitos, y por eso más abajo verás que ni se importan de una
 // copia ni se bajan de la nube: si entras desde el Mac en inglés y desde el
 // iPhone en español, cada uno se queda como lo dejaste.
-const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia: '' };
+const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia: '',
+                            // v30: si la lista de próximas fechas está plegada.
+                            // Es de este teléfono, como el tema.
+                            proximasPlegadas: false };
 
 const datosPorDefecto = {
-  version: 1, habitos: [], registros: {}, fallos: {}, tareas: [], pendientes: [],
+  version: 1, habitos: [], registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [],
   prefs: { ...PREFS_POR_DEFECTO }
 };
 
@@ -2654,6 +2989,9 @@ function cargar() {
 
     // Y en la v23, los días "no logrados". Nadie los tenía antes.
     if (!leidos.fallos || typeof leidos.fallos !== 'object') leidos.fallos = {};
+
+    // Y en la v30, las fechas importantes. Mismo patrón, una vez más.
+    if (!Array.isArray(leidos.fechas)) leidos.fechas = [];
 
     return leidos;
   } catch (e) {
@@ -3711,6 +4049,196 @@ function estadoInsignia(sePuede, permiso) {
 }
 /* ---------- fin D2 ---------- */
 
+/* ---------- D3. FECHAS IMPORTANTES: LA LÓGICA (v30) ----------
+   Cumpleaños, aniversarios, pagos que vencen. Una fecha NO es una tarea ni
+   un hábito: tiene día y puede repetirse cada año, y no se "hace". Por eso
+   tiene su propio modelo, igual que las tareas lo tuvieron en la v13:
+
+     datos.fechas = [{ id, titulo, fecha: 'AAAA-MM-DD', repite: 'anual' | 'no',
+                       emoji, nota? }]
+
+   En SQL sería otra tabla. Por ahora vive solo en el teléfono (y en la copia
+   de seguridad), como los "no logrados": la nube está en pausa y una tabla
+   nueva en Postgres es un paso aparte (sería el Paso 9).
+
+   Todo lo de esta sección es lógica pura y se prueba en pruebas.js. El
+   dibujo vive en la sección P.
+
+   La pregunta central de todo el calendario es: "¿cuándo es la PRÓXIMA
+   vez?". Un cumpleaños guardado como 1996-03-14 no cae en 1996: cae el
+   próximo 14 de marzo. Casi todas las funciones de aquí responden eso. */
+
+const REPITE = { anual: 'anual', no: 'no' };
+const EMOJIS_FECHA = ['📌', '🎂', '💍', '💳', '✈️', '🏥'];
+const LARGO_TITULO_FECHA = 60;
+const LARGO_NOTA_FECHA = 500;
+// Cuántos días antes aparece una fecha en la franja de Hábitos. 3 y no 7:
+// la franja empuja la lista hacia abajo, y una semana de aviso la tendría
+// puesta casi siempre. Una franja que está siempre deja de verse.
+const DIAS_PROXIMAS = 3;
+
+// ¿Es una fecha real con la forma AAAA-MM-DD? Un 2026-02-30 tiene la forma
+// pero no existe; diasDelMes() lo atrapa.
+function esFechaValida(texto) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto || '')) return false;
+  const [a, m, d] = texto.split('-').map(Number);
+  return m >= 1 && m <= 12 && d >= 1 && d <= diasDelMes(a, m);
+}
+
+// En qué día cae una fecha anual en un año dado. El caso raro: alguien que
+// nació un 29 de febrero. En los años que no son bisiestos se celebra el 28.
+// (Google Calendar, en cambio, solo lo muestra en los bisiestos: un
+// cumpleaños que desaparece tres años de cada cuatro no sirve de aviso.)
+function ocurrenciaEnAnio(fecha, anio) {
+  const [, m, d] = fecha.split('-').map(Number);
+  const dia = Math.min(d, diasDelMes(anio, m));
+  return `${anio}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+// La próxima vez que toca, contando desde `desde` (incluido: si es hoy, es
+// hoy). Devuelve null si ya pasó y no se repite.
+// Comparar textos AAAA-MM-DD funciona igual que comparar fechas.
+function proximaOcurrencia(f, desde) {
+  if (f.repite !== REPITE.anual) return f.fecha >= desde ? f.fecha : null;
+  // Si la fecha original todavía no llega (un aniversario que se cumple por
+  // primera vez el año que viene), la próxima es esa misma.
+  if (f.fecha >= desde) return f.fecha;
+  const anio = Number(desde.slice(0, 4));
+  const esteAnio = ocurrenciaEnAnio(f.fecha, anio);
+  return esteAnio >= desde ? esteAnio : ocurrenciaEnAnio(f.fecha, anio + 1);
+}
+
+// Cuántos años se cumplen en esa ocurrencia: el "cumple 30". En una fecha
+// que no se repite no tiene sentido, y el primer año tampoco (cumple 0).
+function aniosQueCumple(f, ocurrencia) {
+  if (f.repite !== REPITE.anual) return 0;
+  return Number(ocurrencia.slice(0, 4)) - Number(f.fecha.slice(0, 4));
+}
+
+// ¿Esta fecha cae en este día? Es la que usa la cuadrícula del mes.
+// Una anual cae todos los años desde la original; una única, solo ese día.
+function caeEnDia(f, dia) {
+  if (f.repite !== REPITE.anual) return f.fecha === dia;
+  return dia >= f.fecha && ocurrenciaEnAnio(f.fecha, Number(dia.slice(0, 4))) === dia;
+}
+
+function fechasDelDia(fechas, dia) {
+  return fechas.filter(f => caeEnDia(f, dia));
+}
+
+// Los días del mes que tienen algo, para ponerles el puntito. Devuelve un
+// Set (una lista sin repetidos) de números de día: {3, 14, 28}.
+function diasConFechas(fechas, anio, mes) {
+  const conAlgo = new Set();
+  for (let d = 1; d <= diasDelMes(anio, mes); d++) {
+    const dia = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (fechas.some(f => caeEnDia(f, dia))) conAlgo.add(d);
+  }
+  return conAlgo;
+}
+
+// La agenda: todo lo que viene, de lo más cercano a lo más lejano.
+// Cada fila trae la fecha, cuándo cae, cuántos días faltan y cuántos años
+// cumple. En SQL sería un SELECT con columnas calculadas y un ORDER BY.
+// A igual día, se respeta el orden en que las agregaste (sort es estable).
+function agendaFechas(fechas, desde) {
+  return fechas
+    .map(f => {
+      const cuando = proximaOcurrencia(f, desde);
+      return cuando && { fecha: f, cuando, faltan: diasEntre(desde, cuando), anios: aniosQueCumple(f, cuando) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.cuando < b.cuando ? -1 : a.cuando > b.cuando ? 1 : 0));
+}
+
+// Las que ya pasaron y no vuelven: la más reciente primero.
+function fechasPasadas(fechas, desde) {
+  return fechas
+    .filter(f => f.repite !== REPITE.anual && f.fecha < desde)
+    .sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+}
+
+// Lo que sale en la franja de Hábitos: lo de hoy y los próximos días.
+function proximasFechas(fechas, desde, dias = DIAS_PROXIMAS) {
+  return agendaFechas(fechas, desde).filter(fila => fila.faltan <= dias);
+}
+
+// "Hoy", "Mañana", "12 días". Con la regla de la v15: frases en A0, aquí
+// solo se elige cuál y se rellena el número.
+function textoFaltan(faltan) {
+  if (faltan === 0) return t('hoy');
+  if (faltan === 1) return t('fechaManana');
+  return t('fechaEnDias').replace('%n', faltan);
+}
+
+// Limpia lo que llega de la ventana antes de guardarlo. Devuelve null si
+// falta lo esencial: sin título o sin una fecha real no hay nada que guardar.
+// Mejor rechazar que adivinar (la lección de la v19 con las listas): un
+// `repite` desconocido NO se convierte en anual, queda en "no".
+function limpiarFecha({ titulo, fecha, repite, emoji, nota }) {
+  const limpio = (titulo || '').trim().slice(0, LARGO_TITULO_FECHA);
+  if (!limpio || !esFechaValida(fecha)) return null;
+  const fila = {
+    titulo: limpio,
+    fecha,
+    repite: repite === REPITE.anual ? REPITE.anual : REPITE.no,
+    emoji: EMOJIS_FECHA.includes(emoji) ? emoji : EMOJIS_FECHA[0]
+  };
+  // La nota es opcional y, si está vacía, no existe (mismo criterio que la
+  // nota de las ideas en la v14): no se guarda como ''.
+  const textoNota = (nota || '').trim().slice(0, LARGO_NOTA_FECHA);
+  if (textoNota) fila.nota = textoNota;
+  return fila;
+}
+
+// Devuelve el id de la nueva, o null si no se pudo.
+function agregarFecha(campos) {
+  const fila = limpiarFecha(campos);
+  if (!fila) return null;
+  const id = crypto.randomUUID();
+  datos.fechas.push({ id, ...fila });
+  guardar();
+  pintarFechas();
+  return id;
+}
+
+function editarFecha(id, campos) {
+  const f = datos.fechas.find(x => x.id === id);
+  const fila = limpiarFecha(campos);
+  if (!f || !fila) return false;
+  // Se reemplazan los campos uno por uno en vez del objeto entero, para que
+  // el id se quede. Y la nota se borra si quedó vacía.
+  delete f.nota;
+  Object.assign(f, fila);
+  guardar();
+  pintarFechas();
+  return true;
+}
+
+function borrarFecha(id) {
+  const antes = datos.fechas.length;
+  datos.fechas = datos.fechas.filter(x => x.id !== id);
+  if (datos.fechas.length === antes) return false;
+  guardar();
+  pintarFechas();
+  return true;
+}
+
+// "Comprar regalo para Ana" empieza siendo un pendiente que sale de una
+// fecha. Se crea con el título y el día, y tú lo cambias si quieres.
+// Reutiliza agregarTarea(): la fecha no sabe nada de cómo se guarda un
+// pendiente, y así no hay dos sitios que creen pendientes.
+function fechaAPendiente(id, desde) {
+  const f = datos.fechas.find(x => x.id === id);
+  if (!f) return false;
+  const cuando = proximaOcurrencia(f, desde) || f.fecha;
+  const dia = new Date(cuando + 'T00:00:00')
+    .toLocaleDateString(localeFechas(), { day: 'numeric', month: 'short' });
+  return agregarTarea(`${f.emoji} ${f.titulo} · ${dia}`, LISTAS.pendientes);
+}
+
+/* ---------- fin D3 ---------- */
+
 /* ---------- E. PINTAR LA PANTALLA ----------
    Regla de oro: los datos son la verdad. Cada vez que cambian,
    volvemos a dibujar todo desde cero. Es más simple y no se
@@ -3752,12 +4280,16 @@ function traducirEstaticos() {
 
   // Las letras de los días del calendario. Se rehacen aquí y no en el HTML
   // porque son siete y cambian con el idioma.
-  const nombres = document.getElementById('calNombres');
-  nombres.innerHTML = '';
-  t('letrasDias').forEach(letra => {
-    const span = document.createElement('span');
-    span.textContent = letra;
-    nombres.appendChild(span);
+  // Desde la v30 son dos filas de letras: la del calendario de un hábito y
+  // la de Fechas.
+  ['calNombres', 'fechasNombres'].forEach(id => {
+    const nombres = document.getElementById(id);
+    nombres.innerHTML = '';
+    t('letrasDias').forEach(letra => {
+      const span = document.createElement('span');
+      span.textContent = letra;
+      nombres.appendChild(span);
+    });
   });
 }
 
@@ -3778,9 +4310,6 @@ function pintar() {
   const nombre = (datos.prefs.nombre || '').trim();
   document.querySelector('.titulo').textContent = nombre ? `${saludo}, ${nombre}` : saludo;
 
-  // El botón "+" de abajo depende de la sección y del modo edición. Va aquí
-  // para que también se actualice al cambiar de idioma.
-  pintarBotonMas();
   if (vista === 'habitos') {
     // Con el día completo, "Hoy" pasa a decir "Día completo ✓" (v29). Es la
     // única parte de la celebración que no se mueve: por eso se queda
@@ -3790,6 +4319,10 @@ function pintar() {
     etiqueta.textContent = t(completo ? 'diaCompletoEtiqueta' : 'hoy');
     etiqueta.classList.toggle('completo', completo);
   }
+
+  // Lo que viene en los próximos días (v30). Antes del "todavía no hay
+  // hábitos": un cumpleaños mañana importa aunque no tengas hábitos.
+  pintarFranjaFechas();
 
   // Caso: todavía no hay hábitos
   if (datos.habitos.length === 0) {
@@ -4342,22 +4875,13 @@ EMOJIS.forEach((e, i) => {
   cajaEmojis.appendChild(b);
 });
 
-document.getElementById('btnAgregar').onclick = () => {
-  // En modo edición el botón es "✓": sirve para salir (ver pintarBotonMas).
-  if (document.body.classList.contains('editando')) {
-    alternarEdicion();
-    return;
-  }
-  // El botón de abajo hace lo que toque según la sección en la que estés.
-  // En Pendientes no abre ninguna ventana: solo salta al campo de escribir,
-  // que ya está ahí arriba. Un toque, no tres.
-  if (vista !== 'habitos') {
-    document.getElementById('tareaNueva').focus();
-    return;
-  }
+// "+ Nuevo hábito" al final de la lista (v30). Hasta la v29 esto lo hacía
+// el "+" redondo de la barra de abajo.
+function abrirNuevoHabito() {
   abrirVentana(modal);
   document.getElementById('nombre').focus();
-};
+}
+document.getElementById('btnNuevoHabito').onclick = abrirNuevoHabito;
 
 document.getElementById('btnCancelar').onclick = cerrarModal;
 
@@ -4394,41 +4918,18 @@ document.getElementById('nombre').addEventListener('keydown', ev => {
 });
 
 /* ---------- G. MODO EDICIÓN ---------- */
-// Desde la v21 hay dos sitios para salir del modo edición: "Listo" arriba y
-// el "✓" de abajo. Los dos llaman a esta misma función, para que nunca
-// puedan quedar diciendo cosas distintas.
+// Hay dos sitios para salir del modo edición: "Listo" arriba y "Listo" al
+// final de los paneles (v30; hasta la v29 era el "✓" del botón redondo).
+// Los dos llaman a esta misma función, para que nunca puedan quedar
+// diciendo cosas distintas.
 function alternarEdicion() {
   document.body.classList.toggle('editando');
   document.getElementById('btnEditar').textContent =
     document.body.classList.contains('editando') ? t('listo') : t('editar');
-  pintarBotonMas();
 }
 
-document.getElementById('btnEditar').onclick = alternarEdicion;
-
-/* El botón redondo de abajo. Tres caras según dónde estés:
-     - en Hábitos, "+" para crear un hábito
-     - en una lista, "+" para escribir en esa lista
-     - en modo edición, "✓" para salir
-   Como el botón solo muestra un símbolo, VoiceOver necesita que alguien le
-   diga qué hace: eso es el aria-label. Sale del mismo texto que antes se veía
-   en el botón ("+ Nuevo hábito"), sin el "+": leído en voz alta, "más nuevo
-   hábito" sobra. */
-function pintarBotonMas() {
-  const boton = document.getElementById('btnAgregar');
-  const editando = document.body.classList.contains('editando');
-  let clave = 'listo';
-  if (!editando) clave = vista === 'habitos' ? 'nuevoHabito' : TEXTOS_LISTA[vista].boton;
-
-  // ¿Cambió de cara en este repintado? pintar() llama aquí en cada toque,
-  // y el giro solo debe salir al entrar o salir del modo edición (v26).
-  const cambiaDeCara = boton.classList.contains('listo') !== editando;
-
-  boton.textContent = editando ? '✓' : '+';
-  boton.setAttribute('aria-label', t(clave).replace(/^\+\s*/, ''));
-  boton.classList.toggle('listo', editando);
-  if (cambiaDeCara && !menosMovimiento()) reiniciarAnimacion(boton, 'girando');
-}
+document.getElementById('btnEditar').onclick    = alternarEdicion;
+document.getElementById('btnListoAbajo').onclick = alternarEdicion;
 
 /* ---------- H. COPIA DE SEGURIDAD ----------
    Exportar = convertir nuestros datos a un archivo .json y entregártelo.
@@ -4620,6 +5121,8 @@ function aplicarCopia(copia) {
     fallos: copia.fallos && typeof copia.fallos === 'object' ? copia.fallos : {},
     // Si la copia es vieja y no trae tareas, entra con la lista vacía.
     tareas: Array.isArray(copia.tareas) ? copia.tareas : [],
+    // Y una de antes de la v30, sin fechas importantes.
+    fechas: Array.isArray(copia.fechas) ? copia.fechas : [],
     pendientes: Array.isArray(copia.pendientes) ? copia.pendientes : [],
     // Los ajustes NO se importan: son de este dispositivo, no de la copia.
     // Restaurar un respaldo hecho en el Mac no debería cambiarte el idioma
@@ -4629,6 +5132,7 @@ function aplicarCopia(copia) {
   guardar();
   pintar();
   if (typeof pintarLista === 'function') pintarLista();
+  if (typeof pintarFechas === 'function') pintarFechas();
 
   // Restaurar una copia cambia todo de golpe, así que hay que volver a
   // subirlo entero. Si la nube no está cargada, esto simplemente no pasa.
@@ -5445,7 +5949,7 @@ let vista = 'habitos';
 // Las secciones en el orden en que salen las pestañas. La píldora de la barra
 // de abajo usa la posición en esta lista para saber hasta dónde viajar. Si
 // algún día se reordenan las pestañas en el HTML, esta lista va igual.
-const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras'];
+const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras', 'fechas'];
 
 // Las tres listas comparten pantalla y solo cambian las palabras y unas pocas
 // reglas de comportamiento. Tenerlas aquí en una tabla, en vez de repartidas
@@ -5477,21 +5981,21 @@ const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras'];
 const TEXTOS_LISTA = {
   pendientes: {
     etiqueta: 'pendientes', placeholder: 'phPendiente',
-    boton: 'nuevoPendiente', vacioEmoji: '☑️', vacioTexto: 'vacioPendientes',
+    vacioEmoji: '☑️', vacioTexto: 'vacioPendientes',
     prompt: 'promptPendiente', hechas: 'hechas',
     prioridad: true,  flechas: false, ficha: false, mover: false,
     progreso: true,   contador: true
   },
   ideas: {
     etiqueta: 'ideas', placeholder: 'phIdea',
-    boton: 'nuevaIdea', vacioEmoji: '💡', vacioTexto: 'vacioIdeas',
+    vacioEmoji: '💡', vacioTexto: 'vacioIdeas',
     prompt: 'promptPendiente', hechas: 'hechas',
     prioridad: false, flechas: true,  ficha: true,  mover: true,
     progreso: false,  contador: false
   },
   compras: {
     etiqueta: 'compras', placeholder: 'phCompra',
-    boton: 'nuevaCompra', vacioEmoji: '🛒', vacioTexto: 'vacioCompras',
+    vacioEmoji: '🛒', vacioTexto: 'vacioCompras',
     prompt: 'promptCompra', hechas: 'compradas',
     prioridad: false, flechas: false, ficha: false, mover: false,
     progreso: true,   contador: false
@@ -5499,6 +6003,7 @@ const TEXTOS_LISTA = {
 };
 
 const listaTareas  = document.getElementById('listaTareas');
+const vistaFechas  = document.getElementById('vistaFechas');
 const tareasCuerpo = document.getElementById('tareasCuerpo');
 const campoTarea   = document.getElementById('tareaNueva');
 
@@ -5510,20 +6015,26 @@ let tareaRecienMovida = null;
 function cambiarVista(nueva) {
   vista = nueva;
   const enHabitos = vista === 'habitos';
+  const enFechas  = vista === 'fechas';
 
-  // Mostrar una lista y esconder la otra
+  // Mostrar una sección y esconder las otras. Desde la v30 son tres
+  // bloques: los hábitos, las listas (las tres comparten uno) y las fechas.
   lista.hidden       = !enHabitos;
-  listaTareas.hidden = enHabitos;
+  listaTareas.hidden = enHabitos || enFechas;
+  vistaFechas.hidden = !enFechas;
 
   // La clase en el body deja que el CSS reaccione sin más JavaScript
-  // (por ejemplo, esconder los paneles de copia y cuenta).
+  // (por ejemplo, esconder los paneles de copia y cuenta). "vista-tareas"
+  // quiere decir "no estás en Hábitos": también cuenta en Fechas.
   document.body.classList.toggle('vista-tareas', !enHabitos);
+  document.body.classList.toggle('vista-fechas', enFechas);
 
   // Las pestañas se iluminan según dónde estés
   document.getElementById('pestanaHabitos').classList.toggle('activa', enHabitos);
   document.getElementById('pestanaTareas').classList.toggle('activa', vista === 'pendientes');
   document.getElementById('pestanaIdeas').classList.toggle('activa', vista === 'ideas');
   document.getElementById('pestanaCompras').classList.toggle('activa', vista === 'compras');
+  document.getElementById('pestanaFechas').classList.toggle('activa', enFechas);
 
   // Y la píldora viaja hasta la pestaña nueva. Solo se le dice a cuál (0 a 3);
   // el CSS calcula cuánto moverse y anima el viaje.
@@ -5533,10 +6044,19 @@ function cambiarVista(nueva) {
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
   document.body.classList.remove('editando');
   document.getElementById('btnEditar').textContent = t('editar');
-  pintarBotonMas();
 
   if (enHabitos) {
     pintar();   // pintar() ya pone el botón grande y la etiqueta "Hoy"
+    return;
+  }
+
+  // La franja de Hábitos se esconde en cualquier otra sección.
+  pintarFranjaFechas();
+
+  // Fechas no tiene barra de progreso: un cumpleaños no "se completa". La
+  // caja entera la esconde el CSS (body.vista-fechas, sección 4d).
+  if (enFechas) {
+    pintarFechas();
     return;
   }
 
@@ -5568,7 +6088,9 @@ function pintarLista() {
   // como "faltante" arreglarías uno y el otro seguiría diciendo otra cosa.
   ponerInsignia(faltanPendientes);
 
-  if (vista === 'habitos') return;
+  // De aquí para abajo solo dibuja listas. Hábitos y Fechas tienen su propio
+  // dibujo (pintar() y pintarFechas()).
+  if (!esLista(vista)) return;
 
   const cuenta = contarTareas(vista);
   const cajaProgreso = document.getElementById('cajaProgreso');
@@ -5785,6 +6307,7 @@ document.getElementById('pestanaHabitos').onclick = () => cambiarVista('habitos'
 document.getElementById('pestanaTareas').onclick  = () => cambiarVista('pendientes');
 document.getElementById('pestanaIdeas').onclick   = () => cambiarVista('ideas');
 document.getElementById('pestanaCompras').onclick = () => cambiarVista('compras');
+document.getElementById('pestanaFechas').onclick  = () => cambiarVista('fechas');
 
 function guardarTareaEscrita() {
   // Lo que escribas entra en la lista que estés viendo. Esa es toda la
@@ -6092,6 +6615,336 @@ document.getElementById('btnInsignia').onclick = async () => {
   }
   pintarLista();      // vuelve a poner el número, ahora que se puede ver
   pintarInsignia();   // y cambia el texto: activado o negado
+};
+
+/* ---------- P. FECHAS EN PANTALLA (v30) ----------
+   La lógica vive en D3 y se prueba allá. Aquí solo se dibuja: el mes, el día
+   elegido, la agenda, la franja de Hábitos y la ventana de cada fecha.
+
+   Todo lo que escribiste (títulos, notas) entra con textContent, nunca con
+   innerHTML: un título con un "<" se leería como una etiqueta de HTML. */
+
+let fechasMes  = null;      // el mes que estás mirando: { anio, mes }
+let diaElegido = null;      // el día que tocaste, 'AAAA-MM-DD'
+let fechaAbierta = null;    // el id de la fecha en la ventana; null = nueva
+let repiteElegido = REPITE.no;
+let emojiFechaElegido = EMOJIS_FECHA[0];
+
+// Un día en palabras, en el idioma de la app: "vie, 24 oct".
+function diaEnPalabras(dia, formato) {
+  return new Date(dia + 'T00:00:00').toLocaleDateString(localeFechas(), formato);
+}
+
+// "octubre de 2026" -> "Octubre de 2026". En español los meses van en
+// minúscula; arriba de un calendario, la primera letra va en mayúscula. El
+// CSS (text-transform: capitalize) pondría "Octubre De 2026": capitaliza
+// TODAS las palabras, no solo la primera.
+function primeraMayuscula(texto) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function pintarFechas() {
+  pintarFranjaFechas();
+  if (vista !== 'fechas') return;
+  if (!diaElegido) diaElegido = hoy();
+  if (!fechasMes) fechasMes = { anio: Number(diaElegido.slice(0, 4)), mes: Number(diaElegido.slice(5, 7)) };
+  pintarMesFechas();
+  pintarDiaElegido();
+  pintarAgenda();
+}
+
+function pintarMesFechas() {
+  const { anio, mes } = fechasMes;
+  document.getElementById('fechasTituloMes').textContent = primeraMayuscula(
+    new Date(anio, mes - 1, 1).toLocaleDateString(localeFechas(), { month: 'long', year: 'numeric' }));
+
+  const grid = document.getElementById('fechasGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < columnaInicio(anio, mes); i++) {
+    const hueco = document.createElement('span');
+    hueco.className = 'cal-dia relleno';
+    grid.appendChild(hueco);
+  }
+  const conAlgo = diasConFechas(datos.fechas, anio, mes);
+  const deHoy = hoy();
+  for (let d = 1; d <= diasDelMes(anio, mes); d++) {
+    const dia = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const celda = document.createElement('button');
+    celda.className = 'cal-dia';
+    celda.textContent = d;
+    if (dia === deHoy)      celda.classList.add('hoy');
+    if (dia === diaElegido) celda.classList.add('elegido');
+    if (conAlgo.has(d))     celda.classList.add('con-fecha');
+    celda.onclick = () => { diaElegido = dia; pintarFechas(); };
+    grid.appendChild(celda);
+  }
+}
+
+// Una fila: emoji, título, el día (y los años que cumple) y cuánto falta.
+// La usan el día elegido, la agenda y las pasadas.
+function filaFecha(f, cuando, { pasada = false } = {}) {
+  const faltan = diasEntre(hoy(), cuando);
+  const anios = aniosQueCumple(f, cuando);
+
+  const fila   = document.createElement('button');
+  const emoji  = document.createElement('span');
+  const info   = document.createElement('span');
+  const titulo = document.createElement('span');
+  const sub    = document.createElement('span');
+  fila.className   = 'fecha-fila' + (pasada ? ' pasada' : '') + (faltan === 0 ? ' es-hoy' : '');
+  emoji.className  = 'fecha-emoji';
+  info.className   = 'fecha-info';
+  titulo.className = 'fecha-titulo';
+  sub.className    = 'fecha-sub';
+  titulo.style.display = sub.style.display = 'block';
+
+  emoji.textContent  = f.emoji;
+  titulo.textContent = f.titulo;
+  // Las pasadas llevan el año: "1 oct 2026". Las que vienen, el día de la
+  // semana: "vie, 24 oct", que es lo que sirve para planear.
+  sub.textContent = pasada
+    ? diaEnPalabras(cuando, { day: 'numeric', month: 'short', year: 'numeric' })
+    : diaEnPalabras(cuando, { weekday: 'short', day: 'numeric', month: 'short' })
+      + (anios > 0 ? ' · ' + t('aniosCumple').replace('%n', anios) : '');
+  info.append(titulo, sub);
+  fila.append(emoji, info);
+
+  if (!pasada && faltan >= 0) {
+    const chip = document.createElement('span');
+    chip.className = 'fecha-faltan' + (faltan === 0 ? ' hoy' : faltan <= DIAS_PROXIMAS ? ' pronto' : '');
+    chip.textContent = textoFaltan(faltan);
+    fila.appendChild(chip);
+  }
+  fila.onclick = () => abrirFecha(f.id);
+  return fila;
+}
+
+function pintarDiaElegido() {
+  // Primera letra en mayúscula: "sábado, 24 de octubre" -> el CSS de
+  // .etiqueta ya lo pone todo en mayúsculas, así que basta con el texto.
+  document.getElementById('fechasDiaTitulo').textContent =
+    diaEnPalabras(diaElegido, { weekday: 'long', day: 'numeric', month: 'long' });
+  const caja = document.getElementById('fechasDiaLista');
+  caja.innerHTML = '';
+  const delDia = fechasDelDia(datos.fechas, diaElegido);
+  if (delDia.length === 0) {
+    const nada = document.createElement('div');
+    nada.className = 'fechas-nada';
+    nada.textContent = t('nadaEsteDia');
+    caja.appendChild(nada);
+    return;
+  }
+  delDia.forEach(f => caja.appendChild(filaFecha(f, diaElegido, { pasada: diaElegido < hoy() })));
+}
+
+function pintarAgenda() {
+  const caja = document.getElementById('fechasAgenda');
+  const agenda = agendaFechas(datos.fechas, hoy());
+  caja.innerHTML = '';
+
+  // Plegada o abierta: lo decide un ajuste de este teléfono. Sin ninguna
+  // fecha se muestra igual, porque lo que hay dentro es la explicación de
+  // cómo agregar la primera, y esa no se esconde.
+  const plegada = datos.prefs.proximasPlegadas && datos.fechas.length > 0;
+  const boton = document.getElementById('fechasPlegar');
+  boton.setAttribute('aria-expanded', String(!plegada));
+  document.getElementById('fechasCuenta').textContent = agenda.length || '';
+  caja.hidden = plegada;
+  if (plegada) return;
+
+  if (datos.fechas.length === 0) {
+    caja.innerHTML = `
+      <div class="vacio">
+        <div class="vacio-emoji">📅</div>
+        <div>${t('vacioFechas')}</div>
+      </div>`;
+    return;
+  }
+
+  // Un separador con el nombre del mes cada vez que cambia, como la vista
+  // "Programación" de Google Calendar. El año solo si no es este.
+  const anioActual = hoy().slice(0, 4);
+  let mesAnterior = '';
+  agenda.forEach(fila => {
+    const mes = fila.cuando.slice(0, 7);
+    if (mes !== mesAnterior) {
+      mesAnterior = mes;
+      const separador = document.createElement('div');
+      separador.className = 'agenda-mes';
+      separador.textContent = primeraMayuscula(diaEnPalabras(fila.cuando,
+        fila.cuando.slice(0, 4) === anioActual ? { month: 'long' } : { month: 'long', year: 'numeric' }));
+      caja.appendChild(separador);
+    }
+    caja.appendChild(filaFecha(fila.fecha, fila.cuando));
+  });
+
+  const pasadas = fechasPasadas(datos.fechas, hoy());
+  if (pasadas.length) {
+    const separador = document.createElement('div');
+    separador.className = 'agenda-mes';
+    separador.textContent = t('yaPasaron');
+    caja.appendChild(separador);
+    pasadas.forEach(f => caja.appendChild(filaFecha(f, f.fecha, { pasada: true })));
+  }
+}
+
+// La franja de Hábitos. Hasta dos filas y "y N más": es un aviso, no una
+// segunda agenda. Tocarla te lleva a Fechas, parado en el día de la primera.
+function pintarFranjaFechas() {
+  const franja = document.getElementById('franjaFechas');
+  const filas = proximasFechas(datos.fechas, hoy());
+  franja.hidden = vista !== 'habitos' || filas.length === 0;
+  if (franja.hidden) return;
+
+  franja.innerHTML = '';
+  filas.slice(0, 2).forEach(fila => {
+    const linea  = document.createElement('span');
+    const emoji  = document.createElement('span');
+    const titulo = document.createElement('span');
+    const chip   = document.createElement('span');
+    linea.className  = 'franja-fila';
+    titulo.className = 'franja-titulo';
+    chip.className   = 'fecha-faltan' + (fila.faltan === 0 ? ' hoy' : ' pronto');
+    emoji.textContent  = fila.fecha.emoji;
+    titulo.textContent = fila.fecha.titulo;
+    chip.textContent   = textoFaltan(fila.faltan);
+    linea.append(emoji, titulo, chip);
+    franja.appendChild(linea);
+  });
+  if (filas.length > 2) {
+    const mas = document.createElement('span');
+    mas.className = 'franja-mas';
+    mas.style.display = 'block';
+    mas.textContent = t('franjaMas').replace('%n', filas.length - 2);
+    franja.appendChild(mas);
+  }
+  franja.onclick = () => irAlDia(filas[0].cuando);
+}
+
+// Llevarte a Fechas parado en un día, con su mes a la vista.
+function irAlDia(dia) {
+  diaElegido = dia;
+  fechasMes = { anio: Number(dia.slice(0, 4)), mes: Number(dia.slice(5, 7)) };
+  if (vista === 'fechas') pintarFechas();
+  else cambiarVista('fechas');
+}
+
+function moverMesFechas(paso) {
+  let { anio, mes } = fechasMes;
+  mes += paso;
+  if (mes < 1)  { mes = 12; anio--; }
+  if (mes > 12) { mes = 1;  anio++; }
+  fechasMes = { anio, mes };
+  pintarMesFechas();
+}
+
+document.getElementById('fechasAtras').onclick    = () => moverMesFechas(-1);
+document.getElementById('fechasAdelante').onclick = () => moverMesFechas(1);
+document.getElementById('fechasAgregarDia').onclick = () => abrirFecha(null, diaElegido);
+document.getElementById('fechasPlegar').onclick = () => {
+  datos.prefs.proximasPlegadas = !datos.prefs.proximasPlegadas;
+  guardar();
+  pintarAgenda();
+};
+
+/* --- La ventana de una fecha --- */
+const modalFecha = document.getElementById('modalFecha');
+
+// Los dos selectores de la ventana: "una vez / cada año" y el emoji. Se
+// dibujan desde las variables de estado, como Ajustes.
+function pintarOpcionesFecha() {
+  const caja = document.getElementById('fechaRepite');
+  [...caja.children].forEach((boton, i) => {
+    boton.classList.toggle('activo', boton.dataset.repite === repiteElegido);
+    boton.onclick = () => { repiteElegido = boton.dataset.repite; pintarOpcionesFecha(); };
+  });
+  ponerPildora(caja, repiteElegido === REPITE.anual ? 1 : 0);
+
+  const emojis = document.getElementById('fechaEmojis');
+  emojis.innerHTML = '';
+  EMOJIS_FECHA.forEach(e => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'emoji-op' + (e === emojiFechaElegido ? ' elegido' : '');
+    b.textContent = e;
+    b.onclick = () => { emojiFechaElegido = e; pintarOpcionesFecha(); };
+    emojis.appendChild(b);
+  });
+}
+
+// id = null abre una nueva, con el día `dia` ya puesto.
+function abrirFecha(id, dia) {
+  const f = id ? datos.fechas.find(x => x.id === id) : null;
+  fechaAbierta = f ? f.id : null;
+  document.getElementById('fechaVentanaTitulo').textContent = t(f ? 'tituloFecha' : 'tituloNuevaFecha');
+  document.getElementById('fechaNombre').value = f ? f.titulo : '';
+  document.getElementById('fechaDia').value    = f ? f.fecha : (dia || diaElegido || hoy());
+  document.getElementById('fechaNota').value   = f && f.nota ? f.nota : '';
+  repiteElegido     = f ? f.repite : REPITE.no;
+  emojiFechaElegido = f ? f.emoji : EMOJIS_FECHA[0];
+  document.getElementById('fechaAcciones').hidden = !f;
+  const aPendiente = document.getElementById('fechaPendiente');
+  aPendiente.textContent = t('aPendiente');
+  aPendiente.disabled = false;
+  pintarOpcionesFecha();
+  abrirVentana(modalFecha);
+  // Una nueva va directo a escribir; una que ya existe se abre para LEERLA,
+  // y abrir el teclado taparía justo lo que viniste a ver.
+  if (!f) document.getElementById('fechaNombre').focus();
+}
+
+function cerrarFecha() {
+  cerrarVentana(modalFecha);
+  fechaAbierta = null;
+}
+
+function guardarFechaDeVentana() {
+  const campos = {
+    titulo: document.getElementById('fechaNombre').value,
+    fecha:  document.getElementById('fechaDia').value,
+    repite: repiteElegido,
+    emoji:  emojiFechaElegido,
+    nota:   document.getElementById('fechaNota').value
+  };
+  const id = fechaAbierta
+    ? (editarFecha(fechaAbierta, campos) ? fechaAbierta : null)
+    : agregarFecha(campos);
+  if (!id) {
+    // Lo que falta casi siempre es el título: el cursor va ahí.
+    document.getElementById('fechaNombre').focus();
+    return false;
+  }
+  cerrarFecha();
+  // Te deja parado en el día donde cae, para que la veas en el mes.
+  const f = datos.fechas.find(x => x.id === id);
+  irAlDia(proximaOcurrencia(f, hoy()) || f.fecha);
+  return true;
+}
+
+document.getElementById('fechaGuardar').onclick  = guardarFechaDeVentana;
+document.getElementById('fechaCancelar').onclick = cerrarFecha;
+modalFecha.onclick = ev => { if (ev.target === modalFecha) cerrarFecha(); };
+document.getElementById('fechaNombre').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter') guardarFechaDeVentana();
+});
+
+document.getElementById('fechaPendiente').onclick = () => {
+  if (!fechaAbierta || !fechaAPendiente(fechaAbierta, hoy())) return;
+  // Sin ventana de aviso: el botón mismo dice que ya pasó, y se apaga para
+  // que un segundo toque no cree un pendiente repetido.
+  const boton = document.getElementById('fechaPendiente');
+  boton.textContent = t('enPendientes');
+  boton.disabled = true;
+};
+
+document.getElementById('fechaBorrar').onclick = async () => {
+  const f = datos.fechas.find(x => x.id === fechaAbierta);
+  if (!f) return;
+  const id = f.id;   // se guarda: la respuesta llega después del toque
+  const si = await confirmar({ titulo: t('borrarFechaTitulo'), texto: f.titulo, accion: t('borrar') });
+  if (!si) return;
+  borrarFecha(id);
+  cerrarFecha();
 };
 
 /* ---------- K. ARRANCAR ---------- */

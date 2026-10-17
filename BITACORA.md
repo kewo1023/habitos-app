@@ -1908,6 +1908,70 @@ va es verlo en el teléfono.
 - [ ] Siguiente función grande posible: el calendario de fechas.
 - [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
 
+## 2026-10-17 — Fechas importantes (v30)
+
+**Hecho**
+
+- v29 publicada en la mañana (commit `9629b33`), después de que Kev la
+  aprobara en la maqueta.
+- Kev pidió construir el calendario de fechas evaluado el 16. Se construyó
+  según la recomendación: quinta pestaña "Fechas" con el mes, el día
+  elegido y la agenda; cumpleaños que se repiten con los años que cumplen;
+  franja "Próximas" en Hábitos; "+ A Pendientes" desde una fecha. Detalles
+  en la Fase 3.17 de `CLAUDE.md`.
+- Por primera vez se revisó la app en un navegador de verdad desde Claude
+  (servidor local con `.claude/launch.json`). De ahí salieron tres
+  arreglos que las pruebas no ven: el hueco de 80px arriba, "Octubre De
+  2026" (el `capitalize` del CSS pone en mayúscula TODAS las palabras) y
+  que "Pendientes" no cabía con cinco pestañas (medido: 58,7px en 55).
+- Bug viejo confirmado en el navegador: desde la v28, borrar una idea
+  desde su ficha abría la pregunta detrás de la ficha. Arreglado.
+- Pruebas: **525** y **256**. Se rompieron a propósito siete piezas. Una
+  (el aniversario que empieza en el futuro) seguía en verde: la prueba
+  usaba una fecha del año siguiente, donde da igual con o sin el arreglo.
+  Se cambió por una a dos años y ya se pone en rojo.
+
+**Aprendizaje**
+
+- Patrón: una prueba con el dato "más obvio" no distinguía el código
+  arreglado del roto. Causa: el caso elegido daba el mismo resultado por
+  los dos caminos. La próxima vez que una prueba no se ponga en rojo al
+  romper el arreglo, voy a buscar el dato en que los dos caminos se
+  separan, en vez de dar la prueba por buena.
+
+**Sin verificar**
+
+- La rueda de fechas del iPhone (`input type="date"`) y cómo se ve el campo
+  en Safari: en el navegador del Mac se ve bien, pero Safari tiene sus
+  propias reglas para ese campo.
+
+**Pendiente / siguiente**
+
+- [x] Kev probó la maqueta y pidió tres cambios antes de publicar:
+      1. **Quitar el "+" redondo de la barra** para darle espacio a las
+         pestañas, cubriendo lo que hacía en cada sección. Hecho:
+         "+ Nuevo hábito" al final de Hábitos, el campo de arriba en las
+         listas (ya existía), "+ Agregar" en Fechas, y "Listo" al final de
+         los paneles para salir del modo edición. Esto cambia la decisión de
+         la v21 (el "✓" para salir de edición): anotado allá como reemplazado.
+         Con el ancho entero cada pestaña mide ~68px, y la letra y la
+         negrilla de antes volvieron.
+      2. **Más contraste en los días con algo:** cuadro teñido de azul,
+         número en azul y negrilla, puntito más grande.
+      3. **"Compilar los eventos próximos para decidir si verlos":** se
+         interpretó como plegar la lista "Próximas" de Fechas (tocar el
+         título la pliega; se recuerda en el teléfono). Si lo que Kev quería
+         era plegar la franja de Hábitos, es el mismo patrón.
+- [x] Pruebas: **527** y **259**. Se rompieron a propósito el Listo de
+      abajo, "+ Nuevo hábito", el plegado, recordar el plegado y el
+      contraste: las cinco se pusieron en rojo. Revisado en el navegador a
+      375px en claro y oscuro, sin errores de consola.
+- [x] Publicada (ver abajo).
+- [ ] Probar en el iPhone, ya publicadas, la v29 y la v30.
+- [ ] Siguiente posible: el `.ics` con alarma para que avise el iPhone
+      (probar antes si la PWA instalada puede entregarlo).
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.**
+
 ---
 
 <!-- Plantilla para la próxima entrada:
