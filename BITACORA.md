@@ -1966,7 +1966,9 @@ va es verlo en el teléfono.
       abajo, "+ Nuevo hábito", el plegado, recordar el plegado y el
       contraste: las cinco se pusieron en rojo. Revisado en el navegador a
       375px en claro y oscuro, sin errores de consola.
-- [x] Publicada (ver abajo).
+- [x] Publicada: commit `e7f2e74` en `main`. El sitio en vivo sirve
+      `VERSION = 'v30'`, la pestaña Fechas y ya no trae el botón `btnAgregar`
+      (comprobado con curl al terminar el deploy).
 - [ ] Probar en el iPhone, ya publicadas, la v29 y la v30.
 - [ ] Siguiente posible: el `.ics` con alarma para que avise el iPhone
       (probar antes si la PWA instalada puede entregarlo).

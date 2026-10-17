@@ -802,7 +802,8 @@ Comprobada en el sitio en vivo; falta probarla ya publicada en el iPhone
 **`v30`** (fechas importantes, Fase 3.17), construida en la rama
 `v30-fechas` el 17 de octubre de 2026. Kev la probó en la maqueta y pidió
 tres cambios antes de publicar (sin "+" en la barra, más contraste en los
-días con algo, "Próximas" plegable). Publicada el mismo día. Sin SQL.
+días con algo, "Próximas" plegable). Commit `e7f2e74`, publicada el mismo
+día y comprobada en el sitio en vivo; falta probarla en la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
