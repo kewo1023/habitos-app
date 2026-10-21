@@ -2133,6 +2133,39 @@ va es verlo en el teléfono.
       hito frente al sello; los `prompt()` de renombrar y cambiar emoji; la
       tabla para Excel no distingue ✗ de vacío.
 
+## 2026-10-20 — v33 (en curso): casillas de la nota, y evaluación de tres pedidos
+
+Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
+
+**Hecho (punto 1 del pedido de Kev, con capturas)**
+- El ✓ de una casilla marcada salía corrido hacia abajo en el iPhone. Era
+  la letra '✓' heredando el alto de renglón de la nota (18px) dentro de un
+  cuadro de 17px. Ahora es el mismo trazo de los círculos usado como
+  máscara (`::after`). Comprobado en el navegador.
+- Al marcar una casilla, se tacha donde está y tras `PAUSA_TACHADO` baja al
+  fondo de SU grupo (`ordenarCasillas`, D2). Un grupo se corta en un título,
+  una viñeta o una línea vacía. El orden se aplica una vez, cuando dejas de
+  tocar: si se reordenara en cada toque, el `data-linea` de la segunda
+  casilla tocada apuntaría a otra línea.
+- Una línea pegada debajo de una casilla o viñeta es la continuación de ese
+  renglón (como en Markdown). Salió de la captura: "...cheque del" /
+  "Jueves" era un solo pendiente partido por un Enter, y sin esto "Jueves"
+  se habría quedado huérfano al bajar la casilla.
+- 12 pruebas nuevas en `pruebas.js`. Con `ordenarCasillas` desactivada a
+  propósito, 4 se ponen en rojo.
+
+**Evaluado, esperando decisión de Kev**
+- Punto 2 (nota en Compras) y punto 3 (formato en todas las cajas de
+  texto): solo hay dos cajas de texto largo, la de Ideas y la de Fechas.
+  Propuesta: sacar la nota con formato a una pieza reutilizable y usarla
+  en tres fichas (Idea, Compra, Fecha).
+- Punto 4 (tipografía): una sola familia (la del sistema), pero 12 tamaños
+  de texto distintos y cuatro estilos de etiqueta en mayúsculas.
+  Propuesta: escala de 6 pasos en variables, con maqueta antes.
+
+**Pendiente / siguiente**
+- [ ] Respuesta de Kev a la evaluación de los puntos 2, 3 y 4.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

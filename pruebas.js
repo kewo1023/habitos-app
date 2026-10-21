@@ -41,7 +41,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -304,6 +304,32 @@ ok('tocar una casilla la marca', ctx.alternarCasilla('a\n- [ ] b', 1) === 'a\n- 
 ok('y tocarla otra vez la desmarca', ctx.alternarCasilla('- [x] b', 0) === '- [ ] b');
 ok('una línea que no es casilla no cambia', ctx.alternarCasilla('- b', 0) === '- b');
 ok('una línea que no existe tampoco', ctx.alternarCasilla('a', 7) === 'a');
+
+// Las marcadas bajan al fondo de SU grupo (v33)
+const oc = ctx.ordenarCasillas;
+ok('una casilla marcada baja al final de su lista',
+   oc('- [x] a\n- [ ] b\n- [ ] c') === '- [ ] b\n- [ ] c\n- [x] a');
+ok('dentro de cada mitad se respeta el orden en que las escribiste',
+   oc('- [x] a\n- [ ] b\n- [x] c\n- [ ] d') === '- [ ] b\n- [ ] d\n- [x] a\n- [x] c');
+ok('una desmarcada vuelve arriba, justo después de las que faltan',
+   oc('- [ ] b\n- [ ] a\n- [x] c') === '- [ ] b\n- [ ] a\n- [x] c');
+ok('no cruza un título: cada lista se ordena por su lado',
+   oc('# Mercado\n- [x] pan\n- [ ] leche\n# Ferretería\n- [x] clavos\n- [ ] tornillos') ===
+   '# Mercado\n- [ ] leche\n- [x] pan\n# Ferretería\n- [ ] tornillos\n- [x] clavos');
+ok('un párrafo en medio (con línea vacía) también corta el grupo',
+   oc('- [x] a\n\nnota suelta\n- [ ] b') === '- [x] a\n\nnota suelta\n- [ ] b');
+ok('las viñetas y el texto normal no se mueven',
+   oc('hola\n- uno\n- dos') === 'hola\n- uno\n- dos');
+ok('una nota vacía sigue vacía', oc('') === '' && oc(undefined) === '');
+ok('lo de la captura: el marcado baja, y "Jueves" viaja con su casilla',
+   oc('- [x] Enviar fotos de cheques\n- [ ] Pendiente enviar foto del cheque del\nJueves') ===
+   '- [ ] Pendiente enviar foto del cheque del\nJueves\n- [x] Enviar fotos de cheques');
+ok('una línea pegada debajo de una casilla es parte de ese renglón',
+   h('- [ ] foto del cheque del\nJueves') ===
+   '<ul><li class="casilla" data-linea="0">foto del cheque del<br>Jueves</li></ul>');
+ok('lo mismo con una viñeta', h('- a\nsigue') === '<ul><li>a<br>sigue</li></ul>');
+ok('con una línea vacía en medio ya es un párrafo aparte',
+   h('- a\n\nsigue') === '<ul><li>a</li></ul><p>sigue</p>');
 
 ok('el adelanto de la lista quita los símbolos',
    ctx.notaEnTexto('# Plan\n**ya**\n- [ ] uno\n- [x] dos\n- tres') === 'Plan  ya  ☐ uno  ☑ dos  • tres');
