@@ -2604,8 +2604,17 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       </div>
 
       <label class="etiqueta" for="fechaNota" data-t="notaFecha">Nota</label>
-      <textarea id="fechaNota" maxlength="500" data-ph="phNotaFecha"
-                placeholder="Idea de regalo, número de póliza, lo que quieras tener a mano."></textarea>
+      <!-- La misma nota con formato de las ideas (v33): prepararNota('fecha'). -->
+      <div class="nota-vista" id="fechaNotaVista" hidden></div>
+      <div id="fechaNotaEditor">
+        <div class="nota-barra">
+          <button type="button" id="fechaNegrita" data-aria="negrita"><b>B</b></button>
+          <button type="button" id="fechaVineta"  data-aria="vineta">•</button>
+          <button type="button" id="fechaCasilla" data-aria="casilla">☐</button>
+        </div>
+        <textarea id="fechaNota" maxlength="2000" data-ph="phNotaFecha"
+                  placeholder="Idea de regalo, número de póliza, lo que quieras tener a mano."></textarea>
+      </div>
 
       <!-- Solo con una fecha que ya existe: no se manda a Pendientes ni se
            borra algo que todavía no guardaste. -->
@@ -2718,39 +2727,41 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     </div>
   </div>
 
-  <!-- La ficha de una idea. Se abre al tocar su texto en la lista.
-       Aquí vive todo lo que se hace con una idea: cambiarle el título,
-       escribirle el contexto, mandarla a Pendientes o borrarla. -->
-  <div class="fondo-modal" id="modalIdea">
+  <!-- La ficha de una tarea: de una idea (se abre al tocar su texto) o de
+       una compra (en modo edición, v33). Aquí vive todo lo que se hace con
+       ella: cambiarle el título, escribirle la nota, mandarla a Pendientes
+       (solo las ideas) o borrarla. El título y las etiquetas no llevan
+       data-t: cambian según la lista, y los pone abrirFicha(). -->
+  <div class="fondo-modal" id="modalFicha">
     <div class="modal">
-      <h2 data-t="idea">Idea</h2>
+      <h2 id="fichaTitulo">Idea</h2>
 
-      <label class="etiqueta" for="ideaTexto" data-t="idea">Idea</label>
-      <input type="text" id="ideaTexto" maxlength="120" autocomplete="off">
+      <label class="etiqueta" for="fichaTexto" id="fichaEtiqueta">Idea</label>
+      <input type="text" id="fichaTexto" maxlength="120" autocomplete="off">
 
-      <label class="etiqueta" for="ideaNota" data-t="contexto">Contexto</label>
+      <label class="etiqueta" for="fichaNota" id="fichaNotaEtiqueta">Contexto</label>
       <!-- v28: la nota se LEE con formato (vista) y se EDITA en crudo
            (editor). Tocar la vista abre el editor. Si no hay nota, se va
-           directo al editor: no hay nada que leer. -->
-      <div class="nota-vista" id="ideaNotaVista" hidden></div>
-      <div id="ideaNotaEditor">
+           directo al editor: no hay nada que leer. Desde la v33 esta pieza
+           la arma prepararNota('ficha'), la misma que usa Fechas. -->
+      <div class="nota-vista" id="fichaNotaVista" hidden></div>
+      <div id="fichaNotaEditor">
         <div class="nota-barra">
-          <button type="button" id="formatoNegrita" data-aria="negrita"><b>B</b></button>
-          <button type="button" id="formatoVineta"  data-aria="vineta">•</button>
-          <button type="button" id="formatoCasilla" data-aria="casilla">☐</button>
+          <button type="button" id="fichaNegrita" data-aria="negrita"><b>B</b></button>
+          <button type="button" id="fichaVineta"  data-aria="vineta">•</button>
+          <button type="button" id="fichaCasilla" data-aria="casilla">☐</button>
         </div>
-      <textarea id="ideaNota" maxlength="2000" data-ph="phContexto"
-                placeholder="¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes."></textarea>
+        <textarea id="fichaNota" maxlength="2000"></textarea>
       </div>
 
       <div class="ficha-acciones">
-        <button class="btn-mini" id="ideaMover" data-t="aPendientes">→ A Pendientes</button>
-        <button class="btn-mini btn-peligro" id="ideaBorrar" data-t="borrar">Borrar</button>
+        <button class="btn-mini" id="fichaMover" data-t="aPendientes">→ A Pendientes</button>
+        <button class="btn-mini btn-peligro" id="fichaBorrar" data-t="borrar">Borrar</button>
       </div>
 
       <div style="display:flex; gap:10px">
-        <button class="btn btn-secundario" id="ideaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
-        <button class="btn btn-principal"  id="ideaGuardar" data-t="guardar">Guardar</button>
+        <button class="btn btn-secundario" id="fichaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
+        <button class="btn btn-principal"  id="fichaGuardar" data-t="guardar">Guardar</button>
       </div>
     </div>
   </div>
@@ -2838,6 +2849,11 @@ const TEXTOS = {
     phContexto: '¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes.',
     confirmBorrarIdea: '¿Borrar esta idea?',
     avisoIdeaNota: 'También se pierde el contexto que escribiste.',
+    // La ficha de una compra (v33)
+    compra: 'Compra', notaCompra: 'Nota',
+    phNotaCompra: 'Link, marca, cantidad… lo que necesites tener a mano en la tienda.',
+    confirmBorrarCompra: '¿Borrar esta compra?',
+    avisoNotaCompra: 'También se pierde la nota que escribiste.',
     negrita: 'Negrita', vineta: 'Viñeta', casilla: 'Casilla',
     tocaEditar: 'Toca para editar',
     borrarHabitoTitulo: '¿Borrar "%n"?',
@@ -2981,6 +2997,11 @@ const TEXTOS = {
     phContexto: 'Why did it seem like a good one? What problem does it solve? Whatever you want to remember a month from now.',
     confirmBorrarIdea: 'Delete this idea?',
     avisoIdeaNota: 'The context you wrote goes with it.',
+    // A shopping item's card (v33)
+    compra: 'Item', notaCompra: 'Note',
+    phNotaCompra: 'Link, brand, quantity… whatever you need at hand in the store.',
+    confirmBorrarCompra: 'Delete this item?',
+    avisoNotaCompra: 'The note you wrote goes with it.',
     negrita: 'Bold', vineta: 'Bullet', casilla: 'Checkbox',
     tocaEditar: 'Tap to edit',
     borrarHabitoTitulo: 'Delete "%n"?',
@@ -4319,7 +4340,10 @@ const ORDEN_REPITE = [REPITE.no, REPITE.semanal, REPITE.mensual, REPITE.anual];
 const CADA_MAXIMO = 99;
 const EMOJIS_FECHA = ['📌', '🎂', '💍', '💳', '✈️', '🏥'];
 const LARGO_TITULO_FECHA = 60;
-const LARGO_NOTA_FECHA = 500;
+// La nota de una fecha mide lo mismo que la de una idea (v33; antes 500).
+// Desde que las dos se leen con formato son la misma cosa, y una lista de
+// casillas para un viaje no cabe en 500 caracteres.
+const LARGO_NOTA_FECHA = LARGO_NOTA;
 // Cuántos días antes aparece una fecha en la franja de Hábitos. 3 y no 7:
 // la franja empuja la lista hacia abajo, y una semana de aviso la tendría
 // puesta casi siempre. Una franja que está siempre deja de verse.
@@ -6331,9 +6355,18 @@ const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras', 'fechas'];
 //   flechas   — reordenar a mano con ↑↓ en modo edición. Solo Ideas: en
 //               Pendientes el orden lo pone la importancia, y en Compras el
 //               orden de llegada ya es el orden en que las escribiste.
-//   ficha     — tocar el texto ABRE la ficha (nota de contexto) en vez de
-//               marcar. Solo Ideas: en las otras dos, tocar es el gesto de
-//               cada día y obligarte a apuntarle al círculo lo haría más lento.
+//   ficha     — la ventana con el título y la nota con formato. Tres valores:
+//               'toque'   — tocar el texto la ABRE en vez de marcar. Ideas:
+//                           lo que más haces con una idea es leerla.
+//               'edicion' — se abre al tocar el texto en modo edición, en
+//                           vez del cuadro de renombrar. Compras (v33):
+//                           en la tienda tocar el texto sigue marcando,
+//                           y ese gesto no se toca.
+//               false     — no hay ficha. Pendientes.
+//               Con ficha, la nota se asoma debajo del título en la lista.
+//   fichaTitulo, fichaNota, fichaPh, fichaBorrar, fichaAviso — las claves de
+//               los textos de esa ventana: su título, la etiqueta de la nota,
+//               el texto guía, y la pregunta y el aviso al borrar.
 //   mover     — la flecha → que manda a Pendientes. Solo Ideas.
 //   progreso  — la barra "3 de 12". Pendientes y Compras sí (es útil saber
 //               cuánto falta con el carrito); Ideas no (medir cuántas ideas
@@ -6352,15 +6385,19 @@ const TEXTOS_LISTA = {
     etiqueta: 'ideas', placeholder: 'phIdea',
     vacioEmoji: '💡', vacioTexto: 'vacioIdeas',
     prompt: 'promptPendiente', hechas: 'hechas',
-    prioridad: false, flechas: true,  ficha: true,  mover: true,
-    progreso: false,  contador: false
+    prioridad: false, flechas: true,  ficha: 'toque',  mover: true,
+    progreso: false,  contador: false,
+    fichaTitulo: 'idea', fichaNota: 'contexto', fichaPh: 'phContexto',
+    fichaBorrar: 'confirmBorrarIdea', fichaAviso: 'avisoIdeaNota'
   },
   compras: {
     etiqueta: 'compras', placeholder: 'phCompra',
     vacioEmoji: '🛒', vacioTexto: 'vacioCompras',
     prompt: 'promptCompra', hechas: 'compradas',
-    prioridad: false, flechas: false, ficha: false, mover: false,
-    progreso: true,   contador: false
+    prioridad: false, flechas: false, ficha: 'edicion', mover: false,
+    progreso: true,   contador: false,
+    fichaTitulo: 'compra', fichaNota: 'notaCompra', fichaPh: 'phNotaCompra',
+    fichaBorrar: 'confirmBorrarCompra', fichaAviso: 'avisoNotaCompra'
   }
 };
 
@@ -6497,9 +6534,10 @@ function pintarLista() {
   tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
     // La clase "idea" pone el subrayado punteado: la pista de que tocar el
-    // texto abre algo. Va atada a la regla, no al nombre de la lista.
+    // texto abre algo. Va atada a la regla, no al nombre de la lista. Las
+    // compras no la llevan: ahí tocar el texto marca.
     tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
-                      + (reglas.ficha ? ' idea' : '')
+                      + (reglas.ficha === 'toque' ? ' idea' : '')
                       + (item.id === tareaRecienMovida ? ' recien-movida' : '');
 
     // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
@@ -6557,9 +6595,9 @@ function pintarLista() {
     renglones.textContent = item.texto;
     tarjeta.querySelector('.tarea-texto').appendChild(renglones);
 
-    // Si la idea tiene contexto escrito, se asoma debajo del título. Así la
-    // reconoces sin abrirla, que es justo el problema que la nota vino a
-    // resolver. El CSS la corta a dos líneas.
+    // Si la idea (o la compra, desde la v33) tiene nota escrita, se asoma
+    // debajo del título. Así la reconoces sin abrirla, que es justo el
+    // problema que la nota vino a resolver. El CSS la corta a dos líneas.
     if (reglas.ficha && item.nota) {
       const nota = document.createElement('div');
       nota.className = 'tarea-nota';
@@ -6599,9 +6637,12 @@ function pintarLista() {
       //   es leerla y recordar de qué iba, no tacharla.
       //   En PENDIENTES, tocar marca. Ese sí es el gesto de cada día, y
       //   obligarte a apuntarle al círculo de 32px lo haría más lento.
-      if (reglas.ficha) { abrirIdea(item.id); return; }
+      //   En COMPRAS (v33), tocar marca, y en modo edición abre la ficha
+      //   en vez del cuadro de renombrar: la ficha ya trae el título.
+      if (reglas.ficha === 'toque') { abrirFicha(item.id); return; }
 
       if (!document.body.classList.contains('editando')) { marcar(); return; }
+      if (reglas.ficha === 'edicion') { abrirFicha(item.id); return; }
       const nuevo = prompt(t(reglas.prompt), item.texto);
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
@@ -6689,156 +6730,200 @@ document.getElementById('formTarea').onsubmit = (ev) => {
   guardarTareaEscrita();
 };
 
-/* --- La ficha de una idea --- */
+/* --- La nota con formato: una pieza que se usa en dos ventanas (v33) ---
+   Hasta la v32 la nota que se lee con formato (v28) vivía SOLO en la ficha
+   de una idea: sus funciones buscaban por nombre los ids de esa ficha. Para
+   ponerla también en Compras y en Fechas había dos caminos: copiarla, o
+   sacarla a una pieza que reciba DÓNDE vive. Copiada, cada arreglo habría
+   que hacerlo dos veces, y el día que se olvide uno, las dos notas se
+   comportarían distinto sin que nadie lo decidiera.
+
+   Es lo mismo que en Excel convertir una fórmula pegada en tres hojas en
+   una sola que las tres consultan: prepararNota('ficha') y
+   prepararNota('fecha') son la misma fórmula apuntando a celdas distintas.
+
+   Lo que necesita cada ventana es tener, en el HTML, seis ids con el mismo
+   prefijo: <prefijo>NotaVista, <prefijo>NotaEditor, <prefijo>Nota (el
+   campo) y los tres botones <prefijo>Negrita, <prefijo>Vineta,
+   <prefijo>Casilla. Y decir qué hacer cuando tocas una casilla:
+   alMarcarCasilla(textoNuevo) — guardarlo donde corresponda.
+
+   Devuelve dos mandos: mostrar(editando) y cancelar() (para cuando la
+   ventana se cierra con un reordenamiento pendiente). */
+function prepararNota(prefijo, alMarcarCasilla) {
+  const vista  = document.getElementById(prefijo + 'NotaVista');
+  const editor = document.getElementById(prefijo + 'NotaEditor');
+  const area   = document.getElementById(prefijo + 'Nota');
+  let espera = null;
+
+  /* Leer o editar (v28). editando = false muestra la nota con formato;
+     true muestra el texto crudo con la barra de botones. Sin nota no hay
+     nada que leer, así que se va directo a editar. */
+  function mostrar(editando) {
+    const verVista = !editando && area.value.trim() !== '';
+    vista.hidden  = !verVista;
+    editor.hidden = verVista;
+    if (verVista) {
+      vista.innerHTML = notaAHtml(area.value)
+        + '<span class="nota-pista">' + escaparHtml(t('tocaEditar')) + '</span>';
+    }
+  }
+
+  /* Mandar las casillas marcadas al fondo (v33), con la misma pausa que un
+     pendiente que se tacha antes de irse al final (PAUSA_TACHADO). Sin la
+     pausa, la casilla saltaría en el mismo instante del toque y no verías
+     cuál marcaste.
+
+     Ojo con un detalle: cada casilla recuerda su número de línea
+     (data-linea). Si reordenáramos el texto en el acto, una segunda casilla
+     tocada antes de redibujar apuntaría a una línea que ya cambió de sitio.
+     Por eso el toque solo marca, y el orden se hace UNA vez, cuando dejas
+     de tocar: cada toque nuevo reinicia la espera. */
+  function programarOrden() {
+    clearTimeout(espera);
+    espera = setTimeout(() => {
+      espera = null;
+      // Solo si sigues leyendo la nota. Si en ese medio segundo pasaste a
+      // editar, el campo puede tener cambios sin guardar, y ordenar ahí
+      // los guardaría sin que tocaras Guardar. Se ordenará la próxima vez.
+      if (vista.hidden) return;
+      const ordenada = ordenarCasillas(area.value);
+      if (ordenada === area.value) return;    // ya estaban en su sitio
+      area.value = ordenada;
+      alMarcarCasilla(area.value);
+      mostrar(false);
+    }, PAUSA_TACHADO);
+  }
+
+  // Tocar la nota: si fue en una casilla, se marca (y se guarda en el acto,
+  // como en una lista de papel); si fue en un enlace, lo abre el navegador;
+  // en cualquier otro sitio, pasa a editar.
+  vista.onclick = ev => {
+    const objetivo = ev.target;
+    const dentro = sel => (objetivo && objetivo.closest) ? objetivo.closest(sel) : null;
+    if (dentro('a')) return;
+    const casilla = dentro('.casilla');
+    if (casilla) {
+      area.value = alternarCasilla(area.value, Number(casilla.dataset.linea));
+      alMarcarCasilla(area.value);
+      mostrar(false);        // se tacha DONDE ESTÁ...
+      programarOrden();      // ...y un momento después baja al fondo
+      return;
+    }
+    mostrar(true);
+    area.focus();
+  };
+
+  // Los tres botones de la barra. El pointerdown con preventDefault es lo que
+  // evita que el toque le quite el cursor al campo: sin él, en el iPhone se
+  // cerraría el teclado en cada botón.
+  [['Negrita', 'negrita'], ['Vineta', 'vineta'], ['Casilla', 'casilla']]
+    .forEach(([nombre, tipo]) => {
+      const boton = document.getElementById(prefijo + nombre);
+      boton.addEventListener('pointerdown', ev => ev.preventDefault());
+      boton.onclick = () => {
+        const r = aplicarFormatoTexto(area.value, area.selectionStart || 0,
+                                      area.selectionEnd || 0, tipo);
+        area.value = r.valor;
+        if (area.focus) area.focus();
+        if (area.setSelectionRange) area.setSelectionRange(r.cursor, r.cursor);
+      };
+    });
+
+  return { mostrar, cancelar: () => clearTimeout(espera) };
+}
+
+/* --- La ficha de una tarea: Ideas y Compras (v33) ---
+   Hasta la v32 era "la ficha de una idea". Desde la v33 también la tienen
+   las compras, para anotar un link o "la marca azul, no la roja". Es la
+   misma ventana: lo que cambia según la lista (el título, las etiquetas,
+   el botón "→ A Pendientes") lo decide TEXTOS_LISTA, igual que la tarjeta. */
 
 // Igual que el calendario guarda "qué hábito estoy viendo", esta variable
-// guarda "qué idea tengo abierta". Sin ella, al tocar Guardar no sabríamos
+// guarda "qué tarea tengo abierta". Sin ella, al tocar Guardar no sabríamos
 // sobre cuál escribir.
-let ideaAbierta = null;
+let fichaAbierta = null;
 
-const modalIdea = document.getElementById('modalIdea');
+const modalFicha = document.getElementById('modalFicha');
 
-function abrirIdea(idTarea) {
-  const idea = datos.tareas.find(x => x.id === idTarea);
-  if (!idea) return;
+// Marcar una casilla de la nota se guarda en el acto, sin esperar a Guardar:
+// es una lista de papel, no un formulario. Solo la nota: si cambiaste el
+// título y no has guardado, el título sigue esperando tu Guardar.
+const notaFicha = prepararNota('ficha', textoNuevo => {
+  if (fichaAbierta) editarTarea(fichaAbierta, null, textoNuevo);
+});
 
-  ideaAbierta = idTarea;
-  document.getElementById('ideaTexto').value = idea.texto;
-  document.getElementById('ideaNota').value  = idea.nota || '';
-  mostrarNota(false);
+function abrirFicha(idTarea) {
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea) return;
+  const palabras = TEXTOS_LISTA[tarea.lista];
 
-  // Una idea ya dada por hecha no se manda a Pendientes. Se deshabilita en
-  // vez de esconderse, para que los botones no cambien de sitio bajo el dedo
-  // — el mismo criterio que las flechas de reordenar hábitos.
-  document.getElementById('ideaMover').disabled = idea.hecha;
+  notaFicha.cancelar();   // un orden pendiente de la anterior no aplica aquí
+  fichaAbierta = idTarea;
+  document.getElementById('fichaTitulo').textContent       = t(palabras.fichaTitulo);
+  document.getElementById('fichaEtiqueta').textContent     = t(palabras.fichaTitulo);
+  document.getElementById('fichaNotaEtiqueta').textContent = t(palabras.fichaNota);
+  document.getElementById('fichaNota').placeholder         = t(palabras.fichaPh);
+  document.getElementById('fichaTexto').value = tarea.texto;
+  document.getElementById('fichaNota').value  = tarea.nota || '';
+  notaFicha.mostrar(false);
 
-  abrirVentana(modalIdea);
+  // "→ A Pendientes" solo existe en Ideas (la regla `mover`). Una idea ya
+  // dada por hecha no se manda: se deshabilita en vez de esconderse, para
+  // que los botones no cambien de sitio bajo el dedo — el mismo criterio
+  // que las flechas de reordenar hábitos.
+  const mover = document.getElementById('fichaMover');
+  mover.hidden   = !palabras.mover;
+  mover.disabled = tarea.hecha;
+
+  abrirVentana(modalFicha);
 }
 
-/* Leer o editar la nota (v28). editando = false muestra la nota con formato;
-   true muestra el texto crudo con la barra de botones. Sin nota no hay
-   nada que leer, así que se va directo a editar. */
-function mostrarNota(editando) {
-  const vista = document.getElementById('ideaNotaVista');
-  const area  = document.getElementById('ideaNota');
-  const verVista = !editando && area.value.trim() !== '';
-  vista.hidden = !verVista;
-  document.getElementById('ideaNotaEditor').hidden = verVista;
-  if (verVista) {
-    vista.innerHTML = notaAHtml(area.value)
-      + '<span class="nota-pista">' + escaparHtml(t('tocaEditar')) + '</span>';
-  }
+function cerrarFicha() {
+  notaFicha.cancelar();   // lo marcado ya quedó guardado
+  cerrarVentana(modalFicha);
+  fichaAbierta = null;
 }
 
-// Tocar la nota: si fue en una casilla, se marca (y se guarda en el acto,
-// como en una lista de papel); si fue en un enlace, lo abre el navegador;
-// en cualquier otro sitio, pasa a editar.
-document.getElementById('ideaNotaVista').onclick = ev => {
-  const objetivo = ev.target;
-  const dentro = sel => (objetivo && objetivo.closest) ? objetivo.closest(sel) : null;
-  if (dentro('a')) return;
-  const casilla = dentro('.casilla');
-  const area = document.getElementById('ideaNota');
-  if (casilla) {
-    area.value = alternarCasilla(area.value, Number(casilla.dataset.linea));
-    editarTarea(ideaAbierta, null, area.value);
-    mostrarNota(false);          // se tacha DONDE ESTÁ...
-    programarOrdenCasillas();    // ...y un momento después baja al fondo
-    return;
-  }
-  mostrarNota(true);
-  area.focus();
+document.getElementById('fichaGuardar').onclick = () => {
+  editarTarea(fichaAbierta,
+              document.getElementById('fichaTexto').value,
+              document.getElementById('fichaNota').value);
+  cerrarFicha();
 };
 
-/* Mandar las casillas marcadas al fondo (v33), con la misma pausa que un
-   pendiente que se tacha antes de irse al final (PAUSA_TACHADO). Sin la
-   pausa, la casilla saltaría en el mismo instante del toque y no verías
-   cuál marcaste.
-
-   Ojo con un detalle: cada casilla recuerda su número de línea
-   (data-linea). Si reordenáramos el texto en el acto, una segunda casilla
-   tocada antes de redibujar apuntaría a una línea que ya cambió de sitio.
-   Por eso el toque solo marca, y el orden se hace UNA vez, cuando dejas
-   de tocar: cada toque nuevo reinicia la espera. */
-let esperaOrdenCasillas = null;
-
-function programarOrdenCasillas() {
-  clearTimeout(esperaOrdenCasillas);
-  esperaOrdenCasillas = setTimeout(() => {
-    esperaOrdenCasillas = null;
-    // Solo si sigues leyendo la nota. Si en ese medio segundo pasaste a
-    // editar, el campo puede tener cambios sin guardar, y ordenar ahí
-    // los guardaría sin que tocaras Guardar. Se ordenará la próxima vez.
-    if (!ideaAbierta || document.getElementById('ideaNotaVista').hidden) return;
-    const area = document.getElementById('ideaNota');
-    const ordenada = ordenarCasillas(area.value);
-    if (ordenada === area.value) return;    // ya estaban en su sitio
-    area.value = ordenada;
-    editarTarea(ideaAbierta, null, area.value);
-    mostrarNota(false);
-  }, PAUSA_TACHADO);
-}
-
-// Los tres botones de la barra. El pointerdown con preventDefault es lo que
-// evita que el toque le quite el cursor al campo: sin él, en el iPhone se
-// cerraría el teclado en cada botón.
-[['formatoNegrita', 'negrita'], ['formatoVineta', 'vineta'], ['formatoCasilla', 'casilla']]
-  .forEach(([id, tipo]) => {
-    const boton = document.getElementById(id);
-    boton.addEventListener('pointerdown', ev => ev.preventDefault());
-    boton.onclick = () => {
-      const area = document.getElementById('ideaNota');
-      const r = aplicarFormatoTexto(area.value, area.selectionStart || 0,
-                                    area.selectionEnd || 0, tipo);
-      area.value = r.valor;
-      if (area.focus) area.focus();
-      if (area.setSelectionRange) area.setSelectionRange(r.cursor, r.cursor);
-    };
-  });
-
-function cerrarIdea() {
-  clearTimeout(esperaOrdenCasillas);   // lo marcado ya quedó guardado
-  cerrarVentana(modalIdea);
-  ideaAbierta = null;
-}
-
-document.getElementById('ideaGuardar').onclick = () => {
-  editarTarea(ideaAbierta,
-              document.getElementById('ideaTexto').value,
-              document.getElementById('ideaNota').value);
-  cerrarIdea();
-};
-
-document.getElementById('ideaMover').onclick = () => {
+document.getElementById('fichaMover').onclick = () => {
   // Se guarda antes de mover: si escribiste algo y tocaste "A Pendientes"
   // sin guardar, sería raro perderlo.
-  editarTarea(ideaAbierta,
-              document.getElementById('ideaTexto').value,
-              document.getElementById('ideaNota').value);
-  moverALista(ideaAbierta, 'pendientes');
-  cerrarIdea();
+  editarTarea(fichaAbierta,
+              document.getElementById('fichaTexto').value,
+              document.getElementById('fichaNota').value);
+  moverALista(fichaAbierta, 'pendientes');
+  cerrarFicha();
 };
 
-document.getElementById('ideaBorrar').onclick = async () => {
+document.getElementById('fichaBorrar').onclick = async () => {
   // Aquí sí se pregunta, a diferencia de la ✕ de la lista. La razón es lo que
-  // se pierde: una idea con contexto escrito ya no es una línea de texto que
+  // se pierde: una tarea con nota escrita ya no es una línea de texto que
   // reescribes en tres segundos.
-  const idea = datos.tareas.find(x => x.id === ideaAbierta);
-  const id = ideaAbierta;   // se guarda: la respuesta llega después del toque
+  const tarea = datos.tareas.find(x => x.id === fichaAbierta);
+  if (!tarea) return;
+  const palabras = TEXTOS_LISTA[tarea.lista];
+  const id = fichaAbierta;   // se guarda: la respuesta llega después del toque
   const si = await confirmar({
-    titulo: t('confirmBorrarIdea'),
-    texto:  idea && idea.nota ? t('avisoIdeaNota') : '',
+    titulo: t(palabras.fichaBorrar),
+    texto:  tarea.nota ? t(palabras.fichaAviso) : '',
     accion: t('borrar')
   });
   if (!si) return;
   borrarTarea(id);
-  cerrarIdea();
+  cerrarFicha();
 };
 
-document.getElementById('ideaCancelar').onclick = cerrarIdea;
+document.getElementById('fichaCancelar').onclick = cerrarFicha;
 
 // Tocar el fondo oscuro (no la tarjeta) también cierra
-modalIdea.onclick = (ev) => { if (ev.target === modalIdea) cerrarIdea(); };
+modalFicha.onclick = (ev) => { if (ev.target === modalFicha) cerrarFicha(); };
 
 /* ---------- Ñ. AJUSTES: IDIOMA, TEMA Y TU NOMBRE ----------
    Tres ajustes de ESTE dispositivo. Ninguno viaja a la nube ni entra en las
@@ -7254,6 +7339,16 @@ document.getElementById('fechasPlegar').onclick = () => {
 /* --- La ventana de una fecha --- */
 const modalFecha = document.getElementById('modalFecha');
 
+// La nota de una fecha se lee con formato, igual que la de una idea (v33).
+// Marcar una casilla se guarda en el acto, pero solo en una fecha que ya
+// existe; en una nueva, queda en el campo hasta que toques Guardar.
+// Se le pasan los datos que ya tiene guardados con la nota nueva encima:
+// así, si cambiaste el título sin guardar, ese cambio sigue esperando.
+const notaFecha = prepararNota('fecha', textoNuevo => {
+  const f = datos.fechas.find(x => x.id === fechaAbierta);
+  if (f) editarFecha(f.id, { ...f, nota: textoNuevo });
+});
+
 // Los selectores de la ventana: cada cuánto se repite y el emoji. Se
 // dibujan desde las variables de estado, como Ajustes.
 function pintarOpcionesFecha() {
@@ -7348,11 +7443,13 @@ campoEmojiPropio.addEventListener('input', () => {
 // id = null abre una nueva, con el día `dia` ya puesto.
 function abrirFecha(id, dia) {
   const f = id ? datos.fechas.find(x => x.id === id) : null;
+  notaFecha.cancelar();
   fechaAbierta = f ? f.id : null;
   document.getElementById('fechaVentanaTitulo').textContent = t(f ? 'tituloFecha' : 'tituloNuevaFecha');
   document.getElementById('fechaNombre').value = f ? f.titulo : '';
   document.getElementById('fechaDia').value    = f ? f.fecha : (dia || diaElegido || hoy());
   document.getElementById('fechaNota').value   = f && f.nota ? f.nota : '';
+  notaFecha.mostrar(false);   // con nota, se abre leyéndola (v33)
   repiteElegido     = f ? f.repite : REPITE.no;
   // Una nueva arranca con el primero que se vea en la fila: si quitaste el
   // 📌, no tiene sentido que siga siendo el de siempre.
@@ -7372,6 +7469,7 @@ function abrirFecha(id, dia) {
 }
 
 function cerrarFecha() {
+  notaFecha.cancelar();
   cerrarVentana(modalFecha);
   fechaAbierta = null;
 }
