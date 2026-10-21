@@ -926,8 +926,8 @@ probarla en la app instalada. Sin SQL.
 fondo y escala de letra, Fase 3.20), construida en la rama `v33-notas` el
 20 de octubre de 2026. Kev aprobó la maqueta del antes y el después;
 merge a `main` (commit `79a7b9b`), publicada el mismo día y comprobada en
-el sitio en vivo (`sw.js` en v33, sin errores al arrancar). Falta probarla
-en la app instalada, sobre todo el ✓ centrado de las casillas. Sin SQL.
+el sitio en vivo (`sw.js` en v33, sin errores al arrancar). **Probada en
+la app instalada del iPhone** (Kev lo confirmó el mismo día). Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

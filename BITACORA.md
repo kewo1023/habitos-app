@@ -2135,7 +2135,9 @@ va es verlo en el teléfono.
 
 ## 2026-10-20 — v33 publicada: notas con formato en todas partes y escala de letra
 
-Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
+Construida en la rama `v33-notas`, publicada el mismo día (merge a `main`,
+`79a7b9b`) y **probada por Kev en la app instalada del iPhone: "funciona
+todo"**.
 
 **Hecho (punto 1 del pedido de Kev, con capturas)**
 - El ✓ de una casilla marcada salía corrido hacia abajo en el iPhone. Era
@@ -2173,8 +2175,44 @@ Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
 - [x] Kev aprobó la maqueta. Merge de `v33-notas` a `main` (`79a7b9b`),
       push, y comprobado en el sitio en vivo: `sw.js` en v33, título de
       sección a 20px, sin errores en la consola.
-- [ ] Probar en la app instalada: el ✓ centrado de las casillas (el bug
-      era del iPhone, no del Mac) y que la casilla marcada baje al fondo.
+- [x] Probada en la app instalada del iPhone (Kev, 20 de octubre): el ✓
+      centrado, la casilla que baja al fondo y la nota de una compra.
+- [ ] **Reactivar Supabase antes del 14 de diciembre de 2026.** Sigue
+      siendo lo más urgente; la lista ordenada está en la entrada del 15
+      de septiembre. Faltan las tablas de los "no logrados" (Paso 8) y de
+      las fechas (Paso 9, con la columna `cada`).
+- [ ] Guardar una copia de seguridad: desde la v30 hay datos (fechas, "no
+      logrados") que solo viven en el teléfono y en esa copia.
+- [ ] Abiertos sin prisa (de antes): el `.ics` con alarma; la medalla del
+      hito frente al sello; los `prompt()` de renombrar (Pendientes todavía
+      lo usa en modo edición) y cambiar emoji; la tabla para Excel no
+      distingue ✗ de vacío; "hasta cuándo" para las fechas que se repiten.
+
+**Aprendizajes**
+
+- Patrón: un símbolo escrito como letra ('✓') dentro de una caja de tamaño
+  fijo salía corrido solo en el iPhone. Causa: la letra hereda el alto de
+  renglón del texto que la rodea, y cada fuente dibuja el símbolo a su
+  manera; el Mac y el iPhone no usan la misma. La próxima vez que un ícono
+  tenga que quedar centrado en una caja, voy a dibujarlo (SVG o máscara)
+  en vez de escribirlo como letra.
+- Patrón: lo que se ubica por su posición (`data-linea`) deja de servir en
+  cuanto algo se reordena. Causa: la posición es una dirección, no un
+  nombre. La próxima vez que una acción reordene una lista cuyos elementos
+  se señalan por número, voy a aplicar el orden una sola vez al final, o
+  señalar por id.
+- Patrón: un recorte con expresión regular se comió media app al armar la
+  maqueta, porque `<script type="module">` también aparecía dentro de un
+  comentario. Causa: una regex no distingue código de comentario. La
+  próxima vez que recorte código con una regex, voy a anclarla al
+  principio de la línea y comprobar que lo que debía sobrevivir sigue ahí
+  (aquí: buscar "K. ARRANCAR" en el resultado).
+
+**Siguiente paso exacto**
+
+- Reactivar el proyecto de Supabase siguiendo la entrada del 15 de
+  septiembre, antes del 14 de diciembre. Antes de escribir un solo paso,
+  revisar la documentación actual de Supabase (regla de `CLAUDE.md`).
 
 ---
 
