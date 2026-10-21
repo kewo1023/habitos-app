@@ -229,20 +229,69 @@ body {
   user-select: none;
 }
 
+/* ---------- 2b. LA ESCALA DE LETRA (v33) ----------
+   Hasta la v32 cada regla escribía su tamaño a mano, y la app llegó a tener
+   doce tamaños de texto: 10, 10.5, 11, 12, 12.5, 13, 14, 15, 16, 19, 21 y
+   30px. Diferencias de medio píxel no se leen como jerarquía, se leen como
+   descuido: el ojo no distingue 12 de 12,5, solo nota que algo no cuadra.
+
+   Ahora hay siete pasos y cada texto de la app usa uno. La misma regla de
+   los colores (v15): ningún tamaño de letra se escribe suelto. Si un texto
+   nuevo no encaja en ningún paso, la pregunta es a cuál se parece, no qué
+   número inventarle. Hay un test que lo vigila.
+
+   Cada paso, de mayor a menor, y para qué es:
+     pantalla   — el saludo de arriba. Uno solo por pantalla.
+     seccion    — el nombre de la sección ("Pendientes") y el título de cada
+                  ventana. Lo que te dice dónde estás.
+     tarjeta    — el título de cada cosa de una lista: hábito, pendiente,
+                  idea, compra, fecha. Igual en todas: son lo mismo.
+     campo      — lo que escribes. Vale lo mismo que "tarjeta", pero por otra
+                  razón: con menos de 16px el iPhone acerca la pantalla al
+                  tocar el campo. Por eso tiene nombre propio: si algún día
+                  "tarjeta" cambia, los campos no deben cambiar con él.
+     cuerpo     — notas, párrafos y botones.
+     secundaria — lo que acompaña a un título: racha, adelanto de la nota,
+                  "3 de 5", la línea gris bajo una fecha.
+     etiqueta   — las etiquetas en MAYÚSCULAS (IDEA, CONTEXTO, la fecha de
+                  arriba) y los avisos chiquitos. Siempre con el mismo
+                  espaciado entre letras, que es lo que las hace etiqueta.
+     mini       — solo donde no cabe más, y está medido: la barra de abajo,
+                  las letras de los días en el calendario, las estadísticas.
+
+   Entre un paso y el siguiente hay al menos 1px, y entre los títulos
+   (30 → 20 → 16) un salto grande: así un título se distingue del texto que
+   tiene debajo sin tener que leerlo.
+
+   Lo que NO sigue la escala: emojis, flechas y la ✕. Son dibujos hechos
+   con letras; su tamaño es el del dibujo. Son las únicas excepciones que
+   acepta el test. */
+:root {
+  --letra-pantalla:   30px;
+  --letra-seccion:    20px;
+  --letra-tarjeta:    16px;
+  --letra-campo:      16px;
+  --letra-cuerpo:     15px;
+  --letra-secundaria: 13px;
+  --letra-etiqueta:   12px;
+  --letra-mini:       10.5px;
+  --espacio-etiqueta: .08em;   /* el aire entre letras de las MAYÚSCULAS */
+}
+
 /* ---------- 3. CABECERA ---------- */
 header { margin-bottom: 22px; }
 
 .fecha {
-  font-size: 13px;
+  font-size: var(--letra-etiqueta);
   color: var(--texto-suave);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: var(--espacio-etiqueta);
   font-weight: 600;
 }
 
 .titulo {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--letra-pantalla);
+  font-weight: 800;
   margin-top: 4px;
   letter-spacing: -0.5px;
 }
@@ -253,10 +302,30 @@ header { margin-bottom: 22px; }
 .progreso-texto {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  align-items: baseline;    /* "Pendientes" grande y "0 de 3" chico, sobre la misma línea */
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-bottom: 8px;
 }
+
+/* El nombre de la sección (v33). Hasta la v32 era una etiqueta gris de
+   13px, igual de grande que el "0 de 3" de al lado: lo único que decía
+   "estás en Pendientes" se leía como texto de relleno. Ahora es el título
+   de la sección, y está en TODAS (en Ideas y Fechas, sin la barra). */
+#progresoEtiqueta {
+  font-size: var(--letra-seccion);
+  font-weight: 700;
+  color: var(--texto);
+  letter-spacing: -0.2px;
+}
+
+/* Ideas y Fechas no tienen barra (no se "completan"), y Hábitos tampoco
+   mientras no haya ninguno. Se esconden la barra y la cuenta, pero se
+   queda el título. Con visibility y no con display: el hueco se conserva,
+   así la lista empieza a la misma altura en todas las secciones y no salta
+   al cambiar de pestaña. */
+.progreso-caja.sin-barra #progresoTexto,
+.progreso-caja.sin-barra .progreso-fondo { visibility: hidden; }
 
 /* Un número que acaba de cambiar (v26) entra desde abajo, como el
    cuentakilómetros de un carro. inline-block porque un elemento "inline"
@@ -344,7 +413,7 @@ header { margin-bottom: 22px; }
 .habito-info { flex: 1; min-width: 0; }
 
 .habito-nombre {
-  font-size: 16px;
+  font-size: var(--letra-tarjeta);
   font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -382,7 +451,7 @@ header { margin-bottom: 22px; }
 }
 
 .racha {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-left: 8px;
   font-variant-numeric: tabular-nums;
@@ -669,8 +738,8 @@ header { margin-bottom: 22px; }
   animation: sello-rayos .6s cubic-bezier(.2,.8,.2,1) .7s forwards;
 }
 .sello-texto { text-align: center; opacity: 0; animation: sello-texto .35s ease-out .8s forwards; }
-.sello-titulo { font-size: 21px; font-weight: 700; color: var(--texto-fuerte); }
-.sello-cuenta { font-size: 14px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.sello-titulo { font-size: var(--letra-seccion); font-weight: 700; color: var(--texto-fuerte); }
+.sello-cuenta { font-size: var(--letra-secundaria); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
 
 @keyframes sello-trazo  { to { stroke-dashoffset: 0; } }
 @keyframes sello-llenar { to { transform: scale(1); } }
@@ -719,7 +788,7 @@ header { margin-bottom: 22px; }
 
 /* "Día completo ✓" en verde donde normalmente dice "Hoy". No es animación,
    es un estado: se queda mientras el día esté completo. */
-#progresoEtiqueta.completo { color: var(--exito); font-weight: 600; }
+#progresoEtiqueta.completo { color: var(--exito); }
 
 /* --- La medalla del hito ---
    Una capa fija que tapa toda la pantalla y centra la medalla. Igual que el
@@ -805,16 +874,16 @@ header { margin-bottom: 22px; }
 }
 
 .hito-etiqueta {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
+  font-size: var(--letra-etiqueta);
+  font-weight: 600;
+  letter-spacing: var(--espacio-etiqueta);
   text-transform: uppercase;
   color: var(--celebrar);
 }
 
 .hito-nombre {
   margin-top: 6px;
-  font-size: 15px;
+  font-size: var(--letra-cuerpo);
   font-weight: 600;
   color: var(--texto-suave);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -905,14 +974,14 @@ body.editando .panel-datos { display: block; }
   background: var(--fondo);
   color: var(--texto);
   font-family: inherit;
-  font-size: 14px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 
 .btn-mini:active { background: var(--tarjeta-alta); }
 
 .nota {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-top: 12px;
   line-height: 1.5;
@@ -974,7 +1043,7 @@ body.editando .panel-datos { display: block; }
   background: var(--fondo);
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px; font-weight: 600;
+  font-size: var(--letra-secundaria); font-weight: 600;
   cursor: pointer;
 }
 
@@ -990,9 +1059,9 @@ body.editando .panel-datos { display: block; }
    el título del panel: son subtítulos, no secciones nuevas. */
 .sub-etiqueta {
   display: block;
-  font-size: 11px;
+  font-size: var(--letra-etiqueta);
   font-weight: 600;
-  letter-spacing: .06em;
+  letter-spacing: var(--espacio-etiqueta);
   text-transform: uppercase;
   color: var(--texto-suave);
   margin-top: 18px;
@@ -1056,7 +1125,7 @@ body.editando .panel-datos { display: block; }
      medía 55px y "Pendientes" (58,7px) no cabía. Sin el "+", cada pestaña
      mide ~68px y la letra vuelve a ser la de siempre. Si se cambia la letra,
      un nombre o se agrega una sexta pestaña, MEDIR OTRA VEZ. */
-  font-size: 10.5px; font-weight: 600;
+  font-size: var(--letra-mini); font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: color .2s ease;
@@ -1280,8 +1349,8 @@ body.vista-tareas .panel-datos { display: none; }
 .tarea-info { flex: 1; min-width: 0; }
 
 .tarea-texto {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--letra-tarjeta);
+  font-weight: 600;
   /* A diferencia del nombre de un hábito, un pendiente puede ser largo
      ("llamar al del seguro del carro"). Que baje de línea en vez de
      cortarse con puntos suspensivos. */
@@ -1316,7 +1385,7 @@ body.editando .tarea-texto {
    sin abrirla. Se corta a dos líneas: si creciera, la lista dejaría de ser
    una lista. */
 .tarea-nota {
-  font-size: 12.5px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   line-height: 1.45;
   margin-top: 5px;
@@ -1336,12 +1405,12 @@ body.editando .tarea-texto {
   background: var(--fondo);
   border: 1px solid var(--borde);
   border-radius: 13px;
-  font-size: 15px; line-height: 1.5;
+  font-size: var(--letra-cuerpo); line-height: 1.5;
   overflow-wrap: anywhere;
   cursor: pointer;   /* en iOS, sin esto un div no avisa de los toques */
 }
 .nota-vista > * + * { margin-top: 8px; }
-.nota-vista h3 { font-size: 16px; }
+.nota-vista h3 { font-size: var(--letra-tarjeta); }
 .nota-vista ul { list-style: none; display: grid; gap: 4px; }
 .nota-vista li { position: relative; padding-left: 18px; }
 .nota-vista li::before { content: '•'; position: absolute; left: 4px; color: var(--texto-suave); }
@@ -1361,17 +1430,30 @@ body.editando .tarea-texto {
 }
 .nota-vista li.casilla.marcada { color: var(--texto-suave); text-decoration: line-through; }
 .nota-vista li.casilla.marcada::before {
-  content: '✓';
-  display: grid; place-items: center;
-  font-size: 12px; font-weight: 700;
-  color: var(--sobre-exito);
   background: var(--exito);
   border-color: var(--exito);
 }
 
+/* El ✓ de la casilla marcada (v33). Hasta la v32 era la letra '✓' centrada
+   con grid, y en el iPhone salía corrida hacia abajo: la letra hereda el
+   alto de renglón de la nota (1.5 × 12px = 18px), que no cabe en un cuadro
+   de 17px con borde, y además cada fuente dibuja ese símbolo a su manera.
+   Ahora es el mismo trazo de los círculos (TRAZO_CHECK) usado como máscara,
+   igual que los íconos de la barra de abajo: un dibujo no tiene renglón,
+   así que queda en el centro exacto en cualquier fuente. Va en ::after
+   porque ::before ya es el cuadro verde. */
+.nota-vista li.casilla.marcada::after {
+  content: '';
+  position: absolute; left: 0; top: .2em;
+  width: 17px; height: 17px;
+  background: var(--sobre-exito);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
 .nota-pista {
   position: absolute; right: 12px; bottom: 7px;
-  font-size: 11px; color: var(--texto-suave);
+  font-size: var(--letra-etiqueta); color: var(--texto-suave);
 }
 
 /* La barra de formato, encima del campo. */
@@ -1396,7 +1478,7 @@ body.editando .tarea-texto {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px;          /* 16px evita que el iPhone haga zoom al escribir */
+  font-size: var(--letra-campo);          /* 16px evita que el iPhone haga zoom al escribir */
   font-family: inherit;
   line-height: 1.5;
   resize: vertical;
@@ -1447,7 +1529,7 @@ body.editando .mover { display: none; }
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px; font-weight: 600;
+  font-size: var(--letra-secundaria); font-weight: 600;
   cursor: pointer;
 }
 
@@ -1463,10 +1545,10 @@ body.editando .mover { display: none; }
    fecha. Un "Editar" que no hace nada visible confunde más que no tenerlo. */
 body.vista-fechas #btnEditar { visibility: hidden; }
 
-/* Fechas no tiene barra de progreso. En Ideas la caja se esconde con
-   visibility (deja su hueco, para que la lista no salte); aquí el mes
-   ocupa ese lugar y el hueco sobraba: 80px vacíos arriba. */
-body.vista-fechas #cajaProgreso { display: none; }
+/* Fechas no tiene barra de progreso. Hasta la v32 la caja entera se
+   escondía aquí (display: none), porque vacía dejaba 80px sin nada arriba.
+   Desde la v33 la caja lleva el nombre de la sección, así que ya no está
+   vacía: se queda, con su título y sin la barra (.sin-barra, sección 3). */
 
 .fechas-mes-caja {
   background: var(--tarjeta);
@@ -1476,7 +1558,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   margin-bottom: 18px;
 }
 .fechas-mes-caja .cal-cabecera { margin-bottom: 10px; }
-.fechas-titulo-mes { font-size: 16px; font-weight: 700; }
+.fechas-titulo-mes { font-size: var(--letra-tarjeta); font-weight: 700; }
 
 /* El título y el botón "Hoy" van en una sola línea, centrados juntos. */
 #vistaFechas .cal-titulo-caja {
@@ -1497,7 +1579,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   background: var(--celebrar);
   color: var(--sobre-celebrar);
   font-family: inherit;
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   cursor: pointer;
 }
 .fechas-volver-hoy::after { content: ''; position: absolute; inset: -11px -6px; }
@@ -1564,12 +1646,12 @@ body.vista-fechas #cajaProgreso { display: none; }
   border: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 14px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   padding: 12px 0 12px 16px;   /* 44px de alto para el dedo, sin agrandar la fila */
   margin: -12px 0;
   cursor: pointer;
 }
-.fechas-nada { font-size: 14px; color: var(--texto-suave); padding: 2px 2px 0; }
+.fechas-nada { font-size: var(--letra-secundaria); color: var(--texto-suave); padding: 2px 2px 0; }
 
 /* Una fila de la agenda (y del día elegido). */
 .fecha-fila {
@@ -1608,8 +1690,8 @@ body.vista-fechas #cajaProgreso { display: none; }
   flex-shrink: 0;
 }
 .fecha-info { flex: 1; min-width: 0; }
-.fecha-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fecha-sub { font-size: 12.5px; color: var(--texto-suave); margin-top: 2px; }
+.fecha-titulo { font-size: var(--letra-tarjeta); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fecha-sub { font-size: var(--letra-secundaria); color: var(--texto-suave); margin-top: 2px; }
 
 /* "Hoy", "Mañana", "12 días". Tres pesos: lo lejano callado, lo de los
    próximos tres días en azul, lo de hoy en amarillo lleno. */
@@ -1619,7 +1701,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   border-radius: 99px;
   background: var(--tarjeta-alta);
   color: var(--texto-suave);
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1651,7 +1733,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   padding: 1px 7px;
   border-radius: 99px;
   background: var(--tarjeta-alta);
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .plegar-cuenta:empty { display: none; }
@@ -1670,7 +1752,7 @@ body.vista-fechas #cajaProgreso { display: none; }
 /* El nombre del mes entre grupos de la agenda, como en la vista
    "Programación" de Google Calendar. */
 .agenda-mes {
-  font-size: 14px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   color: var(--texto);
   margin: 18px 2px 8px;
 }
@@ -1691,9 +1773,9 @@ body.vista-fechas #cajaProgreso { display: none; }
   font-family: inherit;
   cursor: pointer;
 }
-.franja-fila { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 14px; }
+.franja-fila { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: var(--letra-secundaria); }
 .franja-titulo { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.franja-mas { font-size: 12.5px; color: var(--texto-suave); padding: 3px 0 1px; }
+.franja-mas { font-size: var(--letra-secundaria); color: var(--texto-suave); padding: 3px 0 1px; }
 
 /* La ventana de una fecha */
 #fechaRepite { margin-top: 0; margin-bottom: 18px; }
@@ -1776,7 +1858,7 @@ body.vista-fechas #cajaProgreso { display: none; }
 .fecha-cada {
   display: flex; align-items: center; gap: 10px;
   margin: -6px 0 18px;        /* se pega al selector de arriba: es parte de él */
-  font-size: 15px; color: var(--texto-suave);
+  font-size: var(--letra-cuerpo); color: var(--texto-suave);
 }
 .fecha-cada[hidden] { display: none; }
 #modalFecha .fecha-cada input {
@@ -1786,7 +1868,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   border: 1px solid var(--borde);
   border-radius: 11px;
   color: var(--texto);
-  font-size: 16px;        /* 16px: menos y el iPhone hace zoom */
+  font-size: var(--letra-campo);        /* 16px: menos y el iPhone hace zoom */
   font-family: inherit;
   text-align: center;
 }
@@ -1807,7 +1889,7 @@ input[type=date] {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px;
+  font-size: var(--letra-campo);
   font-family: inherit;
   margin-bottom: 18px;
   -webkit-appearance: none;
@@ -1867,7 +1949,7 @@ input[type=date]:focus { outline: none; border-color: var(--acento); }
   background: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 .btn-nuevo:active { background: var(--tarjeta-alta); }
@@ -1893,7 +1975,7 @@ body.editando .btn-listo-abajo { display: block; }
   border: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   /* El área de toque es más grande que la palabra: 44px de alto, el mínimo
      que recomienda Apple para un dedo. El margin negativo devuelve ese
      espacio extra, para que la fila no crezca y nada se mueva de sitio. */
@@ -1907,7 +1989,7 @@ body.editando .btn-listo-abajo { display: block; }
   padding: 15px;
   border-radius: 15px;
   border: none;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
@@ -1948,7 +2030,7 @@ body.editando .btn-listo-abajo { display: block; }
 .modal.confirmar h2 { margin: 14px 0 6px; text-wrap: balance; }
 .modal.confirmar p {
   color: var(--texto-suave);
-  font-size: 15px; line-height: 1.45;
+  font-size: var(--letra-cuerpo); line-height: 1.45;
   margin-bottom: 22px;
   text-wrap: balance;
 }
@@ -2019,11 +2101,11 @@ body.editando .btn-listo-abajo { display: block; }
 
 @keyframes subir { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-.modal h2 { font-size: 19px; margin-bottom: 18px; }
+.modal h2 { font-size: var(--letra-seccion); margin-bottom: 18px; }
 
 .etiqueta {
-  font-size: 12px; color: var(--texto-suave);
-  text-transform: uppercase; letter-spacing: 1px;
+  font-size: var(--letra-etiqueta); color: var(--texto-suave);
+  text-transform: uppercase; letter-spacing: var(--espacio-etiqueta);
   font-weight: 600; margin-bottom: 8px; display: block;
 }
 
@@ -2034,7 +2116,7 @@ input[type=text], input[type=email], input[type=password] {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px; /* 16px evita que el iPhone haga zoom al escribir */
+  font-size: var(--letra-campo); /* 16px evita que el iPhone haga zoom al escribir */
   font-family: inherit;
   margin-bottom: 18px;
   -webkit-user-select: text; user-select: text;
@@ -2076,7 +2158,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 /* ---------- 10. PANEL DE CUENTA ---------- */
 .panel-datos input { margin-bottom: 8px; }
 
-.sesion-estado { font-size: 12px; margin-top: 10px; line-height: 1.5; }
+.sesion-estado { font-size: var(--letra-secundaria); margin-top: 10px; line-height: 1.5; }
 .sesion-estado.error { color: var(--peligro); }
 .sesion-estado.bien  { color: var(--exito); }
 
@@ -2135,17 +2217,20 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   background: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 16px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 
 .cal-titulo-caja { flex: 1; min-width: 0; text-align: center; }
 
 .cal-mes {
-  font-size: 13px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
-  text-transform: capitalize;
 }
+/* Solo la primera letra en mayúscula (v33). Hasta la v32 era
+   text-transform: capitalize, que pone mayúscula a CADA palabra y dejaba
+   "Octubre De 2026". ::first-letter sirve porque .cal-mes es un bloque. */
+.cal-mes::first-letter { text-transform: uppercase; }
 
 .cal-flecha {
   background: var(--fondo);
@@ -2171,7 +2256,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
 .cal-nombres {
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: var(--letra-mini);
   font-weight: 600;
   color: var(--texto-suave);
   text-align: center;
@@ -2185,7 +2270,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   background: var(--fondo);
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--letra-secundaria);
   font-weight: 600;
   cursor: pointer;
   display: grid; place-items: center;
@@ -2230,7 +2315,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 }
 
 .anio-mes-nombre {
-  font-size: 11px;
+  font-size: var(--letra-mini);
   font-weight: 600;
   color: var(--texto-suave);
   margin-bottom: 5px;
@@ -2293,7 +2378,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
    min-height reserva el espacio de dos líneas desde el principio: sin eso,
    la ventana daría un salto cada vez que aparece o desaparece el texto. */
 .cal-ayuda {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   line-height: 1.5;
   color: var(--texto-suave);
   margin-top: 12px;
@@ -2301,16 +2386,19 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 }
 
 .stat-numero {
-  font-size: 19px;
+  font-size: var(--letra-seccion);
   font-weight: 700;
   font-variant-numeric: tabular-nums;  /* que no bailen los números al cambiar */
 }
 
 .stat-etiqueta {
-  font-size: 10px;
+  font-size: var(--letra-mini);
   color: var(--texto-suave);
   text-transform: uppercase;
-  letter-spacing: .5px;
+  /* Sin espaciado extra (v33; antes .5px): con la escala, la letra subió
+     de 10 a 10,5px y "ÚLTIMOS" se salía 3px de su cuadro de 56px. Medido
+     en el navegador. */
+  letter-spacing: 0;
   margin-top: 3px;
   line-height: 1.3;
 }
@@ -2591,8 +2679,17 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       </div>
 
       <label class="etiqueta" for="fechaNota" data-t="notaFecha">Nota</label>
-      <textarea id="fechaNota" maxlength="500" data-ph="phNotaFecha"
-                placeholder="Idea de regalo, número de póliza, lo que quieras tener a mano."></textarea>
+      <!-- La misma nota con formato de las ideas (v33): prepararNota('fecha'). -->
+      <div class="nota-vista" id="fechaNotaVista" hidden></div>
+      <div id="fechaNotaEditor">
+        <div class="nota-barra">
+          <button type="button" id="fechaNegrita" data-aria="negrita"><b>B</b></button>
+          <button type="button" id="fechaVineta"  data-aria="vineta">•</button>
+          <button type="button" id="fechaCasilla" data-aria="casilla">☐</button>
+        </div>
+        <textarea id="fechaNota" maxlength="2000" data-ph="phNotaFecha"
+                  placeholder="Idea de regalo, número de póliza, lo que quieras tener a mano."></textarea>
+      </div>
 
       <!-- Solo con una fecha que ya existe: no se manda a Pendientes ni se
            borra algo que todavía no guardaste. -->
@@ -2705,39 +2802,41 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     </div>
   </div>
 
-  <!-- La ficha de una idea. Se abre al tocar su texto en la lista.
-       Aquí vive todo lo que se hace con una idea: cambiarle el título,
-       escribirle el contexto, mandarla a Pendientes o borrarla. -->
-  <div class="fondo-modal" id="modalIdea">
+  <!-- La ficha de una tarea: de una idea (se abre al tocar su texto) o de
+       una compra (en modo edición, v33). Aquí vive todo lo que se hace con
+       ella: cambiarle el título, escribirle la nota, mandarla a Pendientes
+       (solo las ideas) o borrarla. El título y las etiquetas no llevan
+       data-t: cambian según la lista, y los pone abrirFicha(). -->
+  <div class="fondo-modal" id="modalFicha">
     <div class="modal">
-      <h2 data-t="idea">Idea</h2>
+      <h2 id="fichaTitulo">Idea</h2>
 
-      <label class="etiqueta" for="ideaTexto" data-t="idea">Idea</label>
-      <input type="text" id="ideaTexto" maxlength="120" autocomplete="off">
+      <label class="etiqueta" for="fichaTexto" id="fichaEtiqueta">Idea</label>
+      <input type="text" id="fichaTexto" maxlength="120" autocomplete="off">
 
-      <label class="etiqueta" for="ideaNota" data-t="contexto">Contexto</label>
+      <label class="etiqueta" for="fichaNota" id="fichaNotaEtiqueta">Contexto</label>
       <!-- v28: la nota se LEE con formato (vista) y se EDITA en crudo
            (editor). Tocar la vista abre el editor. Si no hay nota, se va
-           directo al editor: no hay nada que leer. -->
-      <div class="nota-vista" id="ideaNotaVista" hidden></div>
-      <div id="ideaNotaEditor">
+           directo al editor: no hay nada que leer. Desde la v33 esta pieza
+           la arma prepararNota('ficha'), la misma que usa Fechas. -->
+      <div class="nota-vista" id="fichaNotaVista" hidden></div>
+      <div id="fichaNotaEditor">
         <div class="nota-barra">
-          <button type="button" id="formatoNegrita" data-aria="negrita"><b>B</b></button>
-          <button type="button" id="formatoVineta"  data-aria="vineta">•</button>
-          <button type="button" id="formatoCasilla" data-aria="casilla">☐</button>
+          <button type="button" id="fichaNegrita" data-aria="negrita"><b>B</b></button>
+          <button type="button" id="fichaVineta"  data-aria="vineta">•</button>
+          <button type="button" id="fichaCasilla" data-aria="casilla">☐</button>
         </div>
-      <textarea id="ideaNota" maxlength="2000" data-ph="phContexto"
-                placeholder="¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes."></textarea>
+        <textarea id="fichaNota" maxlength="2000"></textarea>
       </div>
 
       <div class="ficha-acciones">
-        <button class="btn-mini" id="ideaMover" data-t="aPendientes">→ A Pendientes</button>
-        <button class="btn-mini btn-peligro" id="ideaBorrar" data-t="borrar">Borrar</button>
+        <button class="btn-mini" id="fichaMover" data-t="aPendientes">→ A Pendientes</button>
+        <button class="btn-mini btn-peligro" id="fichaBorrar" data-t="borrar">Borrar</button>
       </div>
 
       <div style="display:flex; gap:10px">
-        <button class="btn btn-secundario" id="ideaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
-        <button class="btn btn-principal"  id="ideaGuardar" data-t="guardar">Guardar</button>
+        <button class="btn btn-secundario" id="fichaCancelar" style="flex:1" data-t="cancelar">Cancelar</button>
+        <button class="btn btn-principal"  id="fichaGuardar" data-t="guardar">Guardar</button>
       </div>
     </div>
   </div>
@@ -2825,6 +2924,11 @@ const TEXTOS = {
     phContexto: '¿Por qué te pareció buena? ¿Qué problema resuelve? Lo que sea que quieras recordar dentro de un mes.',
     confirmBorrarIdea: '¿Borrar esta idea?',
     avisoIdeaNota: 'También se pierde el contexto que escribiste.',
+    // La ficha de una compra (v33)
+    compra: 'Compra', notaCompra: 'Nota',
+    phNotaCompra: 'Link, marca, cantidad… lo que necesites tener a mano en la tienda.',
+    confirmBorrarCompra: '¿Borrar esta compra?',
+    avisoNotaCompra: 'También se pierde la nota que escribiste.',
     negrita: 'Negrita', vineta: 'Viñeta', casilla: 'Casilla',
     tocaEditar: 'Toca para editar',
     borrarHabitoTitulo: '¿Borrar "%n"?',
@@ -2968,6 +3072,11 @@ const TEXTOS = {
     phContexto: 'Why did it seem like a good one? What problem does it solve? Whatever you want to remember a month from now.',
     confirmBorrarIdea: 'Delete this idea?',
     avisoIdeaNota: 'The context you wrote goes with it.',
+    // A shopping item's card (v33)
+    compra: 'Item', notaCompra: 'Note',
+    phNotaCompra: 'Link, brand, quantity… whatever you need at hand in the store.',
+    confirmBorrarCompra: 'Delete this item?',
+    avisoNotaCompra: 'The note you wrote goes with it.',
     negrita: 'Bold', vineta: 'Bullet', casilla: 'Checkbox',
     tocaEditar: 'Tap to edit',
     borrarHabitoTitulo: 'Delete "%n"?',
@@ -3972,18 +4081,27 @@ function formatoEnLinea(texto) {
 // La nota entera, de texto a HTML. Va línea por línea, como se lee: cada
 // línea se reconoce por cómo empieza. Las casillas guardan su número de
 // línea (data-linea) para saber cuál marcar cuando la tocas.
+//
+// Una línea de texto pegada debajo de una casilla o viñeta (sin línea vacía
+// en medio) es la continuación de ESE renglón, no un párrafo aparte (v33).
+// Así lo hace Markdown, y es lo que pasa en el iPhone cuando el texto se
+// parte con un Enter sin querer: "...foto del cheque del" / "Jueves" es un
+// solo pendiente. Si la continuación fuera un párrafo suelto, al bajar la
+// casilla marcada al fondo, "Jueves" se quedaría huérfano en otro sitio.
 function notaAHtml(nota) {
   const lineas = escaparHtml(nota || '').split('\n');
   let html = '';
   let parrafo = [];      // líneas seguidas de texto normal: van juntas
   let enLista = false;
+  let renglon = null;    // el <li> abierto: se cierra cuando llega otra cosa
 
   const cerrarParrafo = () => {
     if (parrafo.length) html += '<p>' + parrafo.join('<br>') + '</p>';
     parrafo = [];
   };
+  const cerrarRenglon = () => { if (renglon !== null) { html += renglon + '</li>'; renglon = null; } };
   const abrirLista  = () => { if (!enLista) { html += '<ul>'; enLista = true; } };
-  const cerrarLista = () => { if (enLista) { html += '</ul>'; enLista = false; } };
+  const cerrarLista = () => { cerrarRenglon(); if (enLista) { html += '</ul>'; enLista = false; } };
 
   lineas.forEach((linea, n) => {
     const casilla = linea.match(/^\s*[-*] \[( |x|X)\] ?(.*)$/);
@@ -3991,18 +4109,20 @@ function notaAHtml(nota) {
     const titulo  = linea.match(/^#{1,3} (.*)$/);
 
     if (casilla) {
-      cerrarParrafo(); abrirLista();
+      cerrarParrafo(); cerrarRenglon(); abrirLista();
       const marcada = casilla[1] !== ' ';
-      html += `<li class="casilla${marcada ? ' marcada' : ''}" data-linea="${n}">`
-            + formatoEnLinea(casilla[2]) + '</li>';
+      renglon = `<li class="casilla${marcada ? ' marcada' : ''}" data-linea="${n}">`
+              + formatoEnLinea(casilla[2]);
     } else if (vineta) {
-      cerrarParrafo(); abrirLista();
-      html += '<li>' + formatoEnLinea(vineta[1]) + '</li>';
+      cerrarParrafo(); cerrarRenglon(); abrirLista();
+      renglon = '<li>' + formatoEnLinea(vineta[1]);
     } else if (titulo) {
       cerrarParrafo(); cerrarLista();
       html += '<h3>' + formatoEnLinea(titulo[1]) + '</h3>';
     } else if (linea.trim() === '') {
       cerrarParrafo(); cerrarLista();          // línea vacía = corte
+    } else if (renglon !== null) {
+      renglon += '<br>' + formatoEnLinea(linea);   // continúa el renglón
     } else {
       cerrarLista();
       parrafo.push(formatoEnLinea(linea));
@@ -4021,6 +4141,44 @@ function alternarCasilla(nota, numeroLinea) {
   lineas[numeroLinea] = linea.replace(/^(\s*[-*] \[)( |x|X)(\])/,
     (todo, antes, marca, despues) => antes + (marca === ' ' ? 'x' : ' ') + despues);
   return lineas.join('\n');
+}
+
+// Dentro de cada grupo de casillas seguidas, las que faltan van arriba y
+// las marcadas al fondo (v33), como en las Notas del iPhone. Es estable:
+// dentro de cada mitad se respeta el orden en que las escribiste, igual que
+// tareasOrdenadas() con los pendientes.
+//
+// Por qué "cada grupo" y no la nota entera: una nota puede tener varias
+// listas separadas por títulos o párrafos ("# Mercado", "# Ferretería").
+// Una casilla marcada de Mercado no tiene nada que hacer debajo de
+// Ferretería. Un grupo se corta en cualquier línea que no sea casilla.
+// En Excel sería ordenar cada bloque por la columna "hecha" sin mezclar
+// bloques.
+function ordenarCasillas(nota) {
+  const esCasilla = linea => /^\s*[-*] \[( |x|X)\]/.test(linea);
+  const marcada   = linea => /^\s*[-*] \[[xX]\]/.test(linea);
+  // Una línea de texto normal pegada a una casilla viaja con ella: es su
+  // continuación (ver notaAHtml). Por eso el grupo guarda "renglones", y
+  // cada renglón es una lista de líneas: la casilla y lo que la continúa.
+  const continua = linea => linea.trim() !== ''
+    && !/^\s*[-*] /.test(linea) && !/^#{1,3} /.test(linea);
+  const lineas = (nota || '').split('\n');
+  const salida = [];
+  let grupo = [];
+  const soltarGrupo = () => {
+    const faltan  = grupo.filter(r => !marcada(r[0]));
+    const hechas  = grupo.filter(r => marcada(r[0]));
+    [...faltan, ...hechas].forEach(r => salida.push(...r));
+    grupo = [];
+  };
+  lineas.forEach(linea => {
+    if (esCasilla(linea)) { grupo.push([linea]); return; }
+    if (grupo.length && continua(linea)) { grupo[grupo.length - 1].push(linea); return; }
+    soltarGrupo();
+    salida.push(linea);
+  });
+  soltarGrupo();
+  return salida.join('\n');
 }
 
 // La nota sin símbolos, para el adelanto de dos líneas en la lista: ahí no
@@ -4257,7 +4415,10 @@ const ORDEN_REPITE = [REPITE.no, REPITE.semanal, REPITE.mensual, REPITE.anual];
 const CADA_MAXIMO = 99;
 const EMOJIS_FECHA = ['📌', '🎂', '💍', '💳', '✈️', '🏥'];
 const LARGO_TITULO_FECHA = 60;
-const LARGO_NOTA_FECHA = 500;
+// La nota de una fecha mide lo mismo que la de una idea (v33; antes 500).
+// Desde que las dos se leen con formato son la misma cosa, y una lista de
+// casillas para un viaje no cabe en 500 caracteres.
+const LARGO_NOTA_FECHA = LARGO_NOTA;
 // Cuántos días antes aparece una fecha en la franja de Hábitos. 3 y no 7:
 // la franja empuja la lista hacia abajo, y una semana de aviso la tendría
 // puesta casi siempre. Una franja que está siempre deja de verse.
@@ -4631,10 +4792,10 @@ function pintar() {
         <div class="vacio-emoji">🌱</div>
         <div>${t('vacioHabitos')}</div>
       </div>`;
-    document.getElementById('cajaProgreso').style.visibility = 'hidden';
+    document.getElementById('cajaProgreso').classList.add('sin-barra');
     return;
   }
-  document.getElementById('cajaProgreso').style.visibility = 'visible';
+  document.getElementById('cajaProgreso').classList.remove('sin-barra');
 
   // Barra de progreso del día
   const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
@@ -6269,9 +6430,18 @@ const VISTAS = ['habitos', 'pendientes', 'ideas', 'compras', 'fechas'];
 //   flechas   — reordenar a mano con ↑↓ en modo edición. Solo Ideas: en
 //               Pendientes el orden lo pone la importancia, y en Compras el
 //               orden de llegada ya es el orden en que las escribiste.
-//   ficha     — tocar el texto ABRE la ficha (nota de contexto) en vez de
-//               marcar. Solo Ideas: en las otras dos, tocar es el gesto de
-//               cada día y obligarte a apuntarle al círculo lo haría más lento.
+//   ficha     — la ventana con el título y la nota con formato. Tres valores:
+//               'toque'   — tocar el texto la ABRE en vez de marcar. Ideas:
+//                           lo que más haces con una idea es leerla.
+//               'edicion' — se abre al tocar el texto en modo edición, en
+//                           vez del cuadro de renombrar. Compras (v33):
+//                           en la tienda tocar el texto sigue marcando,
+//                           y ese gesto no se toca.
+//               false     — no hay ficha. Pendientes.
+//               Con ficha, la nota se asoma debajo del título en la lista.
+//   fichaTitulo, fichaNota, fichaPh, fichaBorrar, fichaAviso — las claves de
+//               los textos de esa ventana: su título, la etiqueta de la nota,
+//               el texto guía, y la pregunta y el aviso al borrar.
 //   mover     — la flecha → que manda a Pendientes. Solo Ideas.
 //   progreso  — la barra "3 de 12". Pendientes y Compras sí (es útil saber
 //               cuánto falta con el carrito); Ideas no (medir cuántas ideas
@@ -6290,15 +6460,19 @@ const TEXTOS_LISTA = {
     etiqueta: 'ideas', placeholder: 'phIdea',
     vacioEmoji: '💡', vacioTexto: 'vacioIdeas',
     prompt: 'promptPendiente', hechas: 'hechas',
-    prioridad: false, flechas: true,  ficha: true,  mover: true,
-    progreso: false,  contador: false
+    prioridad: false, flechas: true,  ficha: 'toque',  mover: true,
+    progreso: false,  contador: false,
+    fichaTitulo: 'idea', fichaNota: 'contexto', fichaPh: 'phContexto',
+    fichaBorrar: 'confirmBorrarIdea', fichaAviso: 'avisoIdeaNota'
   },
   compras: {
     etiqueta: 'compras', placeholder: 'phCompra',
     vacioEmoji: '🛒', vacioTexto: 'vacioCompras',
     prompt: 'promptCompra', hechas: 'compradas',
-    prioridad: false, flechas: false, ficha: false, mover: false,
-    progreso: true,   contador: false
+    prioridad: false, flechas: false, ficha: 'edicion', mover: false,
+    progreso: true,   contador: false,
+    fichaTitulo: 'compra', fichaNota: 'notaCompra', fichaPh: 'phNotaCompra',
+    fichaBorrar: 'confirmBorrarCompra', fichaAviso: 'avisoNotaCompra'
   }
 };
 
@@ -6353,9 +6527,13 @@ function cambiarVista(nueva) {
   // La franja de Hábitos se esconde en cualquier otra sección.
   pintarFranjaFechas();
 
-  // Fechas no tiene barra de progreso: un cumpleaños no "se completa". La
-  // caja entera la esconde el CSS (body.vista-fechas, sección 4d).
+  // Fechas no tiene barra de progreso: un cumpleaños no "se completa". Se
+  // queda solo el título de la sección (v33).
   if (enFechas) {
+    const etiqueta = document.getElementById('progresoEtiqueta');
+    etiqueta.textContent = t('fechas');
+    etiqueta.classList.remove('completo');
+    document.getElementById('cajaProgreso').classList.add('sin-barra');
     pintarFechas();
     return;
   }
@@ -6400,13 +6578,15 @@ function pintarLista() {
   // en todo el resto de la función.
   const reglas = TEXTOS_LISTA[vista];
 
-  // En Ideas se esconde la barra de progreso entera. No es un descuido: medir
+  // En Ideas se esconde la barra de progreso. No es un descuido: medir
   // cuántas ideas "llevas hechas" convertiría la lista en otra cosa que te
   // reclama. En Pendientes y Compras sí tiene sentido: ahí es algo que baja.
+  // El título de la sección se queda siempre (v33): solo se van la barra y
+  // la cuenta.
   if (!reglas.progreso) {
-    cajaProgreso.style.visibility = 'hidden';
+    cajaProgreso.classList.add('sin-barra');
   } else {
-    cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
+    cajaProgreso.classList.toggle('sin-barra', !cuenta.total);
     ponerProgreso(`${cuenta.hechas} ${t('de')} ${cuenta.total}`);
     document.getElementById('barra').style.width =
       (cuenta.total ? cuenta.hechas / cuenta.total * 100 : 0) + '%';
@@ -6435,9 +6615,10 @@ function pintarLista() {
   tareasOrdenadas(vista).forEach(item => {
     const tarjeta = document.createElement('div');
     // La clase "idea" pone el subrayado punteado: la pista de que tocar el
-    // texto abre algo. Va atada a la regla, no al nombre de la lista.
+    // texto abre algo. Va atada a la regla, no al nombre de la lista. Las
+    // compras no la llevan: ahí tocar el texto marca.
     tarjeta.className = 'tarea' + (item.hecha ? ' hecha' : '')
-                      + (reglas.ficha ? ' idea' : '')
+                      + (reglas.ficha === 'toque' ? ' idea' : '')
                       + (item.id === tareaRecienMovida ? ' recien-movida' : '');
 
     // La flecha solo aparece en Ideas y solo si la idea sigue viva: mover a
@@ -6495,9 +6676,9 @@ function pintarLista() {
     renglones.textContent = item.texto;
     tarjeta.querySelector('.tarea-texto').appendChild(renglones);
 
-    // Si la idea tiene contexto escrito, se asoma debajo del título. Así la
-    // reconoces sin abrirla, que es justo el problema que la nota vino a
-    // resolver. El CSS la corta a dos líneas.
+    // Si la idea (o la compra, desde la v33) tiene nota escrita, se asoma
+    // debajo del título. Así la reconoces sin abrirla, que es justo el
+    // problema que la nota vino a resolver. El CSS la corta a dos líneas.
     if (reglas.ficha && item.nota) {
       const nota = document.createElement('div');
       nota.className = 'tarea-nota';
@@ -6537,9 +6718,12 @@ function pintarLista() {
       //   es leerla y recordar de qué iba, no tacharla.
       //   En PENDIENTES, tocar marca. Ese sí es el gesto de cada día, y
       //   obligarte a apuntarle al círculo de 32px lo haría más lento.
-      if (reglas.ficha) { abrirIdea(item.id); return; }
+      //   En COMPRAS (v33), tocar marca, y en modo edición abre la ficha
+      //   en vez del cuadro de renombrar: la ficha ya trae el título.
+      if (reglas.ficha === 'toque') { abrirFicha(item.id); return; }
 
       if (!document.body.classList.contains('editando')) { marcar(); return; }
+      if (reglas.ficha === 'edicion') { abrirFicha(item.id); return; }
       const nuevo = prompt(t(reglas.prompt), item.texto);
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
@@ -6627,125 +6811,200 @@ document.getElementById('formTarea').onsubmit = (ev) => {
   guardarTareaEscrita();
 };
 
-/* --- La ficha de una idea --- */
+/* --- La nota con formato: una pieza que se usa en dos ventanas (v33) ---
+   Hasta la v32 la nota que se lee con formato (v28) vivía SOLO en la ficha
+   de una idea: sus funciones buscaban por nombre los ids de esa ficha. Para
+   ponerla también en Compras y en Fechas había dos caminos: copiarla, o
+   sacarla a una pieza que reciba DÓNDE vive. Copiada, cada arreglo habría
+   que hacerlo dos veces, y el día que se olvide uno, las dos notas se
+   comportarían distinto sin que nadie lo decidiera.
+
+   Es lo mismo que en Excel convertir una fórmula pegada en tres hojas en
+   una sola que las tres consultan: prepararNota('ficha') y
+   prepararNota('fecha') son la misma fórmula apuntando a celdas distintas.
+
+   Lo que necesita cada ventana es tener, en el HTML, seis ids con el mismo
+   prefijo: <prefijo>NotaVista, <prefijo>NotaEditor, <prefijo>Nota (el
+   campo) y los tres botones <prefijo>Negrita, <prefijo>Vineta,
+   <prefijo>Casilla. Y decir qué hacer cuando tocas una casilla:
+   alMarcarCasilla(textoNuevo) — guardarlo donde corresponda.
+
+   Devuelve dos mandos: mostrar(editando) y cancelar() (para cuando la
+   ventana se cierra con un reordenamiento pendiente). */
+function prepararNota(prefijo, alMarcarCasilla) {
+  const vista  = document.getElementById(prefijo + 'NotaVista');
+  const editor = document.getElementById(prefijo + 'NotaEditor');
+  const area   = document.getElementById(prefijo + 'Nota');
+  let espera = null;
+
+  /* Leer o editar (v28). editando = false muestra la nota con formato;
+     true muestra el texto crudo con la barra de botones. Sin nota no hay
+     nada que leer, así que se va directo a editar. */
+  function mostrar(editando) {
+    const verVista = !editando && area.value.trim() !== '';
+    vista.hidden  = !verVista;
+    editor.hidden = verVista;
+    if (verVista) {
+      vista.innerHTML = notaAHtml(area.value)
+        + '<span class="nota-pista">' + escaparHtml(t('tocaEditar')) + '</span>';
+    }
+  }
+
+  /* Mandar las casillas marcadas al fondo (v33), con la misma pausa que un
+     pendiente que se tacha antes de irse al final (PAUSA_TACHADO). Sin la
+     pausa, la casilla saltaría en el mismo instante del toque y no verías
+     cuál marcaste.
+
+     Ojo con un detalle: cada casilla recuerda su número de línea
+     (data-linea). Si reordenáramos el texto en el acto, una segunda casilla
+     tocada antes de redibujar apuntaría a una línea que ya cambió de sitio.
+     Por eso el toque solo marca, y el orden se hace UNA vez, cuando dejas
+     de tocar: cada toque nuevo reinicia la espera. */
+  function programarOrden() {
+    clearTimeout(espera);
+    espera = setTimeout(() => {
+      espera = null;
+      // Solo si sigues leyendo la nota. Si en ese medio segundo pasaste a
+      // editar, el campo puede tener cambios sin guardar, y ordenar ahí
+      // los guardaría sin que tocaras Guardar. Se ordenará la próxima vez.
+      if (vista.hidden) return;
+      const ordenada = ordenarCasillas(area.value);
+      if (ordenada === area.value) return;    // ya estaban en su sitio
+      area.value = ordenada;
+      alMarcarCasilla(area.value);
+      mostrar(false);
+    }, PAUSA_TACHADO);
+  }
+
+  // Tocar la nota: si fue en una casilla, se marca (y se guarda en el acto,
+  // como en una lista de papel); si fue en un enlace, lo abre el navegador;
+  // en cualquier otro sitio, pasa a editar.
+  vista.onclick = ev => {
+    const objetivo = ev.target;
+    const dentro = sel => (objetivo && objetivo.closest) ? objetivo.closest(sel) : null;
+    if (dentro('a')) return;
+    const casilla = dentro('.casilla');
+    if (casilla) {
+      area.value = alternarCasilla(area.value, Number(casilla.dataset.linea));
+      alMarcarCasilla(area.value);
+      mostrar(false);        // se tacha DONDE ESTÁ...
+      programarOrden();      // ...y un momento después baja al fondo
+      return;
+    }
+    mostrar(true);
+    area.focus();
+  };
+
+  // Los tres botones de la barra. El pointerdown con preventDefault es lo que
+  // evita que el toque le quite el cursor al campo: sin él, en el iPhone se
+  // cerraría el teclado en cada botón.
+  [['Negrita', 'negrita'], ['Vineta', 'vineta'], ['Casilla', 'casilla']]
+    .forEach(([nombre, tipo]) => {
+      const boton = document.getElementById(prefijo + nombre);
+      boton.addEventListener('pointerdown', ev => ev.preventDefault());
+      boton.onclick = () => {
+        const r = aplicarFormatoTexto(area.value, area.selectionStart || 0,
+                                      area.selectionEnd || 0, tipo);
+        area.value = r.valor;
+        if (area.focus) area.focus();
+        if (area.setSelectionRange) area.setSelectionRange(r.cursor, r.cursor);
+      };
+    });
+
+  return { mostrar, cancelar: () => clearTimeout(espera) };
+}
+
+/* --- La ficha de una tarea: Ideas y Compras (v33) ---
+   Hasta la v32 era "la ficha de una idea". Desde la v33 también la tienen
+   las compras, para anotar un link o "la marca azul, no la roja". Es la
+   misma ventana: lo que cambia según la lista (el título, las etiquetas,
+   el botón "→ A Pendientes") lo decide TEXTOS_LISTA, igual que la tarjeta. */
 
 // Igual que el calendario guarda "qué hábito estoy viendo", esta variable
-// guarda "qué idea tengo abierta". Sin ella, al tocar Guardar no sabríamos
+// guarda "qué tarea tengo abierta". Sin ella, al tocar Guardar no sabríamos
 // sobre cuál escribir.
-let ideaAbierta = null;
+let fichaAbierta = null;
 
-const modalIdea = document.getElementById('modalIdea');
+const modalFicha = document.getElementById('modalFicha');
 
-function abrirIdea(idTarea) {
-  const idea = datos.tareas.find(x => x.id === idTarea);
-  if (!idea) return;
+// Marcar una casilla de la nota se guarda en el acto, sin esperar a Guardar:
+// es una lista de papel, no un formulario. Solo la nota: si cambiaste el
+// título y no has guardado, el título sigue esperando tu Guardar.
+const notaFicha = prepararNota('ficha', textoNuevo => {
+  if (fichaAbierta) editarTarea(fichaAbierta, null, textoNuevo);
+});
 
-  ideaAbierta = idTarea;
-  document.getElementById('ideaTexto').value = idea.texto;
-  document.getElementById('ideaNota').value  = idea.nota || '';
-  mostrarNota(false);
+function abrirFicha(idTarea) {
+  const tarea = datos.tareas.find(x => x.id === idTarea);
+  if (!tarea) return;
+  const palabras = TEXTOS_LISTA[tarea.lista];
 
-  // Una idea ya dada por hecha no se manda a Pendientes. Se deshabilita en
-  // vez de esconderse, para que los botones no cambien de sitio bajo el dedo
-  // — el mismo criterio que las flechas de reordenar hábitos.
-  document.getElementById('ideaMover').disabled = idea.hecha;
+  notaFicha.cancelar();   // un orden pendiente de la anterior no aplica aquí
+  fichaAbierta = idTarea;
+  document.getElementById('fichaTitulo').textContent       = t(palabras.fichaTitulo);
+  document.getElementById('fichaEtiqueta').textContent     = t(palabras.fichaTitulo);
+  document.getElementById('fichaNotaEtiqueta').textContent = t(palabras.fichaNota);
+  document.getElementById('fichaNota').placeholder         = t(palabras.fichaPh);
+  document.getElementById('fichaTexto').value = tarea.texto;
+  document.getElementById('fichaNota').value  = tarea.nota || '';
+  notaFicha.mostrar(false);
 
-  abrirVentana(modalIdea);
+  // "→ A Pendientes" solo existe en Ideas (la regla `mover`). Una idea ya
+  // dada por hecha no se manda: se deshabilita en vez de esconderse, para
+  // que los botones no cambien de sitio bajo el dedo — el mismo criterio
+  // que las flechas de reordenar hábitos.
+  const mover = document.getElementById('fichaMover');
+  mover.hidden   = !palabras.mover;
+  mover.disabled = tarea.hecha;
+
+  abrirVentana(modalFicha);
 }
 
-/* Leer o editar la nota (v28). editando = false muestra la nota con formato;
-   true muestra el texto crudo con la barra de botones. Sin nota no hay
-   nada que leer, así que se va directo a editar. */
-function mostrarNota(editando) {
-  const vista = document.getElementById('ideaNotaVista');
-  const area  = document.getElementById('ideaNota');
-  const verVista = !editando && area.value.trim() !== '';
-  vista.hidden = !verVista;
-  document.getElementById('ideaNotaEditor').hidden = verVista;
-  if (verVista) {
-    vista.innerHTML = notaAHtml(area.value)
-      + '<span class="nota-pista">' + escaparHtml(t('tocaEditar')) + '</span>';
-  }
+function cerrarFicha() {
+  notaFicha.cancelar();   // lo marcado ya quedó guardado
+  cerrarVentana(modalFicha);
+  fichaAbierta = null;
 }
 
-// Tocar la nota: si fue en una casilla, se marca (y se guarda en el acto,
-// como en una lista de papel); si fue en un enlace, lo abre el navegador;
-// en cualquier otro sitio, pasa a editar.
-document.getElementById('ideaNotaVista').onclick = ev => {
-  const objetivo = ev.target;
-  const dentro = sel => (objetivo && objetivo.closest) ? objetivo.closest(sel) : null;
-  if (dentro('a')) return;
-  const casilla = dentro('.casilla');
-  const area = document.getElementById('ideaNota');
-  if (casilla) {
-    area.value = alternarCasilla(area.value, Number(casilla.dataset.linea));
-    editarTarea(ideaAbierta, null, area.value);
-    mostrarNota(false);
-    return;
-  }
-  mostrarNota(true);
-  area.focus();
+document.getElementById('fichaGuardar').onclick = () => {
+  editarTarea(fichaAbierta,
+              document.getElementById('fichaTexto').value,
+              document.getElementById('fichaNota').value);
+  cerrarFicha();
 };
 
-// Los tres botones de la barra. El pointerdown con preventDefault es lo que
-// evita que el toque le quite el cursor al campo: sin él, en el iPhone se
-// cerraría el teclado en cada botón.
-[['formatoNegrita', 'negrita'], ['formatoVineta', 'vineta'], ['formatoCasilla', 'casilla']]
-  .forEach(([id, tipo]) => {
-    const boton = document.getElementById(id);
-    boton.addEventListener('pointerdown', ev => ev.preventDefault());
-    boton.onclick = () => {
-      const area = document.getElementById('ideaNota');
-      const r = aplicarFormatoTexto(area.value, area.selectionStart || 0,
-                                    area.selectionEnd || 0, tipo);
-      area.value = r.valor;
-      if (area.focus) area.focus();
-      if (area.setSelectionRange) area.setSelectionRange(r.cursor, r.cursor);
-    };
-  });
-
-function cerrarIdea() {
-  cerrarVentana(modalIdea);
-  ideaAbierta = null;
-}
-
-document.getElementById('ideaGuardar').onclick = () => {
-  editarTarea(ideaAbierta,
-              document.getElementById('ideaTexto').value,
-              document.getElementById('ideaNota').value);
-  cerrarIdea();
-};
-
-document.getElementById('ideaMover').onclick = () => {
+document.getElementById('fichaMover').onclick = () => {
   // Se guarda antes de mover: si escribiste algo y tocaste "A Pendientes"
   // sin guardar, sería raro perderlo.
-  editarTarea(ideaAbierta,
-              document.getElementById('ideaTexto').value,
-              document.getElementById('ideaNota').value);
-  moverALista(ideaAbierta, 'pendientes');
-  cerrarIdea();
+  editarTarea(fichaAbierta,
+              document.getElementById('fichaTexto').value,
+              document.getElementById('fichaNota').value);
+  moverALista(fichaAbierta, 'pendientes');
+  cerrarFicha();
 };
 
-document.getElementById('ideaBorrar').onclick = async () => {
+document.getElementById('fichaBorrar').onclick = async () => {
   // Aquí sí se pregunta, a diferencia de la ✕ de la lista. La razón es lo que
-  // se pierde: una idea con contexto escrito ya no es una línea de texto que
+  // se pierde: una tarea con nota escrita ya no es una línea de texto que
   // reescribes en tres segundos.
-  const idea = datos.tareas.find(x => x.id === ideaAbierta);
-  const id = ideaAbierta;   // se guarda: la respuesta llega después del toque
+  const tarea = datos.tareas.find(x => x.id === fichaAbierta);
+  if (!tarea) return;
+  const palabras = TEXTOS_LISTA[tarea.lista];
+  const id = fichaAbierta;   // se guarda: la respuesta llega después del toque
   const si = await confirmar({
-    titulo: t('confirmBorrarIdea'),
-    texto:  idea && idea.nota ? t('avisoIdeaNota') : '',
+    titulo: t(palabras.fichaBorrar),
+    texto:  tarea.nota ? t(palabras.fichaAviso) : '',
     accion: t('borrar')
   });
   if (!si) return;
   borrarTarea(id);
-  cerrarIdea();
+  cerrarFicha();
 };
 
-document.getElementById('ideaCancelar').onclick = cerrarIdea;
+document.getElementById('fichaCancelar').onclick = cerrarFicha;
 
 // Tocar el fondo oscuro (no la tarjeta) también cierra
-modalIdea.onclick = (ev) => { if (ev.target === modalIdea) cerrarIdea(); };
+modalFicha.onclick = (ev) => { if (ev.target === modalFicha) cerrarFicha(); };
 
 /* ---------- Ñ. AJUSTES: IDIOMA, TEMA Y TU NOMBRE ----------
    Tres ajustes de ESTE dispositivo. Ninguno viaja a la nube ni entra en las
@@ -7161,6 +7420,16 @@ document.getElementById('fechasPlegar').onclick = () => {
 /* --- La ventana de una fecha --- */
 const modalFecha = document.getElementById('modalFecha');
 
+// La nota de una fecha se lee con formato, igual que la de una idea (v33).
+// Marcar una casilla se guarda en el acto, pero solo en una fecha que ya
+// existe; en una nueva, queda en el campo hasta que toques Guardar.
+// Se le pasan los datos que ya tiene guardados con la nota nueva encima:
+// así, si cambiaste el título sin guardar, ese cambio sigue esperando.
+const notaFecha = prepararNota('fecha', textoNuevo => {
+  const f = datos.fechas.find(x => x.id === fechaAbierta);
+  if (f) editarFecha(f.id, { ...f, nota: textoNuevo });
+});
+
 // Los selectores de la ventana: cada cuánto se repite y el emoji. Se
 // dibujan desde las variables de estado, como Ajustes.
 function pintarOpcionesFecha() {
@@ -7255,11 +7524,13 @@ campoEmojiPropio.addEventListener('input', () => {
 // id = null abre una nueva, con el día `dia` ya puesto.
 function abrirFecha(id, dia) {
   const f = id ? datos.fechas.find(x => x.id === id) : null;
+  notaFecha.cancelar();
   fechaAbierta = f ? f.id : null;
   document.getElementById('fechaVentanaTitulo').textContent = t(f ? 'tituloFecha' : 'tituloNuevaFecha');
   document.getElementById('fechaNombre').value = f ? f.titulo : '';
   document.getElementById('fechaDia').value    = f ? f.fecha : (dia || diaElegido || hoy());
   document.getElementById('fechaNota').value   = f && f.nota ? f.nota : '';
+  notaFecha.mostrar(false);   // con nota, se abre leyéndola (v33)
   repiteElegido     = f ? f.repite : REPITE.no;
   // Una nueva arranca con el primero que se vea en la fila: si quitaste el
   // 📌, no tiene sentido que siga siendo el de siempre.
@@ -7279,6 +7550,7 @@ function abrirFecha(id, dia) {
 }
 
 function cerrarFecha() {
+  notaFecha.cancelar();
   cerrarVentana(modalFecha);
   fechaAbierta = null;
 }

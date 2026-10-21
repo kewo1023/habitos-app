@@ -118,10 +118,10 @@ eval(script + `
 ; Object.assign(app, {
     pintar, pintarLista, cambiarVista, cambiarIdioma, cambiarTema, aplicarTema,
     pintarAjustes, refrescarTodo, agregarHabito, alternarHoy, t, traducirEstaticos,
-    abrirCalendario, pintarStats, abrirIdea, agregarTarea, pintarSesion,
+    abrirCalendario, pintarStats, abrirFicha, agregarTarea, pintarSesion,
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
-    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarIdea,
+    TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarFicha,
     lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
@@ -236,6 +236,13 @@ ok('y la etiqueta de la barra de progreso', $('progresoEtiqueta').textContent ==
 
 app.cambiarVista('ideas');
 ok('en Ideas el texto guía del campo está en inglés', $('tareaNueva').placeholder === 'What came to mind?');
+// v33: cada sección tiene título, también las que no tienen barra
+ok('Ideas tiene su título (en inglés)', $('progresoEtiqueta').textContent === 'Ideas');
+ok('pero sin la barra ni la cuenta', $('cajaProgreso').classList.contains('sin-barra'));
+app.cambiarVista('fechas');
+ok('Fechas también tiene título, y sin barra',
+   $('progresoEtiqueta').textContent === 'Dates' && $('cajaProgreso').classList.contains('sin-barra'));
+app.cambiarVista('ideas');
 
 app.cambiarVista('habitos');
 ok('y su etiqueta "Today"', $('progresoEtiqueta').textContent === 'Today');
@@ -717,7 +724,8 @@ ok('ni flecha → a Pendientes',
    tarjetasCompras.flatMap(x => x.querySelectorAll('.mover')).length === 0);
 ok('ni el subrayado de "tocar abre la ficha"',
    tarjetasCompras.every(x => !x.className.includes('idea')));
-ok('la barra de progreso sí se ve', $('cajaProgreso').style.visibility === 'visible');
+ok('la barra de progreso sí se ve', !$('cajaProgreso').classList.contains('sin-barra'));
+ok('y el título de la sección dice "Compras"', $('progresoEtiqueta').textContent === 'Compras');
 ok('y dice cuánto falta', $('progresoTexto').textContent === '0 de 2');
 
 // Tocar el TEXTO marca, como en Pendientes: en la tienda ese es el gesto.
@@ -986,23 +994,80 @@ async function pruebasDeMovimiento() {
   // --- v28: la nota de una idea se lee con formato y se edita en crudo
   app.agregarTarea('Idea con nota', 'ideas');
   const idNotaIdea = app.datos.tareas.find(x => x.texto === 'Idea con nota').id;
-  app.abrirIdea(idNotaIdea);
+  app.abrirFicha(idNotaIdea);
   ok('sin nota, la ficha abre directo para escribir',
-     $('ideaNotaVista').hidden && !$('ideaNotaEditor').hidden);
+     $('fichaNotaVista').hidden && !$('fichaNotaEditor').hidden);
   app.datos.tareas.find(x => x.id === idNotaIdea).nota = '- [ ] uno\n**dos**';
-  app.abrirIdea(idNotaIdea);
+  app.abrirFicha(idNotaIdea);
   ok('con nota, la ficha abre mostrándola con formato',
-     !$('ideaNotaVista').hidden && $('ideaNotaEditor').hidden);
-  ok('y el formato está dibujado', $('ideaNotaVista').innerHTML.includes('<strong>dos</strong>') &&
-     $('ideaNotaVista').innerHTML.includes('class="casilla"'));
-  $('ideaNotaVista').click();
-  ok('tocar la nota abre el editor', $('ideaNotaVista').hidden && !$('ideaNotaEditor').hidden);
-  $('ideaNota').value = 'comprar';
-  $('ideaNota').selectionStart = $('ideaNota').selectionEnd = 3;
-  $('formatoCasilla').click();
-  ok('el botón ☐ de la barra pone una casilla', $('ideaNota').value === '- [ ] comprar');
-  app.cerrarIdea && app.cerrarIdea();
+     !$('fichaNotaVista').hidden && $('fichaNotaEditor').hidden);
+  ok('y el formato está dibujado', $('fichaNotaVista').innerHTML.includes('<strong>dos</strong>') &&
+     $('fichaNotaVista').innerHTML.includes('class="casilla"'));
+  $('fichaNotaVista').click();
+  ok('tocar la nota abre el editor', $('fichaNotaVista').hidden && !$('fichaNotaEditor').hidden);
+  $('fichaNota').value = 'comprar';
+  $('fichaNota').selectionStart = $('fichaNota').selectionEnd = 3;
+  $('fichaCasilla').click();
+  ok('el botón ☐ de la barra pone una casilla', $('fichaNota').value === '- [ ] comprar');
+  app.cerrarFicha && app.cerrarFicha();
   await espera(230);
+
+  // --- v33: tocar una casilla de la nota la marca y, al rato, la baja al
+  // fondo. El navegador de mentira no sabe hacer closest(), así que el toque
+  // se le da a mano: un "objetivo" que dice ser la casilla de la línea 0.
+  const tocarCasilla = (idVista, linea) => $(idVista).onclick({
+    target: { closest: sel => sel === '.casilla' ? { dataset: { linea: String(linea) } } : null }
+  });
+  app.datos.tareas.find(x => x.id === idNotaIdea).nota = '- [ ] uno\n- [ ] dos';
+  app.abrirFicha(idNotaIdea);
+  tocarCasilla('fichaNotaVista', 0);
+  const notaIdea = () => app.datos.tareas.find(x => x.id === idNotaIdea).nota;
+  ok('tocar una casilla de la nota la marca y la guarda en el acto',
+     notaIdea() === '- [x] uno\n- [ ] dos');
+  ok('pero todavía no se mueve: se tacha donde está', $('fichaNota').value.startsWith('- [x] uno'));
+  await espera(app.PAUSA_TACHADO + 60);
+  ok('y tras la pausa baja al fondo', notaIdea() === '- [ ] dos\n- [x] uno');
+  ok('y la vista se redibuja con el nuevo orden',
+     $('fichaNotaVista').innerHTML.indexOf('dos') < $('fichaNotaVista').innerHTML.indexOf('uno'));
+  app.cerrarFicha();
+  await espera(230);
+
+  // --- v33: las compras tienen ficha, pero se abre en modo edición
+  app.cambiarVista('compras');
+  app.agregarTarea('Tenis', 'compras');
+  const idTenis = app.datos.tareas.find(x => x.texto === 'Tenis').id;
+  app.abrirFicha(idTenis);
+  ok('la ficha de una compra se titula "Compra"', $('fichaTitulo').textContent === 'Compra');
+  ok('y su nota se llama "Nota", no "Contexto"', $('fichaNotaEtiqueta').textContent === 'Nota');
+  ok('y no ofrece mandarla a Pendientes', $('fichaMover').hidden === true);
+  $('fichaNota').value = 'Talla 10 https://tienda.example/tenis';
+  $('fichaGuardar').click();
+  ok('guardar le pone la nota a la compra',
+     app.datos.tareas.find(x => x.id === idTenis).nota === 'Talla 10 https://tienda.example/tenis');
+  await espera(230);
+  app.pintarLista();
+  const tarjetaTenis = () => $('tareasCuerpo').children
+    .find(x => x.querySelector('.tarea-texto').textContent.includes('Tenis'));
+  ok('la nota se asoma debajo de la compra en la lista',
+     tarjetaTenis().querySelectorAll('.tarea-nota').length === 1);
+  ok('sin el subrayado de "tocar abre": en Compras tocar marca',
+     !tarjetaTenis().className.includes('idea'));
+  doc.body.classList.add('editando');
+  tarjetaTenis().querySelectorAll('.tarea-info')[0].click();
+  ok('en modo edición, tocar la compra abre su ficha',
+     $('modalFicha').classList.contains('abierto') && $('fichaTexto').value === 'Tenis');
+  ok('y no la marca', !app.datos.tareas.find(x => x.id === idTenis).hecha);
+  app.cerrarFicha();
+  doc.body.classList.remove('editando');
+  await espera(230);
+
+  // Y la ficha de una idea, abierta después, vuelve a ser de idea
+  app.abrirFicha(idNotaIdea);
+  ok('la ficha vuelve a decir "Idea" con una idea', $('fichaTitulo').textContent === 'Idea' &&
+     $('fichaNotaEtiqueta').textContent === 'Contexto' && $('fichaMover').hidden === false);
+  app.cerrarFicha();
+  await espera(230);
+  app.cambiarVista('pendientes');
 
   // --- El tachado: primero se tacha donde la tocaste, luego se va abajo
   app.cambiarVista('pendientes');
@@ -1102,6 +1167,25 @@ async function pruebasDeFechas() {
   ok('una fecha que existe abre con su título', $('fechaVentanaTitulo').textContent === 'Fecha' &&
      $('fechaNombre').value === 'Cumple de <b>Ana</b>');
   ok('y con sus acciones', $('fechaAcciones').hidden === false);
+
+  // v33: la nota de una fecha se lee con formato, igual que la de una idea
+  ok('sin nota, la fecha abre el campo para escribir',
+     $('fechaNotaVista').hidden && !$('fechaNotaEditor').hidden);
+  app.datos.fechas.find(x => x.id === id).nota = '- [ ] regalo\n- [ ] **torta**';
+  app.abrirFecha(id);
+  ok('con nota, la fecha la muestra con formato',
+     !$('fechaNotaVista').hidden && $('fechaNotaVista').innerHTML.includes('<strong>torta</strong>'));
+  $('fechaNotaVista').onclick({ target: { closest: sel => sel === '.casilla' ? { dataset: { linea: '0' } } : null } });
+  ok('tocar una casilla de la fecha la marca y la guarda',
+     app.datos.fechas.find(x => x.id === id).nota === '- [x] regalo\n- [ ] **torta**');
+  ok('sin tocar el resto de la fecha', app.datos.fechas.find(x => x.id === id).titulo === 'Cumple de <b>Ana</b>');
+  $('fechaNotaVista').click();
+  ok('tocar fuera de una casilla abre el editor', !$('fechaNotaEditor').hidden);
+  $('fechaNota').value = 'pastel';
+  $('fechaNota').selectionStart = $('fechaNota').selectionEnd = 0;
+  $('fechaCasilla').click();
+  ok('y la barra de formato también está en Fechas', $('fechaNota').value === '- [ ] pastel');
+  app.abrirFecha(id);   // abrir otra vez descarta lo que no guardaste
   const tareasAntes = app.datos.tareas.length;
   $('fechaPendiente').onclick();
   ok('"A Pendientes" crea el pendiente', app.datos.tareas.length === tareasAntes + 1);

@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 586 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 290 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 602 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 313 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -263,13 +263,15 @@ pantalla, agregarlo a `pruebas-app.js`.
     círculo lo haría más lento. Son dos comportamientos a propósito, no un
     descuido: la tarjeta de idea lleva subrayado punteado como pista.
 
-    **Mapa de gestos de una tarjeta, al día de la v19.** Es lo que más fácil se
+    **Mapa de gestos de una tarjeta, al día de la v33.** Es lo que más fácil se
     rompe al tocar `pintarLista()`, así que conviene tenerlo junto:
 
     | Dónde tocas | En Pendientes | En Ideas | En Compras |
     |---|---|---|---|
     | Círculo ✓ | marca | marca | marca |
     | Texto | marca | abre la ficha | marca |
+    | Texto en modo edición | renombra (`prompt`) | abre la ficha | abre la ficha (v33) |
+    | Nota asomada bajo el título | *no existe* | sí | sí (v33) |
     | Franja izquierda | cambia la importancia | *no existe* | *no existe* |
     | Flecha → | *no existe* | manda a Pendientes | *no existe* |
     | ↑ ↓ (modo edición) | *ya no existen* | reordena | *no existen* |
@@ -280,7 +282,8 @@ pantalla, agregarlo a `pruebas-app.js`.
     Cada diferencia tiene su motivo escrito arriba. Desde la v19 esta tabla
     **vive en el código** como banderas de `TEXTOS_LISTA` (`prioridad`,
     `flechas`, `ficha`, `mover`, `progreso`, `contador`); `pintarLista()` las
-    lee y no pregunta por el nombre de la lista.
+    lee y no pregunta por el nombre de la lista. Desde la v33 `ficha` vale
+    `'toque'`, `'edicion'` o `false`.
 - **Fase 3.5 — Tema claro, inglés y Ajustes ✅ (v15)** Tres cosas con la misma
   idea de fondo: sacar del código lo que estaba escrito a mano.
   - **Decisión clave:** dos juegos de colores (`:root[data-tema="claro"]` y
@@ -812,6 +815,53 @@ pantalla, agregarlo a `pruebas-app.js`.
     (`esOtroMes`, D3). Te devuelve al mes **y elige hoy**. Medido a 375px:
     con "Septiembre de 2026" quedan 13px de aire a cada lado. Su zona de
     toque llega a 44px con un `::after`, sin agrandar la cabecera.
+- **Fase 3.20 — Notas con formato en todas partes y escala de letra (v33)**
+  Pedido de Kev el 20 de octubre, con capturas. Evaluado con los cuatro
+  ejes y construido el mismo día en la rama `v33-notas`. **No hay SQL que
+  correr:** las compras ya tenían columna `nota` en Postgres.
+  - **Casillas de la nota:** el ✓ salía corrido en el iPhone (era la letra
+    "✓" heredando un renglón de 18px dentro de un cuadro de 17px); ahora es
+    el trazo de los círculos como máscara. Al marcar, la casilla se tacha
+    donde está y tras `PAUSA_TACHADO` baja al fondo de **su** grupo
+    (`ordenarCasillas`, D2). El orden se aplica **una vez**, cuando dejas de
+    tocar: cada casilla se ubica por su número de línea (`data-linea`), y
+    reordenar en cada toque haría que la segunda apuntara a otra línea.
+  - **Una línea pegada debajo de una casilla o viñeta es la continuación de
+    ese renglón** (como en Markdown). Salió de una captura: un Enter sin
+    querer partía un pendiente en dos.
+  - **Decisión clave:** la nota con formato es una **pieza reutilizable**,
+    `prepararNota(prefijo, alMarcarCasilla)`. La usan la ficha de una tarea
+    (`'ficha'`) y la ventana de una fecha (`'fecha'`). Cada una necesita seis
+    ids con su prefijo. Copiarla habría obligado a arreglar dos veces.
+  - La "ficha de una idea" pasó a ser **la ficha de una tarea**
+    (`abrirFicha`, `modalFicha`, ids `ficha*`): Ideas y Compras. El título,
+    las etiquetas y la pregunta de borrar salen de `TEXTOS_LISTA`
+    (`fichaTitulo`, `fichaNota`, `fichaPh`, `fichaBorrar`, `fichaAviso`).
+    "→ A Pendientes" solo en Ideas.
+  - **Decisión clave:** en Compras la ficha se abre **en modo edición**;
+    tocar el texto sigue marcando, porque en la tienda ese es el gesto.
+  - Solo hay dos cajas de texto largo (nota de idea/compra y nota de fecha).
+    Los nombres de una sola línea **no** llevan formato: un `**` en el
+    nombre de un hábito solo estorba. La nota de una fecha subió de 500 a
+    2000 caracteres (`LARGO_NOTA_FECHA = LARGO_NOTA`).
+  - **Regla nueva y firme: ningún tamaño de letra se escribe suelto.** Siete
+    pasos en la sección 2b del CSS: `--letra-pantalla` 30, `-seccion` 20,
+    `-tarjeta` 16, `-campo` 16, `-cuerpo` 15, `-secundaria` 13, `-etiqueta`
+    12 (MAYÚSCULAS con `--espacio-etiqueta`) y `-mini` 10.5. Antes había doce
+    tamaños de texto. Solo los dibujos hechos con letras (emojis, flechas,
+    ✕) llevan px, y el test los tiene en una lista (`DIBUJOS`).
+    `--letra-campo` vale lo mismo que `-tarjeta` pero por otra razón (menos
+    de 16px y el iPhone hace zoom): si un día cambia tarjeta, los campos no.
+  - **Título de sección en todas:** `#progresoEtiqueta` pasó de etiqueta gris
+    de 13px a título de 20px. Ideas y Fechas lo muestran sin barra
+    (`.sin-barra`, con `visibility` para que la lista empiece a la misma
+    altura en todas). Esto **cambia la v30**: Fechas ya no esconde la caja
+    entera. El título de cada tarjeta es igual en todas las listas: 16px
+    seminegrita (los pendientes estaban en peso 500).
+  - De paso: "Octubre **De** 2026" en el calendario (`capitalize` pone
+    mayúscula a cada palabra; ahora `::first-letter`), y "ÚLTIMOS 30 DÍAS"
+    se salía 3px de su cuadro al subir a 10,5px (espaciado a 0). Con la racha
+    visible, los puntos del historial siguen en los 11px de Kev (medido).
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -872,6 +922,10 @@ falta probarla en la app instalada. Sin SQL.
 `v32-fechas` el 17 de octubre de 2026. Commit `91e533a`, publicada el
 mismo día (merge a `main`) y comprobada en el sitio en vivo; falta
 probarla en la app instalada. Sin SQL.
+**`v33`** (notas con formato en Compras y Fechas, casillas que bajan al
+fondo y escala de letra, Fase 3.20), construida en la rama `v33-notas` el
+20 de octubre de 2026. **Sin publicar:** espera que Kev apruebe la maqueta
+del antes y el después. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

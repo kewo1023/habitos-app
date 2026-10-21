@@ -2133,6 +2133,49 @@ va es verlo en el teléfono.
       hito frente al sello; los `prompt()` de renombrar y cambiar emoji; la
       tabla para Excel no distingue ✗ de vacío.
 
+## 2026-10-20 — v33 (en curso): casillas de la nota, y evaluación de tres pedidos
+
+Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
+
+**Hecho (punto 1 del pedido de Kev, con capturas)**
+- El ✓ de una casilla marcada salía corrido hacia abajo en el iPhone. Era
+  la letra '✓' heredando el alto de renglón de la nota (18px) dentro de un
+  cuadro de 17px. Ahora es el mismo trazo de los círculos usado como
+  máscara (`::after`). Comprobado en el navegador.
+- Al marcar una casilla, se tacha donde está y tras `PAUSA_TACHADO` baja al
+  fondo de SU grupo (`ordenarCasillas`, D2). Un grupo se corta en un título,
+  una viñeta o una línea vacía. El orden se aplica una vez, cuando dejas de
+  tocar: si se reordenara en cada toque, el `data-linea` de la segunda
+  casilla tocada apuntaría a otra línea.
+- Una línea pegada debajo de una casilla o viñeta es la continuación de ese
+  renglón (como en Markdown). Salió de la captura: "...cheque del" /
+  "Jueves" era un solo pendiente partido por un Enter, y sin esto "Jueves"
+  se habría quedado huérfano al bajar la casilla.
+- 12 pruebas nuevas en `pruebas.js`. Con `ordenarCasillas` desactivada a
+  propósito, 4 se ponen en rojo.
+
+**Evaluado y aprobado por Kev ("de acuerdo con todo, dale con todo")**
+- Puntos 2 y 3: la nota con formato salió a una pieza reutilizable
+  (`prepararNota`) y ya la usan la ficha de Ideas, la de Compras (nueva,
+  se abre en modo edición) y la ventana de Fechas. Commit `d01ebd1`.
+  Comprobado en el navegador: link tocable en la nota de una compra,
+  casillas en la nota de una fecha.
+- Punto 4: escala de letra de siete pasos en variables y título de sección
+  en las cinco pestañas. Test nuevo: ningún tamaño de letra suelto (con un
+  12.5px puesto a propósito, se pone en rojo). Commit `27028d3`.
+- Lo encontrado al medir: "Octubre De 2026" (error viejo de `capitalize`)
+  y "ÚLTIMOS 30 DÍAS" que se salía 3px al subir la letra. Arreglados.
+- Maqueta del antes y el después publicada como Artifact (la app de verdad,
+  v32 y v33, con datos inventados). El enlace está en el chat, no aquí.
+- Pruebas: 602 en `pruebas.js` y 313 en `pruebas-app.js`, todas en verde.
+
+**Pendiente / siguiente**
+- [ ] Kev revisa la maqueta en el iPhone. Si la aprueba: merge de
+      `v33-notas` a `main`, push, y comprobar que el pie diga v33 en el
+      sitio en vivo.
+- [ ] Probar en la app instalada: el ✓ centrado de las casillas (el bug
+      era del iPhone, no del Mac) y que la casilla marcada baje al fondo.
+
 ---
 
 <!-- Plantilla para la próxima entrada:
