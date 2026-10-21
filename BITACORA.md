@@ -2133,7 +2133,7 @@ va es verlo en el teléfono.
       hito frente al sello; los `prompt()` de renombrar y cambiar emoji; la
       tabla para Excel no distingue ✗ de vacío.
 
-## 2026-10-20 — v33 (en curso): casillas de la nota, y evaluación de tres pedidos
+## 2026-10-20 — v33 publicada: notas con formato en todas partes y escala de letra
 
 Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
 
@@ -2170,9 +2170,9 @@ Rama `v33-notas`, sin publicar. `VERSION` ya está en `v33`.
 - Pruebas: 602 en `pruebas.js` y 313 en `pruebas-app.js`, todas en verde.
 
 **Pendiente / siguiente**
-- [ ] Kev revisa la maqueta en el iPhone. Si la aprueba: merge de
-      `v33-notas` a `main`, push, y comprobar que el pie diga v33 en el
-      sitio en vivo.
+- [x] Kev aprobó la maqueta. Merge de `v33-notas` a `main` (`79a7b9b`),
+      push, y comprobado en el sitio en vivo: `sw.js` en v33, título de
+      sección a 20px, sin errores en la consola.
 - [ ] Probar en la app instalada: el ✓ centrado de las casillas (el bug
       era del iPhone, no del Mac) y que la casilla marcada baje al fondo.
 

@@ -924,8 +924,10 @@ mismo día (merge a `main`) y comprobada en el sitio en vivo; falta
 probarla en la app instalada. Sin SQL.
 **`v33`** (notas con formato en Compras y Fechas, casillas que bajan al
 fondo y escala de letra, Fase 3.20), construida en la rama `v33-notas` el
-20 de octubre de 2026. **Sin publicar:** espera que Kev apruebe la maqueta
-del antes y el después. Sin SQL.
+20 de octubre de 2026. Kev aprobó la maqueta del antes y el después;
+merge a `main` (commit `79a7b9b`), publicada el mismo día y comprobada en
+el sitio en vivo (`sw.js` en v33, sin errores al arrancar). Falta probarla
+en la app instalada, sobre todo el ✓ centrado de las casillas. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
