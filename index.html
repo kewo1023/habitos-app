@@ -229,20 +229,69 @@ body {
   user-select: none;
 }
 
+/* ---------- 2b. LA ESCALA DE LETRA (v33) ----------
+   Hasta la v32 cada regla escribía su tamaño a mano, y la app llegó a tener
+   doce tamaños de texto: 10, 10.5, 11, 12, 12.5, 13, 14, 15, 16, 19, 21 y
+   30px. Diferencias de medio píxel no se leen como jerarquía, se leen como
+   descuido: el ojo no distingue 12 de 12,5, solo nota que algo no cuadra.
+
+   Ahora hay siete pasos y cada texto de la app usa uno. La misma regla de
+   los colores (v15): ningún tamaño de letra se escribe suelto. Si un texto
+   nuevo no encaja en ningún paso, la pregunta es a cuál se parece, no qué
+   número inventarle. Hay un test que lo vigila.
+
+   Cada paso, de mayor a menor, y para qué es:
+     pantalla   — el saludo de arriba. Uno solo por pantalla.
+     seccion    — el nombre de la sección ("Pendientes") y el título de cada
+                  ventana. Lo que te dice dónde estás.
+     tarjeta    — el título de cada cosa de una lista: hábito, pendiente,
+                  idea, compra, fecha. Igual en todas: son lo mismo.
+     campo      — lo que escribes. Vale lo mismo que "tarjeta", pero por otra
+                  razón: con menos de 16px el iPhone acerca la pantalla al
+                  tocar el campo. Por eso tiene nombre propio: si algún día
+                  "tarjeta" cambia, los campos no deben cambiar con él.
+     cuerpo     — notas, párrafos y botones.
+     secundaria — lo que acompaña a un título: racha, adelanto de la nota,
+                  "3 de 5", la línea gris bajo una fecha.
+     etiqueta   — las etiquetas en MAYÚSCULAS (IDEA, CONTEXTO, la fecha de
+                  arriba) y los avisos chiquitos. Siempre con el mismo
+                  espaciado entre letras, que es lo que las hace etiqueta.
+     mini       — solo donde no cabe más, y está medido: la barra de abajo,
+                  las letras de los días en el calendario, las estadísticas.
+
+   Entre un paso y el siguiente hay al menos 1px, y entre los títulos
+   (30 → 20 → 16) un salto grande: así un título se distingue del texto que
+   tiene debajo sin tener que leerlo.
+
+   Lo que NO sigue la escala: emojis, flechas y la ✕. Son dibujos hechos
+   con letras; su tamaño es el del dibujo. Son las únicas excepciones que
+   acepta el test. */
+:root {
+  --letra-pantalla:   30px;
+  --letra-seccion:    20px;
+  --letra-tarjeta:    16px;
+  --letra-campo:      16px;
+  --letra-cuerpo:     15px;
+  --letra-secundaria: 13px;
+  --letra-etiqueta:   12px;
+  --letra-mini:       10.5px;
+  --espacio-etiqueta: .08em;   /* el aire entre letras de las MAYÚSCULAS */
+}
+
 /* ---------- 3. CABECERA ---------- */
 header { margin-bottom: 22px; }
 
 .fecha {
-  font-size: 13px;
+  font-size: var(--letra-etiqueta);
   color: var(--texto-suave);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: var(--espacio-etiqueta);
   font-weight: 600;
 }
 
 .titulo {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--letra-pantalla);
+  font-weight: 800;
   margin-top: 4px;
   letter-spacing: -0.5px;
 }
@@ -253,10 +302,30 @@ header { margin-bottom: 22px; }
 .progreso-texto {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  align-items: baseline;    /* "Pendientes" grande y "0 de 3" chico, sobre la misma línea */
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-bottom: 8px;
 }
+
+/* El nombre de la sección (v33). Hasta la v32 era una etiqueta gris de
+   13px, igual de grande que el "0 de 3" de al lado: lo único que decía
+   "estás en Pendientes" se leía como texto de relleno. Ahora es el título
+   de la sección, y está en TODAS (en Ideas y Fechas, sin la barra). */
+#progresoEtiqueta {
+  font-size: var(--letra-seccion);
+  font-weight: 700;
+  color: var(--texto);
+  letter-spacing: -0.2px;
+}
+
+/* Ideas y Fechas no tienen barra (no se "completan"), y Hábitos tampoco
+   mientras no haya ninguno. Se esconden la barra y la cuenta, pero se
+   queda el título. Con visibility y no con display: el hueco se conserva,
+   así la lista empieza a la misma altura en todas las secciones y no salta
+   al cambiar de pestaña. */
+.progreso-caja.sin-barra #progresoTexto,
+.progreso-caja.sin-barra .progreso-fondo { visibility: hidden; }
 
 /* Un número que acaba de cambiar (v26) entra desde abajo, como el
    cuentakilómetros de un carro. inline-block porque un elemento "inline"
@@ -344,7 +413,7 @@ header { margin-bottom: 22px; }
 .habito-info { flex: 1; min-width: 0; }
 
 .habito-nombre {
-  font-size: 16px;
+  font-size: var(--letra-tarjeta);
   font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -382,7 +451,7 @@ header { margin-bottom: 22px; }
 }
 
 .racha {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-left: 8px;
   font-variant-numeric: tabular-nums;
@@ -669,8 +738,8 @@ header { margin-bottom: 22px; }
   animation: sello-rayos .6s cubic-bezier(.2,.8,.2,1) .7s forwards;
 }
 .sello-texto { text-align: center; opacity: 0; animation: sello-texto .35s ease-out .8s forwards; }
-.sello-titulo { font-size: 21px; font-weight: 700; color: var(--texto-fuerte); }
-.sello-cuenta { font-size: 14px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.sello-titulo { font-size: var(--letra-seccion); font-weight: 700; color: var(--texto-fuerte); }
+.sello-cuenta { font-size: var(--letra-secundaria); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
 
 @keyframes sello-trazo  { to { stroke-dashoffset: 0; } }
 @keyframes sello-llenar { to { transform: scale(1); } }
@@ -719,7 +788,7 @@ header { margin-bottom: 22px; }
 
 /* "Día completo ✓" en verde donde normalmente dice "Hoy". No es animación,
    es un estado: se queda mientras el día esté completo. */
-#progresoEtiqueta.completo { color: var(--exito); font-weight: 600; }
+#progresoEtiqueta.completo { color: var(--exito); }
 
 /* --- La medalla del hito ---
    Una capa fija que tapa toda la pantalla y centra la medalla. Igual que el
@@ -805,16 +874,16 @@ header { margin-bottom: 22px; }
 }
 
 .hito-etiqueta {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
+  font-size: var(--letra-etiqueta);
+  font-weight: 600;
+  letter-spacing: var(--espacio-etiqueta);
   text-transform: uppercase;
   color: var(--celebrar);
 }
 
 .hito-nombre {
   margin-top: 6px;
-  font-size: 15px;
+  font-size: var(--letra-cuerpo);
   font-weight: 600;
   color: var(--texto-suave);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -905,14 +974,14 @@ body.editando .panel-datos { display: block; }
   background: var(--fondo);
   color: var(--texto);
   font-family: inherit;
-  font-size: 14px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 
 .btn-mini:active { background: var(--tarjeta-alta); }
 
 .nota {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   margin-top: 12px;
   line-height: 1.5;
@@ -974,7 +1043,7 @@ body.editando .panel-datos { display: block; }
   background: var(--fondo);
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px; font-weight: 600;
+  font-size: var(--letra-secundaria); font-weight: 600;
   cursor: pointer;
 }
 
@@ -990,9 +1059,9 @@ body.editando .panel-datos { display: block; }
    el título del panel: son subtítulos, no secciones nuevas. */
 .sub-etiqueta {
   display: block;
-  font-size: 11px;
+  font-size: var(--letra-etiqueta);
   font-weight: 600;
-  letter-spacing: .06em;
+  letter-spacing: var(--espacio-etiqueta);
   text-transform: uppercase;
   color: var(--texto-suave);
   margin-top: 18px;
@@ -1056,7 +1125,7 @@ body.editando .panel-datos { display: block; }
      medía 55px y "Pendientes" (58,7px) no cabía. Sin el "+", cada pestaña
      mide ~68px y la letra vuelve a ser la de siempre. Si se cambia la letra,
      un nombre o se agrega una sexta pestaña, MEDIR OTRA VEZ. */
-  font-size: 10.5px; font-weight: 600;
+  font-size: var(--letra-mini); font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: color .2s ease;
@@ -1280,8 +1349,8 @@ body.vista-tareas .panel-datos { display: none; }
 .tarea-info { flex: 1; min-width: 0; }
 
 .tarea-texto {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--letra-tarjeta);
+  font-weight: 600;
   /* A diferencia del nombre de un hábito, un pendiente puede ser largo
      ("llamar al del seguro del carro"). Que baje de línea en vez de
      cortarse con puntos suspensivos. */
@@ -1316,7 +1385,7 @@ body.editando .tarea-texto {
    sin abrirla. Se corta a dos líneas: si creciera, la lista dejaría de ser
    una lista. */
 .tarea-nota {
-  font-size: 12.5px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
   line-height: 1.45;
   margin-top: 5px;
@@ -1336,12 +1405,12 @@ body.editando .tarea-texto {
   background: var(--fondo);
   border: 1px solid var(--borde);
   border-radius: 13px;
-  font-size: 15px; line-height: 1.5;
+  font-size: var(--letra-cuerpo); line-height: 1.5;
   overflow-wrap: anywhere;
   cursor: pointer;   /* en iOS, sin esto un div no avisa de los toques */
 }
 .nota-vista > * + * { margin-top: 8px; }
-.nota-vista h3 { font-size: 16px; }
+.nota-vista h3 { font-size: var(--letra-tarjeta); }
 .nota-vista ul { list-style: none; display: grid; gap: 4px; }
 .nota-vista li { position: relative; padding-left: 18px; }
 .nota-vista li::before { content: '•'; position: absolute; left: 4px; color: var(--texto-suave); }
@@ -1384,7 +1453,7 @@ body.editando .tarea-texto {
 
 .nota-pista {
   position: absolute; right: 12px; bottom: 7px;
-  font-size: 11px; color: var(--texto-suave);
+  font-size: var(--letra-etiqueta); color: var(--texto-suave);
 }
 
 /* La barra de formato, encima del campo. */
@@ -1409,7 +1478,7 @@ body.editando .tarea-texto {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px;          /* 16px evita que el iPhone haga zoom al escribir */
+  font-size: var(--letra-campo);          /* 16px evita que el iPhone haga zoom al escribir */
   font-family: inherit;
   line-height: 1.5;
   resize: vertical;
@@ -1460,7 +1529,7 @@ body.editando .mover { display: none; }
   background: none;
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px; font-weight: 600;
+  font-size: var(--letra-secundaria); font-weight: 600;
   cursor: pointer;
 }
 
@@ -1476,10 +1545,10 @@ body.editando .mover { display: none; }
    fecha. Un "Editar" que no hace nada visible confunde más que no tenerlo. */
 body.vista-fechas #btnEditar { visibility: hidden; }
 
-/* Fechas no tiene barra de progreso. En Ideas la caja se esconde con
-   visibility (deja su hueco, para que la lista no salte); aquí el mes
-   ocupa ese lugar y el hueco sobraba: 80px vacíos arriba. */
-body.vista-fechas #cajaProgreso { display: none; }
+/* Fechas no tiene barra de progreso. Hasta la v32 la caja entera se
+   escondía aquí (display: none), porque vacía dejaba 80px sin nada arriba.
+   Desde la v33 la caja lleva el nombre de la sección, así que ya no está
+   vacía: se queda, con su título y sin la barra (.sin-barra, sección 3). */
 
 .fechas-mes-caja {
   background: var(--tarjeta);
@@ -1489,7 +1558,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   margin-bottom: 18px;
 }
 .fechas-mes-caja .cal-cabecera { margin-bottom: 10px; }
-.fechas-titulo-mes { font-size: 16px; font-weight: 700; }
+.fechas-titulo-mes { font-size: var(--letra-tarjeta); font-weight: 700; }
 
 /* El título y el botón "Hoy" van en una sola línea, centrados juntos. */
 #vistaFechas .cal-titulo-caja {
@@ -1510,7 +1579,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   background: var(--celebrar);
   color: var(--sobre-celebrar);
   font-family: inherit;
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   cursor: pointer;
 }
 .fechas-volver-hoy::after { content: ''; position: absolute; inset: -11px -6px; }
@@ -1577,12 +1646,12 @@ body.vista-fechas #cajaProgreso { display: none; }
   border: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 14px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   padding: 12px 0 12px 16px;   /* 44px de alto para el dedo, sin agrandar la fila */
   margin: -12px 0;
   cursor: pointer;
 }
-.fechas-nada { font-size: 14px; color: var(--texto-suave); padding: 2px 2px 0; }
+.fechas-nada { font-size: var(--letra-secundaria); color: var(--texto-suave); padding: 2px 2px 0; }
 
 /* Una fila de la agenda (y del día elegido). */
 .fecha-fila {
@@ -1621,8 +1690,8 @@ body.vista-fechas #cajaProgreso { display: none; }
   flex-shrink: 0;
 }
 .fecha-info { flex: 1; min-width: 0; }
-.fecha-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fecha-sub { font-size: 12.5px; color: var(--texto-suave); margin-top: 2px; }
+.fecha-titulo { font-size: var(--letra-tarjeta); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fecha-sub { font-size: var(--letra-secundaria); color: var(--texto-suave); margin-top: 2px; }
 
 /* "Hoy", "Mañana", "12 días". Tres pesos: lo lejano callado, lo de los
    próximos tres días en azul, lo de hoy en amarillo lleno. */
@@ -1632,7 +1701,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   border-radius: 99px;
   background: var(--tarjeta-alta);
   color: var(--texto-suave);
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1664,7 +1733,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   padding: 1px 7px;
   border-radius: 99px;
   background: var(--tarjeta-alta);
-  font-size: 12px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .plegar-cuenta:empty { display: none; }
@@ -1683,7 +1752,7 @@ body.vista-fechas #cajaProgreso { display: none; }
 /* El nombre del mes entre grupos de la agenda, como en la vista
    "Programación" de Google Calendar. */
 .agenda-mes {
-  font-size: 14px; font-weight: 700;
+  font-size: var(--letra-etiqueta); font-weight: 700;
   color: var(--texto);
   margin: 18px 2px 8px;
 }
@@ -1704,9 +1773,9 @@ body.vista-fechas #cajaProgreso { display: none; }
   font-family: inherit;
   cursor: pointer;
 }
-.franja-fila { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 14px; }
+.franja-fila { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: var(--letra-secundaria); }
 .franja-titulo { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.franja-mas { font-size: 12.5px; color: var(--texto-suave); padding: 3px 0 1px; }
+.franja-mas { font-size: var(--letra-secundaria); color: var(--texto-suave); padding: 3px 0 1px; }
 
 /* La ventana de una fecha */
 #fechaRepite { margin-top: 0; margin-bottom: 18px; }
@@ -1789,7 +1858,7 @@ body.vista-fechas #cajaProgreso { display: none; }
 .fecha-cada {
   display: flex; align-items: center; gap: 10px;
   margin: -6px 0 18px;        /* se pega al selector de arriba: es parte de él */
-  font-size: 15px; color: var(--texto-suave);
+  font-size: var(--letra-cuerpo); color: var(--texto-suave);
 }
 .fecha-cada[hidden] { display: none; }
 #modalFecha .fecha-cada input {
@@ -1799,7 +1868,7 @@ body.vista-fechas #cajaProgreso { display: none; }
   border: 1px solid var(--borde);
   border-radius: 11px;
   color: var(--texto);
-  font-size: 16px;        /* 16px: menos y el iPhone hace zoom */
+  font-size: var(--letra-campo);        /* 16px: menos y el iPhone hace zoom */
   font-family: inherit;
   text-align: center;
 }
@@ -1820,7 +1889,7 @@ input[type=date] {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px;
+  font-size: var(--letra-campo);
   font-family: inherit;
   margin-bottom: 18px;
   -webkit-appearance: none;
@@ -1880,7 +1949,7 @@ input[type=date]:focus { outline: none; border-color: var(--acento); }
   background: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 .btn-nuevo:active { background: var(--tarjeta-alta); }
@@ -1906,7 +1975,7 @@ body.editando .btn-listo-abajo { display: block; }
   border: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   /* El área de toque es más grande que la palabra: 44px de alto, el mínimo
      que recomienda Apple para un dedo. El margin negativo devuelve ese
      espacio extra, para que la fila no crezca y nada se mueva de sitio. */
@@ -1920,7 +1989,7 @@ body.editando .btn-listo-abajo { display: block; }
   padding: 15px;
   border-radius: 15px;
   border: none;
-  font-size: 15px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
@@ -1961,7 +2030,7 @@ body.editando .btn-listo-abajo { display: block; }
 .modal.confirmar h2 { margin: 14px 0 6px; text-wrap: balance; }
 .modal.confirmar p {
   color: var(--texto-suave);
-  font-size: 15px; line-height: 1.45;
+  font-size: var(--letra-cuerpo); line-height: 1.45;
   margin-bottom: 22px;
   text-wrap: balance;
 }
@@ -2032,11 +2101,11 @@ body.editando .btn-listo-abajo { display: block; }
 
 @keyframes subir { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-.modal h2 { font-size: 19px; margin-bottom: 18px; }
+.modal h2 { font-size: var(--letra-seccion); margin-bottom: 18px; }
 
 .etiqueta {
-  font-size: 12px; color: var(--texto-suave);
-  text-transform: uppercase; letter-spacing: 1px;
+  font-size: var(--letra-etiqueta); color: var(--texto-suave);
+  text-transform: uppercase; letter-spacing: var(--espacio-etiqueta);
   font-weight: 600; margin-bottom: 8px; display: block;
 }
 
@@ -2047,7 +2116,7 @@ input[type=text], input[type=email], input[type=password] {
   border: 1px solid var(--borde);
   border-radius: 13px;
   color: var(--texto);
-  font-size: 16px; /* 16px evita que el iPhone haga zoom al escribir */
+  font-size: var(--letra-campo); /* 16px evita que el iPhone haga zoom al escribir */
   font-family: inherit;
   margin-bottom: 18px;
   -webkit-user-select: text; user-select: text;
@@ -2089,7 +2158,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 /* ---------- 10. PANEL DE CUENTA ---------- */
 .panel-datos input { margin-bottom: 8px; }
 
-.sesion-estado { font-size: 12px; margin-top: 10px; line-height: 1.5; }
+.sesion-estado { font-size: var(--letra-secundaria); margin-top: 10px; line-height: 1.5; }
 .sesion-estado.error { color: var(--peligro); }
 .sesion-estado.bien  { color: var(--exito); }
 
@@ -2148,17 +2217,20 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   background: none;
   color: var(--acento);
   font-family: inherit;
-  font-size: 16px; font-weight: 600;
+  font-size: var(--letra-cuerpo); font-weight: 600;
   cursor: pointer;
 }
 
 .cal-titulo-caja { flex: 1; min-width: 0; text-align: center; }
 
 .cal-mes {
-  font-size: 13px;
+  font-size: var(--letra-secundaria);
   color: var(--texto-suave);
-  text-transform: capitalize;
 }
+/* Solo la primera letra en mayúscula (v33). Hasta la v32 era
+   text-transform: capitalize, que pone mayúscula a CADA palabra y dejaba
+   "Octubre De 2026". ::first-letter sirve porque .cal-mes es un bloque. */
+.cal-mes::first-letter { text-transform: uppercase; }
 
 .cal-flecha {
   background: var(--fondo);
@@ -2184,7 +2256,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 
 .cal-nombres {
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: var(--letra-mini);
   font-weight: 600;
   color: var(--texto-suave);
   text-align: center;
@@ -2198,7 +2270,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
   background: var(--fondo);
   color: var(--texto-suave);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--letra-secundaria);
   font-weight: 600;
   cursor: pointer;
   display: grid; place-items: center;
@@ -2243,7 +2315,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 }
 
 .anio-mes-nombre {
-  font-size: 11px;
+  font-size: var(--letra-mini);
   font-weight: 600;
   color: var(--texto-suave);
   margin-bottom: 5px;
@@ -2306,7 +2378,7 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
    min-height reserva el espacio de dos líneas desde el principio: sin eso,
    la ventana daría un salto cada vez que aparece o desaparece el texto. */
 .cal-ayuda {
-  font-size: 12px;
+  font-size: var(--letra-secundaria);
   line-height: 1.5;
   color: var(--texto-suave);
   margin-top: 12px;
@@ -2314,16 +2386,19 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 }
 
 .stat-numero {
-  font-size: 19px;
+  font-size: var(--letra-seccion);
   font-weight: 700;
   font-variant-numeric: tabular-nums;  /* que no bailen los números al cambiar */
 }
 
 .stat-etiqueta {
-  font-size: 10px;
+  font-size: var(--letra-mini);
   color: var(--texto-suave);
   text-transform: uppercase;
-  letter-spacing: .5px;
+  /* Sin espaciado extra (v33; antes .5px): con la escala, la letra subió
+     de 10 a 10,5px y "ÚLTIMOS" se salía 3px de su cuadro de 56px. Medido
+     en el navegador. */
+  letter-spacing: 0;
   margin-top: 3px;
   line-height: 1.3;
 }
@@ -4717,10 +4792,10 @@ function pintar() {
         <div class="vacio-emoji">🌱</div>
         <div>${t('vacioHabitos')}</div>
       </div>`;
-    document.getElementById('cajaProgreso').style.visibility = 'hidden';
+    document.getElementById('cajaProgreso').classList.add('sin-barra');
     return;
   }
-  document.getElementById('cajaProgreso').style.visibility = 'visible';
+  document.getElementById('cajaProgreso').classList.remove('sin-barra');
 
   // Barra de progreso del día
   const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
@@ -6452,9 +6527,13 @@ function cambiarVista(nueva) {
   // La franja de Hábitos se esconde en cualquier otra sección.
   pintarFranjaFechas();
 
-  // Fechas no tiene barra de progreso: un cumpleaños no "se completa". La
-  // caja entera la esconde el CSS (body.vista-fechas, sección 4d).
+  // Fechas no tiene barra de progreso: un cumpleaños no "se completa". Se
+  // queda solo el título de la sección (v33).
   if (enFechas) {
+    const etiqueta = document.getElementById('progresoEtiqueta');
+    etiqueta.textContent = t('fechas');
+    etiqueta.classList.remove('completo');
+    document.getElementById('cajaProgreso').classList.add('sin-barra');
     pintarFechas();
     return;
   }
@@ -6499,13 +6578,15 @@ function pintarLista() {
   // en todo el resto de la función.
   const reglas = TEXTOS_LISTA[vista];
 
-  // En Ideas se esconde la barra de progreso entera. No es un descuido: medir
+  // En Ideas se esconde la barra de progreso. No es un descuido: medir
   // cuántas ideas "llevas hechas" convertiría la lista en otra cosa que te
   // reclama. En Pendientes y Compras sí tiene sentido: ahí es algo que baja.
+  // El título de la sección se queda siempre (v33): solo se van la barra y
+  // la cuenta.
   if (!reglas.progreso) {
-    cajaProgreso.style.visibility = 'hidden';
+    cajaProgreso.classList.add('sin-barra');
   } else {
-    cajaProgreso.style.visibility = cuenta.total ? 'visible' : 'hidden';
+    cajaProgreso.classList.toggle('sin-barra', !cuenta.total);
     ponerProgreso(`${cuenta.hechas} ${t('de')} ${cuenta.total}`);
     document.getElementById('barra').style.width =
       (cuenta.total ? cuenta.hechas / cuenta.total * 100 : 0) + '%';

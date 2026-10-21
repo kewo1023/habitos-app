@@ -236,6 +236,13 @@ ok('y la etiqueta de la barra de progreso', $('progresoEtiqueta').textContent ==
 
 app.cambiarVista('ideas');
 ok('en Ideas el texto guía del campo está en inglés', $('tareaNueva').placeholder === 'What came to mind?');
+// v33: cada sección tiene título, también las que no tienen barra
+ok('Ideas tiene su título (en inglés)', $('progresoEtiqueta').textContent === 'Ideas');
+ok('pero sin la barra ni la cuenta', $('cajaProgreso').classList.contains('sin-barra'));
+app.cambiarVista('fechas');
+ok('Fechas también tiene título, y sin barra',
+   $('progresoEtiqueta').textContent === 'Dates' && $('cajaProgreso').classList.contains('sin-barra'));
+app.cambiarVista('ideas');
 
 app.cambiarVista('habitos');
 ok('y su etiqueta "Today"', $('progresoEtiqueta').textContent === 'Today');
@@ -717,7 +724,8 @@ ok('ni flecha → a Pendientes',
    tarjetasCompras.flatMap(x => x.querySelectorAll('.mover')).length === 0);
 ok('ni el subrayado de "tocar abre la ficha"',
    tarjetasCompras.every(x => !x.className.includes('idea')));
-ok('la barra de progreso sí se ve', $('cajaProgreso').style.visibility === 'visible');
+ok('la barra de progreso sí se ve', !$('cajaProgreso').classList.contains('sin-barra'));
+ok('y el título de la sección dice "Compras"', $('progresoEtiqueta').textContent === 'Compras');
 ok('y dice cuánto falta', $('progresoTexto').textContent === '0 de 2');
 
 // Tocar el TEXTO marca, como en Pendientes: en la tienda ese es el gesto.

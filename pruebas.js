@@ -1050,6 +1050,35 @@ ok('y antes del elegido (hoy elegido se rellena de azul)',
    cuerpoCss.indexOf('#fechasGrid .cal-dia.elegido {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.hoy {'));
 ok('y el día elegido le gana (va después en el CSS)',
    cuerpoCss.indexOf('#fechasGrid .cal-dia.elegido {') > cuerpoCss.indexOf('#fechasGrid .cal-dia.con-fecha {'));
+// --- La escala de letra (v33): ningún tamaño de letra escrito a mano.
+// La misma idea que los colores: un 12.5px suelto es un paso de la escala
+// que nadie decidió. Solo se aceptan los dibujos hechos con letras (emojis,
+// flechas, la ✕, el número del puntito), que miden lo que mide el dibujo.
+const DIBUJOS = ['.habito-emoji', '.check', '.hito-numero', '.acciones button', '.borrar',
+  '.pestana .cuantas', '.nueva-tarea button', '.nota-barra button', '.mover', '.fecha-emoji',
+  '#modalFecha .emoji-op.quitable::after', '#modalFecha input.emoji-propio', '.vacio-emoji',
+  '.emoji-op', '.cal-flecha'];
+const tamanosSueltos = [...cuerpoCss.replace(/\/\*[\s\S]*?\*\//g, '')
+  .matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  .map(m => ({ selector: m[1].trim().replace(/\s+/g, ' '),
+               tamano: (/font-size:\s*([^;]+);/.exec(m[2]) || [])[1] }))
+  .filter(r => r.tamano && !r.tamano.startsWith('var(--letra-') && !DIBUJOS.includes(r.selector));
+ok('ningún texto tiene un tamaño de letra fuera de la escala' +
+   (tamanosSueltos.length ? ' -> ' + tamanosSueltos.map(r => r.selector + ' ' + r.tamano).join(', ') : ''),
+   tamanosSueltos.length === 0);
+const pasos = [...cuerpoCss.matchAll(/--letra-([a-z]+):\s*([\d.]+)px/g)];
+ok('la escala tiene sus pasos de mayor a menor (sin contar campo, que va aparte)',
+   pasos.filter(m => m[1] !== 'campo').every((m, i, a) => i === 0 || Number(m[2]) < Number(a[i - 1][2])));
+const usados = [...cuerpoCss.matchAll(/var\(--letra-([a-z]+)\)/g)].map(m => m[1]);
+ok('cada tamaño que se usa existe en la escala',
+   usados.every(u => pasos.some(m => m[1] === u)));
+ok('las tarjetas de todas las listas tienen el mismo título',
+   /\.tarea-texto\s*\{[^}]*var\(--letra-tarjeta\)/.test(cuerpoCss) &&
+   /\.habito-nombre\s*\{[^}]*var\(--letra-tarjeta\)/.test(cuerpoCss) &&
+   /\.fecha-titulo\s*\{[^}]*var\(--letra-tarjeta\)/.test(cuerpoCss));
+ok('los campos de texto no bajan de 16px (el iPhone haría zoom)',
+   Number((/--letra-campo:\s*([\d.]+)px/.exec(cuerpoCss) || [])[1]) >= 16);
+
 ok('los dos temas definen las mismas variables',
    (variables.match(/--[a-z-]+:/g) || []).length % 2 === 0);
 
