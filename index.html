@@ -2560,6 +2560,12 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <span class="sub-etiqueta" data-t="apariencia">Apariencia</span>
     <div class="segmentado tres" id="temas"></div>
 
+    <!-- v34. Encendidos de entrada. Con el iPhone en silencio no suenan
+         aunque estén encendidos: eso lo decide audioSession, en E4. -->
+    <span class="sub-etiqueta" data-t="sonidos">Sonidos</span>
+    <div class="segmentado dos" id="sonidosAjuste"></div>
+    <p class="nota" data-t="sonidosNota">Con el iPhone en silencio no suena nada, aunque estén encendidos.</p>
+
     <!-- El número de pendientes en el ícono. El texto y el botón los pone
          pintarInsignia() según el estado: no se puede / negado / sin
          preguntar / activado. -->
@@ -2987,6 +2993,8 @@ const TEXTOS = {
     ajustes: 'Ajustes', tuNombre: 'Tu nombre', phNombre: 'Para el saludo de arriba',
     idioma: 'Idioma', apariencia: 'Apariencia',
     temaAuto: 'Automático', temaClaro: 'Claro', temaOscuro: 'Oscuro',
+    sonidos: 'Sonidos', sonidosSi: 'Encendidos', sonidosNo: 'Apagados',
+    sonidosNota: 'Con el iPhone en silencio no suena nada, aunque estén encendidos.',
     insignia: 'Número en el ícono', activarInsignia: 'Activar',
     insigniaApagada: 'Muestra en el ícono de la app cuántos pendientes te faltan, ' +
                      'como los correos sin leer. El iPhone te va a pedir permiso de ' +
@@ -3134,6 +3142,8 @@ const TEXTOS = {
     ajustes: 'Settings', tuNombre: 'Your name', phNombre: 'For the greeting above',
     idioma: 'Language', apariencia: 'Appearance',
     temaAuto: 'Automatic', temaClaro: 'Light', temaOscuro: 'Dark',
+    sonidos: 'Sounds', sonidosSi: 'On', sonidosNo: 'Off',
+    sonidosNota: "With your iPhone on silent, nothing plays even when they're on.",
     insignia: 'Number on the icon', activarInsignia: 'Turn on',
     insigniaApagada: "Shows on the app icon how many to-dos you have left, like " +
                      "unread emails. Your iPhone will ask for notification " +
@@ -3191,6 +3201,12 @@ const TEMAS = [
   { id: 'oscuro', clave: 'temaOscuro' }
 ];
 
+// v34. El id es true/false porque eso es lo que se guarda en prefs.sonidos.
+const OPCIONES_SONIDO = [
+  { id: true,  clave: 'sonidosSi' },
+  { id: false, clave: 'sonidosNo' }
+];
+
 /* El idioma con el que el navegador escribe las fechas ("viernes, 7 de agosto"
    contra "Friday, August 7"). Lleva país y no solo idioma a propósito: "es" a
    secas deja al navegador elegir convenciones, y con "es-CO" / "en-US" sabes
@@ -3232,7 +3248,10 @@ const PREFS_POR_DEFECTO = { idioma: 'es', tema: 'auto', nombre: '', ultimaCopia:
                             proximasPlegadas: false,
                             // v32: los emojis que quitaste de la fila de
                             // Ícono de las fechas. También es de este teléfono.
-                            emojisOcultos: [] };
+                            emojisOcultos: [],
+                            // v34: si suenan los sonidos. Encendidos de
+                            // entrada; también es de este teléfono.
+                            sonidos: true };
 
 const datosPorDefecto = {
   version: 1, habitos: [], registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [],
@@ -3518,6 +3537,20 @@ function hitoDeRacha(antes, despues) {
   return HITOS.find(hito => antes < hito && despues >= hito) || 0;
 }
 
+// ¿Qué sonido toca después de tocar un hábito? (v34) Devuelve 'hito', 'dia',
+// 'habito' o null. Es la misma jerarquía que las animaciones: un toque, un
+// sonido, y si caben dos gana el más raro. El toque que completa el día no
+// suena "tin + acorde": suena solo el acorde. Y desmarcar no suena nunca.
+//
+// Vive aquí y no junto al sintetizador (E4) por la misma razón que
+// diaCompleto(): el sonido no se puede probar, la decisión sí.
+function sonidoDeHabito(marcando, hito, completoElDia) {
+  if (!marcando)     return null;
+  if (hito)          return 'hito';
+  if (completoElDia) return 'dia';
+  return 'habito';
+}
+
 /* La "fuerza" del hábito, de 0 a 100. La idea viene de Loop Habit Tracker.
    (Es la idea, no su código: la fórmula es matemática pública y está escrita
    aquí desde cero.)
@@ -3654,11 +3687,15 @@ function alternarFecha(idHabito, fecha) {
   // hito es el más raro de los dos, así que es el que no hay que perderse.
   const deHoy = marcando && fecha === hoy();
   const hito = deHoy ? hitoDeRacha(rachaAntes, calcularRacha(idHabito)) : 0;
+  const completoElDia = deHoy && !estabaCompleto && diaCompleto(fecha);
   if (hito) {
     celebrarHito(idHabito, hito);
-  } else if (deHoy && !estabaCompleto && diaCompleto(fecha)) {
+  } else if (completoElDia) {
     celebrarDiaCompleto();
   }
+  // El sonido sigue la misma jerarquía (v34), pero va aparte: con "reducir
+  // movimiento" la animación se encoge y el sonido no tiene por qué.
+  sonar(sonidoDeHabito(marcando, hito, completoElDia));
   return true;
 }
 
@@ -4876,7 +4913,7 @@ function pintar() {
         texto:  t('borrarHabitoTexto'),
         accion: t('borrar')
       });
-      if (si) borrarHabito(h.id);
+      if (si) { borrarHabito(h.id); sonar('desechar'); }
     };
     // El emoji hace dos cosas distintas según el modo: en uso normal abre
     // el calendario; en modo edición te deja cambiarlo. Es el mismo criterio
@@ -5282,6 +5319,167 @@ function lanzarEstallido() {
   }
 
   setTimeout(() => { capaConfeti.innerHTML = ''; }, 2000);
+}
+
+/* ---------- E4. LOS SONIDOS (v34) ----------
+   Ningún sonido es un archivo. Cada uno es una receta (qué notas, cuándo
+   empieza cada una, cuánto dura) que el navegador toca con su propio
+   sintetizador, la Web Audio API. Es la diferencia de Excel entre escribir
+   un número a mano y escribir la fórmula que lo calcula: no hay archivos que
+   guardar para funcionar sin internet ni licencias que revisar, y cambiar un
+   sonido es cambiar un número.
+
+   Kev los eligió en una maqueta, escuchándolos en el iPhone (24 de octubre).
+   Tres tamaños a propósito, igual que las animaciones: lo que pasa 6 veces
+   al día es corto (Campanita, Burbuja); lo de una vez al día celebra
+   (Acorde que sube); lo de pocas veces al año celebra más (Escalera).
+   Desechar (Barrido) no lleva notas, es ruido que baja: lo que sube
+   celebra, lo que baja se va.
+
+   Dos cosas del iPhone explican cómo está escrito:
+   1. El audio nace bloqueado y solo se abre dentro de un toque. Por eso el
+      sintetizador se crea la primera vez que hace falta (que siempre es
+      dentro de un toque) y no al arrancar la app.
+   2. audioSession 'ambient' le dice a iOS que son sonidos de ambiente: se
+      mezclan con tu música sin cortarla y obedecen al modo silencio. Con
+      'playback' sonarían en silencio, pero pararían tu música.          */
+
+const VOLUMEN_SONIDOS = 0.7;   // el 70 % de la maqueta, con el que se eligieron
+
+try {
+  if ('audioSession' in navigator) navigator.audioSession.type = 'ambient';
+} catch (e) { /* si el navegador no deja elegir, decide él */ }
+
+let audioCtx = null, audioSalida = null, audioEco = null, audioRuido = null;
+
+// Crea el sintetizador la primera vez y lo despierta las siguientes.
+// Devuelve null si el navegador no tiene Web Audio (las pruebas, por ejemplo).
+function prepararAudio() {
+  if (!audioCtx) {
+    const Sintetizador = window.AudioContext || window.webkitAudioContext;
+    if (!Sintetizador) return null;
+    audioCtx = new Sintetizador();
+    // Un compresor al final: cuando suenan varias notas a la vez (el acorde)
+    // las aplana un poco para que no saturen el parlante.
+    const compresor = audioCtx.createDynamicsCompressor();
+    compresor.threshold.value = -18; compresor.knee.value = 12; compresor.ratio.value = 4;
+    audioSalida = audioCtx.createGain();
+    audioSalida.gain.value = VOLUMEN_SONIDOS;
+    audioSalida.connect(compresor);
+    compresor.connect(audioCtx.destination);
+    audioEco = crearEco();
+    // Un sonido mudo que dura una sola muestra: en iOS es lo que termina de
+    // abrir la puerta del audio.
+    const mudo = audioCtx.createBufferSource();
+    mudo.buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    mudo.connect(audioCtx.destination);
+    mudo.start(0);
+  }
+  // Al volver de otra app, iOS deja el audio "interrumpido": hay que reanudarlo.
+  if (audioCtx.state !== 'running') audioCtx.resume();
+  return audioCtx;
+}
+
+// Un eco suave para los dos sonidos grandes (día completo e hito). Se crea
+// una sola vez: un eco es un circuito que se realimenta y no se apaga nunca,
+// así que crear uno por sonido los iría acumulando.
+function crearEco() {
+  const entrada  = audioCtx.createGain();
+  const retraso  = audioCtx.createDelay(1);  retraso.delayTime.value = 0.16;
+  const vuelta   = audioCtx.createGain();    vuelta.gain.value = 0.28;
+  const filtro   = audioCtx.createBiquadFilter();
+  filtro.type = 'lowpass'; filtro.frequency.value = 3500;
+  const mezcla   = audioCtx.createGain();    mezcla.gain.value = 0.3;
+  entrada.connect(audioSalida);
+  entrada.connect(retraso);
+  retraso.connect(filtro);
+  filtro.connect(vuelta);  vuelta.connect(retraso);   // la vuelta: eco del eco
+  filtro.connect(mezcla);  mezcla.connect(audioSalida);
+  return entrada;
+}
+
+// Una nota: sube en `ataque` segundos y se apaga sola al cabo de `dur`.
+// `hasta` hace que el tono resbale hacia otra frecuencia (la burbuja).
+function tocarNota(frecuencia, inicio, dur, { tipo = 'sine', vol = 0.3, ataque = 0.005,
+                   hasta = null, barrido = 0.06, destino = audioSalida } = {}) {
+  const oscilador = audioCtx.createOscillator(), volumen = audioCtx.createGain();
+  oscilador.type = tipo;
+  oscilador.frequency.setValueAtTime(frecuencia, inicio);
+  if (hasta) oscilador.frequency.exponentialRampToValueAtTime(hasta, inicio + barrido);
+  volumen.gain.setValueAtTime(0.0001, inicio);
+  volumen.gain.exponentialRampToValueAtTime(vol, inicio + ataque);
+  volumen.gain.exponentialRampToValueAtTime(0.0001, inicio + dur);
+  oscilador.connect(volumen);
+  volumen.connect(destino);
+  oscilador.start(inicio);
+  oscilador.stop(inicio + dur + 0.02);
+}
+
+// Una campana no es una nota sola: suenan su tono y dos más agudos que no
+// encajan del todo (2,76 y 5,4 veces la frecuencia), y esos se apagan antes.
+function tocarCampana(frecuencia, inicio, dur, vol, destino = audioSalida) {
+  [[1, 1, 1], [2.76, 0.32, 0.45], [5.4, 0.1, 0.25]].forEach(([veces, cuanto, cuantoDura]) => {
+    tocarNota(frecuencia * veces, inicio, dur * cuantoDura,
+              { vol: vol * cuanto, ataque: 0.003, destino });
+  });
+}
+
+// Ruido filtrado: un "shhh" al que el filtro le da color. Si el filtro se
+// mueve de agudo a grave, suena a algo que se aleja.
+function tocarRuido(inicio, dur, { vol = 0.3, desde = 1000, hasta = null, q = 1, ataque = 0.004 } = {}) {
+  if (!audioRuido) {
+    audioRuido = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+    const muestras = audioRuido.getChannelData(0);
+    for (let i = 0; i < muestras.length; i++) muestras[i] = Math.random() * 2 - 1;
+  }
+  const fuente = audioCtx.createBufferSource();
+  fuente.buffer = audioRuido;
+  const filtro = audioCtx.createBiquadFilter();
+  filtro.type = 'bandpass'; filtro.Q.value = q;
+  filtro.frequency.setValueAtTime(desde, inicio);
+  if (hasta) filtro.frequency.exponentialRampToValueAtTime(hasta, inicio + dur);
+  const volumen = audioCtx.createGain();
+  volumen.gain.setValueAtTime(0.0001, inicio);
+  volumen.gain.exponentialRampToValueAtTime(vol, inicio + ataque);
+  volumen.gain.exponentialRampToValueAtTime(0.0001, inicio + dur);
+  fuente.connect(filtro); filtro.connect(volumen); volumen.connect(audioSalida);
+  fuente.start(inicio);
+  fuente.stop(inicio + dur + 0.02);
+}
+
+// Las notas por su nombre, para que las recetas se lean como música:
+// [DO5, MI5, SOL5, DO6] es un acorde; [523.25, 659.25, ...] es un acertijo.
+const DO5 = 523.25, MI5 = 659.25, SOL5 = 783.99, DO6 = 1046.5,
+      MI6 = 1318.51, SOL6 = 1567.98, DO7 = 2093;
+
+// Las cinco recetas. Cada una recibe el instante en que debe empezar.
+const SONIDOS = {
+  // Campanita: un "tin" claro de 0,4 s.
+  habito: inicio => tocarCampana(SOL6, inicio, 0.4, 0.22),
+  // Burbuja: más grave y redonda que la campanita, para que el oído
+  // distinga una tarea de un hábito sin mirar.
+  tarea: inicio => tocarNota(420, inicio, 0.16, { hasta: 900, barrido: 0.1, vol: 0.32 }),
+  // Acorde que sube: Do, Mi, Sol, Do, y el último se queda sonando.
+  dia: inicio => [DO5, MI5, SOL5, DO6].forEach((frecuencia, i) =>
+    tocarNota(frecuencia, inicio + i * 0.09, i === 3 ? 1.1 : 0.5,
+              { tipo: 'triangle', vol: 0.2, destino: audioEco })),
+  // Escalera: el mismo arpegio, dos pisos más arriba.
+  hito: inicio => [DO5, MI5, SOL5, DO6, MI6, SOL6, DO7].forEach((frecuencia, i) =>
+    tocarNota(frecuencia, inicio + i * 0.075, i === 6 ? 1.4 : 0.45,
+              { tipo: 'triangle', vol: 0.17, destino: audioEco })),
+  // Barrido: un soplido que baja y se aleja.
+  desechar: inicio => tocarRuido(inicio, 0.35, { desde: 3200, hasta: 450, q: 1.8, vol: 0.4, ataque: 0.02 })
+};
+
+// La única puerta de entrada. Quien quiere un sonido dice cuál y nada más:
+// si están apagados en Ajustes, si no hay audio o si `cual` es null, no
+// suena y ya. Un sonido nunca debe poder romper un toque.
+function sonar(cual) {
+  if (!cual || !SONIDOS[cual]) return;
+  if (datos.prefs.sonidos === false) return;
+  const sintetizador = prepararAudio();
+  if (!sintetizador) return;
+  try { SONIDOS[cual](sintetizador.currentTime + 0.01); } catch (e) { /* silencio */ }
 }
 
 /* ---------- F0. EMOJIS (lógica pura, se prueba) ----------
@@ -6687,6 +6885,9 @@ function pintarLista() {
     }
 
     const marcar = () => {
+      // El sonido sale en el acto y no al terminar la pausa del tachado
+      // (v34): responde a tu dedo, no al reordenar. Desmarcar no suena.
+      if (!item.hecha) sonar('tarea');
       // Desmarcar, o con "reducir movimiento" activado: como siempre, sin pausa.
       if (item.hecha || menosMovimiento()) {
         tareaRecienMovida = item.hecha ? null : item.id;   // solo al completarla
@@ -6728,7 +6929,7 @@ function pintarLista() {
       if (nuevo !== null) renombrarTarea(item.id, nuevo);
     };
 
-    tarjeta.querySelector('.borrar').onclick = () => borrarTarea(item.id);
+    tarjeta.querySelector('.borrar').onclick = () => { borrarTarea(item.id); sonar('desechar'); };
 
     // Tocar la franja sube la importancia un nivel y da la vuelta al llegar
     // abajo. Como la lista se reordena sola, la tarjeta puede irse de sitio en
@@ -6779,6 +6980,9 @@ function pintarLista() {
     btn.onclick = async () => {
       if (await confirmar({ titulo: t('confirmLimpiar'), accion: t('borrar') })) {
         limpiarHechas(listaActual);
+        // Después de que dices "Borrar", nunca antes: si suena y luego
+        // cancelas, la app te habría dicho algo que no pasó. (v34)
+        sonar('desechar');
       }
     };
     tareasCuerpo.appendChild(btn);
@@ -6998,6 +7202,7 @@ document.getElementById('fichaBorrar').onclick = async () => {
   });
   if (!si) return;
   borrarTarea(id);
+  sonar('desechar');
   cerrarFicha();
 };
 
@@ -7051,6 +7256,15 @@ function cambiarTema(id) {
   pintarAjustes();
 }
 
+// Al encenderlos suena una muestra (v34): confirma que funcionan y, en el
+// iPhone, ese mismo toque es el que abre el audio.
+function cambiarSonidos(si) {
+  datos.prefs.sonidos = si;
+  guardar();
+  pintarAjustes();
+  sonar(si ? 'habito' : null);
+}
+
 /* Redibuja la app entera. Hace falta al cambiar de idioma porque los textos
    están repartidos en cuatro sitios que se dibujan por separado: la pantalla
    de hábitos, la lista en la que estés, el panel de cuenta y los propios
@@ -7101,6 +7315,17 @@ function pintarAjustes() {
     cajaTemas.appendChild(boton);
   });
   ponerPildora(cajaTemas, TEMAS.findIndex(x => x.id === datos.prefs.tema));
+
+  const cajaSonidos = document.getElementById('sonidosAjuste');
+  cajaSonidos.innerHTML = '';
+  OPCIONES_SONIDO.forEach(opcion => {
+    const boton = document.createElement('button');
+    boton.textContent = t(opcion.clave);
+    boton.className = datos.prefs.sonidos === opcion.id ? 'activo' : '';
+    boton.onclick = () => cambiarSonidos(opcion.id);
+    cajaSonidos.appendChild(boton);
+  });
+  ponerPildora(cajaSonidos, OPCIONES_SONIDO.findIndex(x => x.id === datos.prefs.sonidos));
 
   document.getElementById('ajusteNombre').value = datos.prefs.nombre || '';
   pintarInsignia();
@@ -7602,6 +7827,7 @@ document.getElementById('fechaBorrar').onclick = async () => {
   const si = await confirmar({ titulo: t('borrarFechaTitulo'), texto: f.titulo, accion: t('borrar') });
   if (!si) return;
   borrarFecha(id);
+  sonar('desechar');
   cerrarFecha();
 };
 

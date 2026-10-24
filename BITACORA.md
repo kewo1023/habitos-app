@@ -2216,6 +2216,53 @@ todo"**.
 
 ---
 
+## 2026-10-24 — Sonidos (v34)
+
+**Hecho**
+- Kev pidió sonidos al marcar hábitos y tareas y al completar el día, y
+  propuso Freesound y howler.js. Evaluado: Freesound mezcla licencias (solo
+  CC0 es libre sin dar crédito; CC-BY-NC es la trampa) y howler.js no trae
+  sonidos, solo los reproduce. Se propuso generarlos con la Web Audio API:
+  sin archivos, sin licencias, sin dependencias.
+- Maqueta publicada como Artifact, con tres opciones por momento. Kev la
+  escuchó en el iPhone y pidió un quinto sonido para desechar (limpiar
+  hechas, borrar). Elección: Campanita, Burbuja, Acorde que sube, Escalera
+  y Barrido.
+- Sección E4 en `index.html` (el sintetizador y las cinco recetas),
+  `sonidoDeHabito()` en C, el ajuste Sonidos (`prefs.sonidos`) y los cinco
+  sitios donde se borra. Rama `v34-sonidos`.
+- Pruebas: 10 nuevas en `pruebas.js` (612) y 16 en `pruebas-app.js` (329),
+  con un sintetizador de mentira que cuenta notas. Seis roturas a
+  propósito en una copia (el día le gana al hito, ignorar Ajustes, sonar
+  antes de confirmar, sin `ambient`, desmarcar que suena, crear el audio al
+  arrancar): las seis pusieron algo en rojo.
+- Comprobado en el navegador: marcar crea el audio en estado "running" con
+  las 3 notas de la Campanita, desmarcar no suena y no hay errores en la
+  consola. El ajuste se ve igual que Idioma y Apariencia.
+
+**Pendiente / siguiente**
+- [ ] Probar la v34 en la app instalada: que suene, que el volumen quede
+      bien junto a la música, y que **con el iPhone en silencio no suene**
+      (lo único que la maqueta no podía confirmar).
+- [ ] Reactivar Supabase antes del 14 de diciembre (sin cambios).
+
+**Aprendizajes**
+- Patrón: "libre uso" en un sitio de recursos abarcaba tres licencias con
+  reglas distintas. Causa: la promesa es del sitio y la licencia es de cada
+  archivo. La próxima vez que se use un recurso de terceros, revisar la
+  licencia del archivo concreto, no la portada.
+- Patrón: un sonido no se puede oír en una prueba, pero se puede contar
+  (cuántas notas pidió). Causa: lo que importa probar es la decisión y la
+  conexión, no el timbre. La próxima vez que algo no se pueda observar en
+  una prueba, buscarle una huella que sí se pueda medir.
+
+**Siguiente paso exacto**
+
+- Kev prueba la v34 en el iPhone, con el interruptor de silencio en las
+  dos posiciones.
+
+---
+
 <!-- Plantilla para la próxima entrada:
 
 ## AAAA-MM-DD — Título

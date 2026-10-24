@@ -64,7 +64,9 @@ Object.defineProperty(globalThis, 'navigator', {
     storage: {
       persisted: async () => false,
       persist: async () => { pidioPersistencia = true; return true; }
-    }
+    },
+    // v34: el iPhone arranca en 'auto'; la app tiene que pedir 'ambient'.
+    audioSession: { type: 'auto' }
   }
 });
 global.location = { protocol: 'file:' };
@@ -84,6 +86,34 @@ global.window = {
   })
 };
 global.matchMedia = global.window.matchMedia;
+
+// El sintetizador de mentira (v34). Aquí no hay parlante: se cuenta cuántas
+// notas (osciladores) y cuántos ruidos le pide la app. Cada sonido deja su
+// huella: la Campanita son 3 notas, la Burbuja 1, el Acorde 4 y el Barrido
+// 0 notas y 1 ruido. Si se cambia una receta en la sección E4 de
+// index.html, hay que cambiar su huella en la sección 16 de aquí.
+const audio = { creados: 0, notas: 0, ruidos: 0 };
+class SintetizadorDeMentira {
+  constructor() {
+    audio.creados++;
+    this.state = 'suspended'; this.currentTime = 0; this.sampleRate = 44100; this.destination = {};
+  }
+  resume() { this.state = 'running'; return Promise.resolve(); }
+  nodo() {
+    const parametro = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} });
+    return { connect() {}, start() {}, stop() {}, type: '', buffer: null,
+             gain: parametro(), frequency: parametro(), Q: parametro(), delayTime: parametro(),
+             threshold: parametro(), knee: parametro(), ratio: parametro() };
+  }
+  createOscillator()         { audio.notas++;  return this.nodo(); }
+  createBufferSource()       { audio.ruidos++; return this.nodo(); }
+  createGain()               { return this.nodo(); }
+  createBiquadFilter()       { return this.nodo(); }
+  createDelay()              { return this.nodo(); }
+  createDynamicsCompressor() { return this.nodo(); }
+  createBuffer(canales, largo) { return { getChannelData: () => new Float32Array(largo) }; }
+}
+global.window.AudioContext = SintetizadorDeMentira;
 
 // Los colores calculados. El navegador de mentira no calcula estilos, así que
 // se leen las variables del bloque :root del tema activo directamente del
@@ -141,6 +171,9 @@ ok('la app arranca sin lanzar errores', true);   // si hubiera fallado, el eval 
 ok('arranca en la sección de Hábitos', app.vista === 'habitos');
 ok('los ajustes nacen con sus valores por defecto',
    app.datos.prefs.idioma === 'es' && app.datos.prefs.tema === 'auto');
+// iOS bloquea el audio que no nace de un toque: crear el sintetizador al
+// arrancar sería crearlo bloqueado. Se crea con el primer sonido.
+ok('arrancar no crea el sintetizador de sonidos', audio.creados === 0);
 
 // ===========================================================================
 // 2. El tema
@@ -1308,8 +1341,91 @@ async function pruebasDeFechas() {
   app.cambiarVista('habitos');
 }
 
+// ===========================================================================
+// 16. Los sonidos (v34)
+//     Qué sonido toca lo prueba pruebas.js. Aquí: que la app de verdad lo
+//     haga sonar (por su huella en el sintetizador de mentira), que el
+//     ajuste de Ajustes lo apague, y que borrar suene solo después de decir
+//     que sí.
+// ===========================================================================
+async function pruebasDeSonidos() {
+  const espera = ms => new Promise(listo => setTimeout(listo, ms));
+  let antes;
+  const marca = () => { antes = { notas: audio.notas, ruidos: audio.ruidos }; };
+  const cambio = () => `${audio.notas - antes.notas}/${audio.ruidos - antes.ruidos}`;
+
+  ok('el audio se declara de ambiente: obedece al modo silencio y no corta la música',
+     navigator.audioSession.type === 'ambient');
+
+  app.cambiarVista('habitos');
+  app.datos.habitos = []; app.datos.registros = {}; app.datos.fallos = {};
+  app.agregarHabito('Leer', '📖');
+  app.agregarHabito('Agua', '💧');
+  const [a, b] = app.datos.habitos.map(h => h.id);
+
+  marca();
+  app.alternarHoy(a);
+  ok('marcar un hábito suena la Campanita (3 notas)', audio.notas - antes.notas === 3);
+  ok('y el sintetizador se crea una sola vez', audio.creados === 1);
+  marca();
+  app.alternarHoy(b);
+  ok('el que completa el día suena solo el Acorde (4 notas, sin la Campanita)', cambio() === '4/0');
+  app.irseSello();
+  await espera(700);
+  marca();
+  app.alternarHoy(b);
+  ok('desmarcar no suena', cambio() === '0/0');
+
+  // --- Ajustes
+  const botones = () => $('sonidosAjuste').children;
+  ok('Ajustes tiene "Sonidos" con dos opciones', botones().length === 2 &&
+     botones()[0].textContent === 'Encendidos' && botones()[1].textContent === 'Apagados');
+  ok('y nace en Encendidos', botones()[0].classList.contains('activo'));
+  botones()[1].onclick();
+  ok('tocar Apagados lo guarda', app.datos.prefs.sonidos === false &&
+     JSON.parse(almacen['habitos-app-v1']).prefs.sonidos === false);
+  marca();
+  app.alternarHoy(b);
+  app.irseSello();
+  await espera(700);
+  ok('con los sonidos apagados, marcar no suena', cambio() === '0/0');
+  app.alternarHoy(b);
+  marca();
+  botones()[0].onclick();
+  ok('al encenderlos suena una muestra', cambio() === '3/0');
+  app.cambiarIdioma('en');
+  ok('en inglés dice On y Off', botones()[0].textContent === 'On' && botones()[1].textContent === 'Off');
+  app.cambiarIdioma('es');
+
+  // --- Tareas: la Burbuja, en el acto y no tras la pausa del tachado
+  app.cambiarVista('compras');
+  app.agregarTarea('Pan', 'compras');
+  const tarjetaPan = () => $('tareasCuerpo').children
+    .find(x => x.querySelector('.tarea-texto') && x.querySelector('.tarea-texto').textContent.includes('Pan'));
+  marca();
+  tarjetaPan().querySelector('.check').click();
+  ok('marcar una tarea suena la Burbuja en el acto (1 nota)', cambio() === '1/0');
+  await espera(app.PAUSA_TACHADO + 50);
+
+  // --- Desechar: solo después del "Borrar"
+  const limpiar = () => $('tareasCuerpo').children.find(x => x.classList.contains('limpiar-hechas'));
+  marca();
+  limpiar().onclick();
+  ok('abrir la pregunta de limpiar no suena todavía', cambio() === '0/0');
+  $('confirmarNo').click();
+  await espera(0);
+  ok('cancelar no suena', cambio() === '0/0');
+  await espera(230);
+  limpiar().onclick();
+  $('confirmarSi').click();
+  await espera(0);
+  ok('decir Borrar suena el Barrido (0 notas, 1 ruido)', cambio() === '0/1');
+  await espera(230);
+  app.cambiarVista('habitos');
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeFechas).then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

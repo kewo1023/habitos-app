@@ -36,12 +36,16 @@ global.celebrarDiaCompleto = () => { global.confetisLanzados++; };
 // Lo mismo con la medalla del hito de racha: se anota cuál hito se pidió.
 global.hitosCelebrados = [];
 global.celebrarHito = (id, dias) => { global.hitosCelebrados.push(dias); };
+// Y con los sonidos (v34): aquí no suena nada, pero se anota cuál se pidió.
+// null también se anota: es la respuesta de "este toque no suena".
+global.sonidosPedidos = [];
+global.sonar = cual => { global.sonidosPedidos.push(cual); };
 let ultimaAlerta = null;
 global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1412,6 +1416,54 @@ marcarDias(hHito, 29, 1);
 ctx.alternarHoy(hHito);
 ok('llegar a 30 con otro hábito sin marcar celebra igual',
    global.hitosCelebrados.join() === '30' && !ctx.diaCompleto(ctx.hoy()));
+
+// ============================================================
+//  LOS SONIDOS (v34): sonidoDeHabito() y quién lo pide
+//  El sonido no se puede oír aquí. Lo que se prueba es la decisión:
+//  un toque, un sonido, y si caben dos gana el más raro.
+// ============================================================
+ok('marcar un hábito suena "habito"',            ctx.sonidoDeHabito(true, 0, false) === 'habito');
+ok('el toque que completa el día suena solo "dia"', ctx.sonidoDeHabito(true, 0, true) === 'dia');
+ok('un hito le gana al día completo',            ctx.sonidoDeHabito(true, 7, true) === 'hito');
+ok('y suena aunque el día no quede completo',    ctx.sonidoDeHabito(true, 30, false) === 'hito');
+ok('desmarcar no suena nunca',                   ctx.sonidoDeHabito(false, 0, false) === null);
+
+// Ya dentro de alternarFecha(): lo que se pidió, en orden.
+const limpioSonidos = () => { limpioHitos(); global.sonidosPedidos = []; };
+
+limpioSonidos();
+ctx.agregarHabito('Leer', '📖');
+ctx.agregarHabito('Agua', '💧');
+const [sA, sB] = ctx.datos.habitos.map(h => h.id);
+ctx.alternarHoy(sA);
+ctx.alternarHoy(sB);
+ctx.alternarHoy(sB);   // desmarcar
+ok('marcar, completar el día y desmarcar piden "habito", "dia" y nada',
+   global.sonidosPedidos.join() === 'habito,dia,');
+
+limpioSonidos();
+ctx.agregarHabito('Leer', '📖');
+const sHito = ctx.datos.habitos[0].id;
+marcarDias(sHito, 6, 1);
+global.sonidosPedidos = [];   // marcarDias también pasa por alternarFecha
+ctx.alternarHoy(sHito);
+ok('el séptimo día suena "hito" y nada más', global.sonidosPedidos.join() === 'hito');
+
+limpioSonidos();
+ctx.agregarHabito('Leer', '📖');
+ctx.alternarFecha(ctx.datos.habitos[0].id, ctx.haceNDias(1));
+ok('corregir un día pasado suena como un hábito, no como día completo',
+   global.sonidosPedidos.join() === 'habito');
+
+limpioSonidos();
+ctx.agregarHabito('Leer', '📖');
+const sFallo = ctx.datos.habitos[0].id;
+ctx.alternarHoy(sFallo);
+global.sonidosPedidos = [];
+ctx.alternarFalloHoy(sFallo);   // de ✓ a ✗ desmarca por dentro
+ok('poner un ✗ no suena', global.sonidosPedidos.every(x => x === null));
+
+ok('los sonidos nacen encendidos', ctx.PREFS_POR_DEFECTO.sonidos === true);
 
 // ============================================================
 //  EL COLOR DE CADA HÁBITO: quitado en la v24

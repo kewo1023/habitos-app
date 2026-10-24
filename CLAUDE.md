@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 602 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 313 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 612 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 329 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -862,6 +862,47 @@ pantalla, agregarlo a `pruebas-app.js`.
     mayúscula a cada palabra; ahora `::first-letter`), y "ÚLTIMOS 30 DÍAS"
     se salía 3px de su cuadro al subir a 10,5px (espaciado a 0). Con la racha
     visible, los puntos del historial siguen en los 11px de Kev (medido).
+- **Fase 3.21 — Sonidos (v34)** Pedido de Kev el 24 de octubre. Evaluado
+  con los cuatro ejes y elegidos en una maqueta escuchada en el iPhone.
+  **No hay SQL que correr.**
+  - **Decisión clave: los sonidos se generan con código** (Web Audio API),
+    no son archivos. Kev propuso Freesound y howler.js: Freesound mezcla
+    licencias (CC0, CC-BY, CC-BY-NC) y howler.js reproduce pero no trae
+    sonidos, y sería la primera dependencia. Generados: nada que guardar en
+    `sw.js`, ninguna licencia, y se ajustan cambiando un número. Sección
+    **E4**.
+  - Los cinco, elegidos por Kev: hábito **Campanita**, tarea **Burbuja**
+    (Pendientes, Ideas y Compras), día completo **Acorde que sube**, hito
+    **Escalera** y desechar **Barrido**. Tres tamaños, como las
+    animaciones; desechar es ruido que baja, sin notas: lo que sube
+    celebra, lo que baja se va.
+  - **Decisión clave: un toque, un sonido.** El que completa el día suena
+    solo el acorde; si además llega a un hito, solo el hito. Desmarcar y el
+    ✗ no suenan. La decisión es `sonidoDeHabito()` (sección C, probada) y
+    se pide en `alternarFecha()`, junto a las animaciones.
+  - Desechar suena **después** del "Borrar" del cuadro de confirmar, nunca
+    antes; si cancelas, nada. Cinco sitios: limpiar hechas, borrar hábito,
+    ✕ de una tarea, borrar desde la ficha y borrar una fecha. Quitar un
+    emoji (lo esconde) y restaurar una copia no suenan.
+  - La tarea suena **al tocar**, no al terminar `PAUSA_TACHADO`.
+  - **Decisión clave: `navigator.audioSession.type = 'ambient'`.** Obedece
+    al modo silencio y se mezcla con la música sin cortarla. `'playback'`
+    sonaría en silencio, pero pararía la música. **Sin confirmar en la app
+    instalada:** la maqueta corría dentro de Claude.
+  - El sintetizador se crea con el **primer sonido**, nunca al arrancar:
+    iOS bloquea el audio que no nace de un toque. Un test lo vigila.
+  - Ajuste **Sonidos** (Encendidos / Apagados) en Ajustes:
+    `datos.prefs.sonidos`, de este teléfono, no viaja. Encenderlos suena
+    una muestra.
+  - **Ojo al cambiar una receta:** `pruebas-app.js` tiene un sintetizador
+    de mentira que cuenta notas y ruidos, y cada sonido tiene su huella
+    (Campanita 3 notas, Burbuja 1, Acorde 4, Barrido 1 ruido). Si se cambia
+    una receta en E4, hay que cambiar su huella en la sección 16.
+  - Las opciones descartadas (Gota, Madera, Dos notas, Tachón, Campanas,
+    Fanfarria, Destello, Papel arrugado, A la papelera) siguen en la
+    maqueta, por si un día se quiere afinar.
+  - `pintarAjustes()` tiene ya tres bloques casi iguales (idioma, tema,
+    sonidos). Si aparece un cuarto, sacarlos a una función común.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -928,6 +969,10 @@ fondo y escala de letra, Fase 3.20), construida en la rama `v33-notas` el
 merge a `main` (commit `79a7b9b`), publicada el mismo día y comprobada en
 el sitio en vivo (`sw.js` en v33, sin errores al arrancar). **Probada en
 la app instalada del iPhone** (Kev lo confirmó el mismo día). Sin SQL.
+**`v34`** (sonidos, Fase 3.21), construida en la rama `v34-sonidos` el 24
+de octubre de 2026, después de que Kev eligiera los cinco sonidos en la
+maqueta. Falta probarla en la app instalada, sobre todo que no suene con
+el iPhone en silencio. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
