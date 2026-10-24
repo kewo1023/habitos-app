@@ -2241,6 +2241,9 @@ todo"**.
   consola. El ajuste se ve igual que Idioma y Apariencia.
 
 **Pendiente / siguiente**
+- [x] Merge de `v34-sonidos` a `main` (`0114db7`), push, y comprobado en
+      el sitio en vivo: `sw.js` en v34, las cinco recetas cargadas, el
+      ajuste Sonidos presente, sin errores en la consola.
 - [ ] Probar la v34 en la app instalada: que suene, que el volumen quede
       bien junto a la música, y que **con el iPhone en silencio no suene**
       (lo único que la maqueta no podía confirmar).

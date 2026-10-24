@@ -971,8 +971,10 @@ el sitio en vivo (`sw.js` en v33, sin errores al arrancar). **Probada en
 la app instalada del iPhone** (Kev lo confirmó el mismo día). Sin SQL.
 **`v34`** (sonidos, Fase 3.21), construida en la rama `v34-sonidos` el 24
 de octubre de 2026, después de que Kev eligiera los cinco sonidos en la
-maqueta. Falta probarla en la app instalada, sobre todo que no suene con
-el iPhone en silencio. Sin SQL.
+maqueta. Merge a `main` (commit `0114db7`), publicada el mismo día y
+comprobada en el sitio en vivo (`sw.js` en v34, las cinco recetas
+cargadas, sin errores al arrancar). Falta probarla en la app instalada,
+sobre todo que no suene con el iPhone en silencio. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
