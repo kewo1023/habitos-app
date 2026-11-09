@@ -45,7 +45,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO,esMetaValida,metaSemanal,esSemanal,limpiarMetas,lunesDe,hechosEnSemana,metaDeLaSemana,semanaCumplida,valorDeSemana,rachaSemanal,mejorRachaSemanal,porcentajeSemanas,fuerzaSemanal,FUERZA_ALFA_SEMANA,HITOS_SEMANA,cambiarMeta}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO,esMetaValida,metaSemanal,esSemanal,limpiarMetas,lunesDe,hechosEnSemana,metaDeLaSemana,semanaCumplida,valorDeSemana,rachaSemanal,mejorRachaSemanal,porcentajeSemanas,fuerzaSemanal,FUERZA_ALFA_SEMANA,HITOS_SEMANA,cambiarMeta,habitosOrdenados}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -2040,6 +2040,39 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ctx.importar(copia);
   ok('la copia de seguridad trae la meta', ctx.metaSemanal('g') === 5);
   ok('y una meta inválida de la copia se borra al entrar', !('porSemana' in ctx.datos.habitos[1]));
+}
+
+// ============================================================================
+// v36 — LO QUE FALTA, ARRIBA
+// ============================================================================
+{
+  const H = id => ({ id, nombre: id, emoji: '✨', creado: '2026-01-01' });
+  ctx.datos = { habitos: ['a', 'b', 'c', 'd'].map(H), registros: {}, fallos: {}, tareas: [], pendientes: [], prefs: {} };
+  const dia = ctx.hoy();
+  const ver = () => ctx.habitosOrdenados(dia).map(h => h.id).join(',');
+
+  ok('sin marcas, el orden es el tuyo', ver() === 'a,b,c,d');
+  ctx.datos.registros[dia] = ['b'];
+  ok('el hecho baja al final', ver() === 'a,c,d,b');
+  ctx.datos.fallos[dia] = ['a'];
+  ok('el no logrado también baja', ver() === 'c,d,a,b');
+  ok('y abajo se respeta tu orden, no el de las marcas (a antes que b)', ver().endsWith('a,b'));
+  ctx.datos.registros[dia] = ['d', 'b'];
+  ok('el orden de abajo no depende de cuál marcaste primero', ver() === 'c,a,b,d');
+  ok('los datos no se tocan: datos.habitos sigue en tu orden',
+     ctx.datos.habitos.map(h => h.id).join(',') === 'a,b,c,d');
+  ok('todos marcados: vuelve a ser tu orden', (ctx.datos.registros[dia] = ['a', 'b', 'c', 'd'], ver() === 'a,b,c,d'));
+  // El día siguiente: las marcas de hoy no cuentan para mañana.
+  const manana = ctx.sumarDias(dia, 1);
+  ok('al día siguiente, todos vuelven a su orden',
+     ctx.habitosOrdenados(manana).map(h => h.id).join(',') === 'a,b,c,d');
+  // Un semanal con la meta cumplida pero sin marca hoy se queda arriba.
+  ctx.datos.habitos[2].porSemana = 2;
+  ctx.datos.registros = { [ctx.sumarDias(dia, -1)]: ['c'], [ctx.sumarDias(dia, -2)]: ['c'] };
+  ctx.datos.fallos = {};
+  ok('un semanal sin marca hoy sigue arriba aunque cumplió la semana', ver() === 'a,b,c,d');
+  ctx.datos.registros[dia] = ['c'];
+  ok('y baja si lo marcas hoy, como los diarios', ver() === 'a,b,d,c');
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
