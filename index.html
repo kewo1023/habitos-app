@@ -3564,9 +3564,12 @@ function diaCompleto(fecha) {
   return diarios.every(h => estaHecho(h.id, fecha));
 }
 
-/* El orden en que se VEN los hábitos (v36). Primero los que todavía no
-   tienen marca ese día; después los que ya la tienen, sea ✓ o ✗. Dentro de
-   cada grupo se respeta tu orden manual (el de las flechas ↑↓).
+/* El orden en que se VEN los hábitos (v36). Tres grupos, de arriba abajo:
+     1. los que todavía no tienen marca ese día (lo que falta),
+     2. los logrados (✓),
+     3. los no logrados (✗), al fondo: ya no hay nada que hacer con ellos.
+   Dentro de cada grupo se respeta tu orden manual (el de las flechas ↑↓).
+   Pedido de Kev al probarla: en la primera versión ✓ y ✗ iban mezclados.
 
    Es la misma idea que tareasOrdenadas() en Pendientes: el orden se CALCULA
    al dibujar, no se guarda. datos.habitos sigue intacto, como una hoja de
@@ -3577,9 +3580,13 @@ function diaCompleto(fecha) {
    Los semanales siguen la misma regla: bajan si tienen marca HOY, aunque la
    meta de la semana ya esté cumplida. Una sola regla para todos.          */
 function habitosOrdenados(fecha) {
-  const conMarca = h => estaHecho(h.id, fecha) || esFallo(h.id, fecha);
-  return datos.habitos.filter(h => !conMarca(h))
-    .concat(datos.habitos.filter(conMarca));
+  // El número del grupo de cada hábito: 0 arriba, 2 al fondo. Un día no
+  // puede ser ✓ y ✗ a la vez (alternarFecha lo impide), así que el orden de
+  // las preguntas no cambia nada; se pregunta primero por el ✓ por si acaso.
+  const grupo = h => estaHecho(h.id, fecha) ? 1 : esFallo(h.id, fecha) ? 2 : 0;
+  // sort es estable: a igual grupo, conserva el orden de datos.habitos, que
+  // es tu orden manual. El mismo apoyo que usa tareasOrdenadas().
+  return datos.habitos.slice().sort((a, b) => grupo(a) - grupo(b));
 }
 
 // Todas las fechas en que se marcó un hábito, ordenadas de vieja a nueva.

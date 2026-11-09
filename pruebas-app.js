@@ -1569,11 +1569,14 @@ async function pruebasDeOrden() {
   $('btnEditar').click();
   ok('al salir, lo que falta vuelve arriba', nombres() === 'Correr,Agua,Leer');
 
-  // --- el ✗ también baja, y desmarcar lo devuelve
-  app.alternarHoy(app.datos.habitos.find(h => h.nombre === 'Agua').id);
-  app.datos.fallos[app.hoy()] = [app.datos.habitos.find(h => h.nombre === 'Correr').id];
+  // --- tres grupos: lo que falta, los logrados y, al fondo, los no logrados.
+  // Tu orden manual ahora es Agua, Correr, Leer (la flecha subió a Correr).
+  const id = n => app.datos.habitos.find(h => h.nombre === n).id;
+  app.alternarHoy(id('Agua'));                     // Agua estaba ✓: queda vacío
+  app.datos.fallos[app.hoy()] = [id('Correr')];    // Correr ✗; Leer sigue ✓
   app.pintar();
-  ok('un no logrado también baja', nombres() === 'Agua,Correr,Leer');
+  ok('el no logrado va al fondo, debajo del logrado', nombres() === 'Agua,Leer,Correr');
+  ok('desmarcar devuelve el hábito arriba', nombres().startsWith('Agua'));
 }
 
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)

@@ -2055,10 +2055,10 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ctx.datos.registros[dia] = ['b'];
   ok('el hecho baja al final', ver() === 'a,c,d,b');
   ctx.datos.fallos[dia] = ['a'];
-  ok('el no logrado también baja', ver() === 'c,d,a,b');
-  ok('y abajo se respeta tu orden, no el de las marcas (a antes que b)', ver().endsWith('a,b'));
+  ok('el no logrado baja más que el logrado: va al fondo', ver() === 'c,d,b,a');
+  ok('aunque en tu orden el no logrado vaya antes (a antes que b)', ver().endsWith('b,a'));
   ctx.datos.registros[dia] = ['d', 'b'];
-  ok('el orden de abajo no depende de cuál marcaste primero', ver() === 'c,a,b,d');
+  ok('dentro de los logrados, tu orden, no el de cuál marcaste primero', ver() === 'c,b,d,a');
   ok('los datos no se tocan: datos.habitos sigue en tu orden',
      ctx.datos.habitos.map(h => h.id).join(',') === 'a,b,c,d');
   ok('todos marcados: vuelve a ser tu orden', (ctx.datos.registros[dia] = ['a', 'b', 'c', 'd'], ver() === 'a,b,c,d'));
@@ -2073,6 +2073,8 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ok('un semanal sin marca hoy sigue arriba aunque cumplió la semana', ver() === 'a,b,c,d');
   ctx.datos.registros[dia] = ['c'];
   ok('y baja si lo marcas hoy, como los diarios', ver() === 'a,b,d,c');
+  ctx.datos.fallos[dia] = ['a', 'd'];
+  ok('varios no logrados: al fondo y en tu orden', ver() === 'b,c,a,d');
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);
