@@ -131,6 +131,7 @@
      "hecho". Pero nunca va solo: siempre lleva una ✗ dibujada, para que se
      distinga también sin ver bien el rojo. */
   --fallo:        #ff7a7a;
+  --fallo-borde:  rgba(255,122,122,.30);   /* el borde de la tarjeta no lograda (v38) */
   /* El número encima del rojo sólido del calendario (v29). Oscuro, como el
      de --sobre-exito, porque este rojo es claro para brillar sobre negro, y un
      número blanco encima casi no se leería. */
@@ -202,6 +203,7 @@
   --prio-ninguna: #a1a9b8;   /* gris */
 
   --fallo:        #c0392b;
+  --fallo-borde:  rgba(192,57,43,.28);
   --sobre-fallo:  #ffffff;   /* este rojo es oscuro: el blanco encima se lee (5,4:1) */
 
   --brillo:       rgba(255,255,255,.75);
@@ -394,8 +396,24 @@ header { margin-bottom: 22px; }
   border-color: var(--exito-borde);
 }
 
-/* No logrado hoy: el nombre tachado y apagado. Lo que dice "no" es el
-   círculo rojo; el nombre solo se retira. */
+/* No logrado hoy (v38): la tarjeta se tiñe de rojo con la MISMA receta
+   que el verde de arriba (14% en la tarjeta, 22% en el emoji, borde a
+   ~30%). Antes solo cambiaban el círculo y el nombre, y a primera vista se
+   confundía con un hábito que todavía no marcas. Misma intensidad a
+   propósito: son dos respuestas al mismo "¿lo hiciste?", ninguna pesa más.
+   Sin plan B para Safaris viejos: si no entienden color-mix, la tarjeta se
+   queda blanca y el círculo rojo con su ✗ sigue diciendo "no". */
+.habito.fallo {
+  background: color-mix(in srgb, var(--fallo) 14%, var(--tarjeta));
+  border-color: var(--fallo-borde);
+}
+.habito.fallo .habito-emoji {
+  background: color-mix(in srgb, var(--fallo) 22%, var(--tarjeta));
+  border-color: var(--fallo-borde);
+}
+
+/* El nombre tachado y apagado. Lo que dice "no" es el color y el círculo;
+   el nombre solo se retira. */
 .habito.fallo .habito-nombre { color: var(--texto-suave); text-decoration: line-through; }
 
 /* "No logrado", en rojo, donde normalmente va la racha. */
@@ -2630,6 +2648,11 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
     <div class="panel-botones">
       <button class="btn-mini" id="btnInsignia" data-t="activarInsignia" hidden>Activar</button>
     </div>
+
+    <!-- v38. La versión instalada, al final: se mira solo para comprobar
+         que el teléfono ya trae lo último. La pone pintarAjustes(). -->
+    <span class="sub-etiqueta" data-t="versionApp">Versión</span>
+    <p class="nota" id="versionApp"></p>
   </section>
 
   <!-- Cuenta. También solo en modo edición: entrar es algo que se hace
@@ -2923,6 +2946,14 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
    Leelo de arriba a abajo, está en orden de importancia.
    ============================================================ */
 
+/* La versión de la app, la que se ve en Ajustes (v38). TIENE que ser igual
+   a VERSION en sw.js: esa es la que manda (decide qué copia guarda el
+   teléfono), y esta es solo para que tú la leas. Vive en dos archivos
+   porque el service worker y la página no comparten variables. Para que
+   no se separen sin avisar, pruebas-app.js compara las dos: si subes una
+   y olvidas la otra, se pone en rojo. */
+const VERSION_APP = 'v38';
+
 /* ---------- A0. LOS TEXTOS EN LOS DOS IDIOMAS ----------
    Aquí no hay ningún traductor automático: cada frase está escrita a mano en
    español y en inglés. Es más trabajo una vez y sale bien; un traductor
@@ -3094,6 +3125,7 @@ const TEXTOS = {
     temaAuto: 'Automático', temaClaro: 'Claro', temaOscuro: 'Oscuro',
     sonidos: 'Sonidos', sonidosSi: 'Encendidos', sonidosNo: 'Apagados',
     sonidosNota: 'Con el iPhone en silencio no suena nada, aunque estén encendidos.',
+    versionApp: 'Versión',
     insignia: 'Número en el ícono', activarInsignia: 'Activar',
     insigniaApagada: 'Muestra en el ícono de la app cuántos pendientes te faltan, ' +
                      'como los correos sin leer. El iPhone te va a pedir permiso de ' +
@@ -3269,6 +3301,7 @@ const TEXTOS = {
     temaAuto: 'Automatic', temaClaro: 'Light', temaOscuro: 'Dark',
     sonidos: 'Sounds', sonidosSi: 'On', sonidosNo: 'Off',
     sonidosNota: "With your iPhone on silent, nothing plays even when they're on.",
+    versionApp: 'Version',
     insignia: 'Number on the icon', activarInsignia: 'Turn on',
     insigniaApagada: "Shows on the app icon how many to-dos you have left, like " +
                      "unread emails. Your iPhone will ask for notification " +
@@ -7852,6 +7885,8 @@ function ponerPildora(caja, posicion) {
    en vez de escribir cinco botones en el HTML: agregar un idioma mañana es
    agregar un objeto a la lista, sin tocar ni el HTML ni esta función. */
 function pintarAjustes() {
+  document.getElementById('versionApp').textContent = VERSION_APP;
+
   const cajaIdiomas = document.getElementById('idiomas');
   cajaIdiomas.innerHTML = '';
   IDIOMAS.forEach(idioma => {
