@@ -2382,6 +2382,30 @@ ejes y construido en la rama `v36-orden`. **No hay SQL que correr.**
 - [ ] La rama `v36-orden` sigue en GitHub; ya está mezclada y se puede
   borrar desde la página del pull request.
 
+## 2026-11-09 — Rojo del no logrado y versión en Ajustes (v38)
+
+Kev probó la v37 en el iPhone (captura): el orden funciona, pero el no
+logrado se confundía con uno sin marcar. **No hay SQL que correr.**
+
+**Hecho**
+
+- `.habito.fallo` y su emoji se tiñen de rojo con la misma receta que el
+  verde (14% / 22%). Variable nueva `--fallo-borde` en los dos temas.
+  Comprobado en el navegador en claro y en oscuro.
+- `VERSION_APP = 'v38'` en `index.html`, visible al final de Ajustes
+  ("Versión"). `sw.js` también en v38. La sección 19 de `pruebas-app.js`
+  compara las dos; se separaron a propósito (v39 en el sw) y se puso en rojo.
+- **Descartado:** leer la versión del nombre de la caché del service
+  worker (`caches.keys()`). No necesita duplicar el número, pero es
+  asíncrono, depende de que el sw ya se haya instalado, y en la primera
+  apertura no hay nada que mostrar. Un número duplicado con una prueba que
+  lo vigila es más simple y no falla.
+- Pruebas: 694 en `pruebas.js` y 374 en `pruebas-app.js`.
+
+**Pendiente / siguiente**
+
+- [ ] Merge a `main`, publicar y comprobar en el iPhone que Ajustes diga v38.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

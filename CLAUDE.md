@@ -958,6 +958,16 @@ pantalla, agregarlo a `pruebas-app.js`.
     `traducirEstaticos()` lo reescribiría en cada `pintar()`.
   - En `pruebas-app.js`, no buscar una tarjeta de hábito por su posición:
     cambia según lo marcado.
+- **Fase 3.24 — Rojo del no logrado y versión en Ajustes (v38)** Pedido
+  de Kev el 9 de noviembre, con captura. **No hay SQL que correr.**
+  - La tarjeta no lograda se tiñe de rojo con **la misma receta que el
+    verde** (14% tarjeta, 22% emoji, borde `--fallo-borde` en los dos
+    temas). Antes solo cambiaban el círculo y el nombre, y se confundía con
+    un hábito sin marcar.
+  - **Versión en Ajustes**, al final: `VERSION_APP` (arriba de A0). **Tiene
+    que ser igual a `VERSION` de `sw.js`**; vive en los dos porque el
+    service worker y la página no comparten variables. La sección 19 de
+    `pruebas-app.js` las compara. **Al publicar, subir las dos.**
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -978,7 +988,7 @@ ruta exacta no se escribe aquí porque el repo es público y la carpeta ya se
 movió una vez. Se está migrando de "copiar y pegar en la
 web de GitHub" a **git desde VS Code** (commit + Sync); los pasos están en
 `PASOS-GIT.md`. Cada vez que cambien archivos ya publicados, **subir el número
-de `VERSION` en `sw.js`** o el iPhone puede seguir mostrando la versión vieja.
+de `VERSION` en `sw.js` y `VERSION_APP` en `index.html`** (desde la v38) o el iPhone puede seguir mostrando la versión vieja.
 `VERSION` publicada: `v20` (fuerza del hábito, mapa del año, tabla para Excel
 y número en el ícono), el 24 de septiembre de 2026. Comprobado en el sitio en
 vivo y **probada en el iPhone** (Kev lo confirmó el 13 de octubre).
@@ -1039,8 +1049,11 @@ la app instalada. Sin SQL.
 **`v36`** (lo que falta arriba, dos grupos) llegó a `main` por el pull
 request #1. **`v37`** (tres grupos: falta, ✓, ✗ al fondo; Fase 3.23),
 publicada el 9 de noviembre de 2026 y comprobada en el sitio en vivo
-(`sw.js` en v37, sin errores al arrancar). Falta probarla en la app
-instalada. Sin SQL.
+(`sw.js` en v37, sin errores al arrancar). Kev la probó en el iPhone
+(captura del mismo día). Sin SQL.
+**`v38`** (rojo del no logrado y versión en Ajustes, Fase 3.24),
+construida en la rama `v38-fallo-version` el 9 de noviembre de 2026.
+**Sin publicar todavía.** Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

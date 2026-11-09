@@ -153,7 +153,7 @@ eval(script + `
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
     TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarFicha,
     lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS,
-    cambiarMeta, lunesDe, sumarDias, META_POR_DEFECTO
+    cambiarMeta, lunesDe, sumarDias, META_POR_DEFECTO, VERSION_APP, pintarAjustes
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -1579,8 +1579,29 @@ async function pruebasDeOrden() {
   ok('desmarcar devuelve el hábito arriba', nombres().startsWith('Agua'));
 }
 
+// ===========================================================================
+// 19. Rojo del no logrado y versión en Ajustes (v38)
+// ===========================================================================
+function pruebasDeV38() {
+  // --- la versión: una sola verdad en dos archivos
+  const sw = fs.readFileSync(__dirname + '/sw.js', 'utf8');
+  const enSw = (sw.match(/const VERSION = '([^']+)'/) || [])[1];
+  ok(`VERSION_APP (${app.VERSION_APP}) es igual a VERSION de sw.js (${enSw})`, app.VERSION_APP === enSw);
+  app.pintarAjustes();
+  ok('Ajustes muestra la versión', $('versionApp').textContent === app.VERSION_APP);
+
+  // --- el rojo del no logrado, con la misma receta que el verde
+  const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
+  const regla = sel => { const i = css.indexOf(sel + ' {'); return i === -1 ? '' : css.slice(i, css.indexOf('}', i)); };
+  ok('la tarjeta no lograda se tiñe de rojo al 14%, como la hecha de verde',
+     regla('.habito.fallo').includes('var(--fallo) 14%') && regla('.habito.hecho').includes('var(--exito) 14%'));
+  ok('y su emoji al 22%, como el de la hecha',
+     regla('.habito.fallo .habito-emoji').includes('var(--fallo) 22%') && regla('.habito.hecho .habito-emoji').includes('var(--exito) 22%'));
+  ok('el borde rojo sale de una variable', regla('.habito.fallo').includes('var(--fallo-borde)'));
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeOrden).then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeOrden).then(pruebasDeV38).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);
