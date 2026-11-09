@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 612 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 329 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 683 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 354 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -189,6 +189,7 @@ pantalla, agregarlo a `pruebas-app.js`.
   - ✅ Reordenar con flechas y renombrar (tocar el nombre en modo edición)
   - Aplazado: metas semanales. Todos los hábitos de Kev son diarios; no aporta
     hoy. Retomar solo si aparece un hábito que no sea de todos los días.
+    **Retomado en la v35** (el gym, 5 veces por semana): ver Fase 3.22.
   - **Fase 2 cerrada.**
   - Añadido después: emoji libre desde el teclado (`primerEmoji`, sección F0) y
     cambiar el emoji de un hábito ya creado. La lista de emojis se conserva
@@ -903,6 +904,45 @@ pantalla, agregarlo a `pruebas-app.js`.
     maqueta, por si un día se quiere afinar.
   - `pintarAjustes()` tiene ya tres bloques casi iguales (idioma, tema,
     sonidos). Si aparece un cuarto, sacarlos a una función común.
+- **Fase 3.22 — Meta semanal por hábito (v35)** Pedido de Kev el 9 de
+  noviembre: las estadísticas del gym no deberían hundirse por los fines
+  de semana. Evaluado, maqueta aprobada desde el iPhone y construido en la
+  rama `v35-metas`. **No hay SQL que correr** (todavía).
+  - **Decisión de Kev: "N veces por semana", no días fijos.** Se le
+    recomendaron días fijos (L-V, menos cambios); eligió la flexibilidad:
+    si falta el miércoles, el sábado salva la semana.
+  - Campo `porSemana` (1 a 6) en el hábito. **Sin el campo es diario**: los
+    hábitos de antes no cambian. Lo vigila una "foto" en `pruebas.js` con
+    los números de dos hábitos diarios sacados con el código de la v34.
+  - La semana va de **lunes a domingo**, la del calendario.
+  - **Las cinco decisiones** (aprobadas como se recomendaron): (1) la racha
+    va en **semanas**, y la semana en curso no la rompe mientras no
+    termine; (2) los días de más cuentan en el total pero **con tope** en el
+    % y la fuerza (6 de 5 vale 100%); (3) **el ✗ no pone en 0** la racha
+    semanal (la regla de la v25 es solo para los diarios); (4) el semanal
+    **no cuenta en el sello ni en la barra** del día; (5) hitos de **4, 12,
+    26 y 52 semanas** (`HITOS_SEMANA`).
+  - Lógica en la sección C, junto a las fórmulas que cambia. Una sola idea
+    para todas: `metaDeLaSemana(id, lunes)`, que además pide menos la
+    semana en que nació el hábito (creado un jueves: 4 días, no 5). Las
+    fórmulas viejas (`calcularRacha`, `mejorRacha`, `fuerzaHabito`)
+    preguntan `esSemanal()` en su primera línea y desvían.
+  - **La fuerza semanal no tiene un número nuevo:** `FUERZA_ALFA_SEMANA =
+    1 - 0,948⁷`. Una semana pesa siete días, así que 8 semanas perfectas
+    dan lo mismo que 56 días (95). Hay un test que lo compara.
+  - Pantalla: la tarjeta dice **"🔥 7 sem · 2/5"** (la racha semanal se ve
+    desde 2, la diaria sigue desde 3); el calendario gana la columna
+    **"Sem"** (salió de la maqueta, no del plan); el selector **Meta**
+    (Todos los días · Por semana [N]) va debajo de las estadísticas.
+    Pasar a "Por semana" pone 5 (`META_POR_DEFECTO`).
+  - Etiquetas medidas: "SEMANAS" mide 53px y el cuadro de una estadística
+    47 por dentro. Por eso "Racha (sem.)" y "Mejor (sem.)".
+  - La tabla para Excel ganó una **cuarta columna**: la meta (7 = diario).
+  - **Nube:** la meta no sube (`habitoAFila` no la lleva). `filasAHabitos(
+    filas, locales)` la toma del hábito local al bajar; sin eso,
+    `bajarTodo()` las borraría todas. Al reactivar Supabase: columna
+    `por_semana` con `check` 1-6 y **sin default** (sin meta = diario).
+  - **Límite aceptado:** con solo hábitos semanales no hay sello ni barra.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -975,6 +1015,10 @@ maqueta. Merge a `main` (commit `0114db7`), publicada el mismo día y
 comprobada en el sitio en vivo (`sw.js` en v34, las cinco recetas
 cargadas, sin errores al arrancar). Falta probarla en la app instalada,
 sobre todo que no suene con el iPhone en silencio. Sin SQL.
+**`v35`** (meta semanal por hábito, Fase 3.22), construida en la rama
+`v35-metas` el 9 de noviembre de 2026 después de que Kev aprobara la
+maqueta. Comprobada en el navegador; **sin commit ni publicar todavía**.
+Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

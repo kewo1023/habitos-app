@@ -13,7 +13,7 @@
 
 // Sube este número cada vez que cambies los archivos.
 // Es lo que le dice al navegador "hay versión nueva, bótame la vieja".
-const VERSION = 'v34';
+const VERSION = 'v35';
 const CACHE = 'habitos-' + VERSION;
 
 const ARCHIVOS = [

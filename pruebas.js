@@ -45,7 +45,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO,esMetaValida,metaSemanal,esSemanal,limpiarMetas,lunesDe,hechosEnSemana,metaDeLaSemana,semanaCumplida,valorDeSemana,rachaSemanal,mejorRachaSemanal,porcentajeSemanas,fuerzaSemanal,FUERZA_ALFA_SEMANA,HITOS_SEMANA,cambiarMeta}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1316,7 +1316,7 @@ ok('las comillas de adentro se duplican', ctx.celdaCSV('Dijo "ya"') === '"Dijo "
 ok('un salto de línea también va entre comillas', ctx.celdaCSV('a\nb') === '"a\nb"');
 
 limpio();
-ok('sin hábitos queda solo el encabezado', ctx.aCSV() === 'fecha,habito,hecho');
+ok('sin hábitos queda solo el encabezado', ctx.aCSV() === 'fecha,habito,hecho,meta por semana');
 
 ctx.agregarHabito('Leer, 20 min', '📖');
 ctx.agregarHabito('Agua', '💧');
@@ -1328,19 +1328,23 @@ ctx.datos.registros[ctx.haceNDias(1)] = [hLeer.id];
 const lineas = ctx.aCSV().split('\r\n');
 ok('encabezado + una fila por hábito y por día (3 de Leer + 1 de Agua)', lineas.length === 5);
 ok('los días sin marcar salen con 0',
-   lineas.includes(`${ctx.haceNDias(2)},"📖 Leer, 20 min",0`));
+   lineas.includes(`${ctx.haceNDias(2)},"📖 Leer, 20 min",0,7`));
 ok('los marcados salen con 1',
-   lineas.includes(`${ctx.haceNDias(1)},"📖 Leer, 20 min",1`));
+   lineas.includes(`${ctx.haceNDias(1)},"📖 Leer, 20 min",1,7`));
 ok('el hábito nuevo solo tiene la fila de hoy',
    lineas.filter(l => l.includes('Agua')).length === 1 &&
-   lineas.includes(`${ctx.hoy()},💧 Agua,0`));
+   lineas.includes(`${ctx.hoy()},💧 Agua,0,7`));
+// v35: la cuarta columna es la meta. 7 = diario; uno semanal lleva su N.
+hAgua.porSemana = 3;
+ok('un hábito semanal lleva su meta en la tabla', ctx.aCSV().split('\r\n').includes(`${ctx.hoy()},💧 Agua,0,3`));
+delete hAgua.porSemana;
 
 // Un hábito borrado no deja filas huérfanas en la tabla.
 ctx.borrarHabito(hLeer.id);
 ok('un hábito borrado desaparece de la tabla', !ctx.aCSV().includes('Leer'));
 
 ctx.datos.prefs.idioma = 'en';
-ok('el encabezado se traduce', ctx.aCSV().startsWith('date,habit,done'));
+ok('el encabezado se traduce', ctx.aCSV().startsWith('date,habit,done,weekly goal'));
 ctx.datos.prefs.idioma = 'es';
 ok('el archivo se llama habitos-FECHA.csv (y .gitignore lo cubre)',
    ctx.nombreArchivoCSV() === `habitos-${ctx.hoy()}.csv`);
@@ -1835,6 +1839,207 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ok('esOtroMes: el mismo mes no es otro', !ctx.esOtroMes({ anio: 2026, mes: 10 }, '2026-10-17'));
   ok('otro mes del mismo año sí', ctx.esOtroMes({ anio: 2026, mes: 12 }, '2026-10-17'));
   ok('el mismo mes de otro año también', ctx.esOtroMes({ anio: 2027, mes: 10 }, '2026-10-17'));
+}
+
+
+// ============================================================
+//  LA FOTO DE ANTES (v35): los hábitos diarios no cambian
+// ============================================================
+// Estos números se sacaron con el código de la v34, ANTES de tocar nada
+// para la meta semanal. Si algún cambio de la v35 mueve uno solo, esta
+// prueba se pone roja: un hábito sin meta semanal tiene que dar
+// exactamente lo mismo que antes. Los datos son relativos a hoy (hace N
+// días), así que la foto vale cualquier día que corras las pruebas.
+{
+  const foto = () => {
+    const a = 'foto-a', b = 'foto-b';
+    ctx.datos = { version: 1, habitos: [
+      { id: a, nombre: 'A', emoji: '🅰️', creado: ctx.haceNDias(99) },
+      { id: b, nombre: 'B', emoji: '🅱️', creado: ctx.haceNDias(20) }
+    ], registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [], prefs: { ...ctx.PREFS_POR_DEFECTO } };
+    for (let i = 1; i < 100; i++) {
+      const f = ctx.haceNDias(i);
+      const marcados = [];
+      if ((i * 7 + 3) % 5 !== 0 && i % 11 !== 4) marcados.push(a);
+      if (i < 20 && i % 3 !== 0) marcados.push(b);
+      if (marcados.length) ctx.datos.registros[f] = marcados;
+      if (i % 11 === 4) ctx.datos.fallos[f] = [a];
+    }
+    return [a, b];
+  };
+  const numeros = id => [ctx.calcularRacha(id), ctx.mejorRacha(id), ctx.porcentajeUltimos(id, 30),
+                         ctx.totalDias(id), ctx.fuerzaHabito(id)].join(',');
+  const [a, b] = foto();
+  ok('foto: racha, mejor, 30 días, total y fuerza de A sin hoy', numeros(a) === '0,4,70,72,69');
+  ok('foto: los mismos cinco de B', numeros(b) === '2,2,62,13,44');
+  ok('foto: el día no está completo', ctx.diaCompleto(ctx.hoy()) === false);
+  ctx.datos.registros[ctx.hoy()] = [a];
+  ok('foto: A con hoy marcado', numeros(a) === '1,4,73,73,71');
+  ok('foto: con uno de dos, el día sigue sin completarse', ctx.diaCompleto(ctx.hoy()) === false);
+  ctx.datos.registros[ctx.hoy()] = [a, b];
+  ok('foto: con los dos, el día se completa', ctx.diaCompleto(ctx.hoy()) === true);
+  delete ctx.datos.registros[ctx.hoy()];
+  ctx.datos.fallos[ctx.hoy()] = [a];
+  ok('foto: con ✗ hoy, la racha diaria es 0 (v25)', numeros(a) === '0,4,70,72,69');
+}
+
+
+// ============================================================
+//  LA META SEMANAL (v35)
+// ============================================================
+// Las fechas se arman alrededor del lunes de ESTA semana (L), así las
+// pruebas valen cualquier día que se corran. Ojo: si hoy es lunes, la
+// semana en curso solo tiene un día pasado; por eso las marcas de la semana
+// en curso se ponen a mano donde hagan falta, también en días que todavía
+// no llegan (las fórmulas cuentan lo que hay en los datos).
+{
+  const nuevosDatos = habitos => {
+    ctx.datos = { version: 1, habitos, registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [],
+                  prefs: { ...ctx.PREFS_POR_DEFECTO } };
+  };
+  const marcar = (id, fecha) => { (ctx.datos.registros[fecha] = ctx.datos.registros[fecha] || []).push(id); };
+  const L = ctx.lunesDe(ctx.hoy());
+  const semana = k => ctx.sumarDias(L, 7 * k);          // el lunes de hace -k semanas
+  // Marca `veces` días de la semana que empieza en `lunes`, desde el lunes.
+  const llenar = (id, lunes, veces) => { for (let d = 0; d < veces; d++) marcar(id, ctx.sumarDias(lunes, d)); };
+
+  // --- lunesDe
+  ok('lunesDe: un jueves da su lunes', ctx.lunesDe('2026-11-12') === '2026-11-09');
+  ok('lunesDe: un lunes se da a sí mismo', ctx.lunesDe('2026-11-09') === '2026-11-09');
+  ok('lunesDe: el domingo es el último de su semana, no el primero', ctx.lunesDe('2026-11-15') === '2026-11-09');
+  ok('lunesDe: cruza el cambio de mes', ctx.lunesDe('2026-11-01') === '2026-10-26');
+  ok('lunesDe: y el de año', ctx.lunesDe('2027-01-01') === '2026-12-28');
+  ok('lunesDe: el cambio de hora de noviembre no lo corre', ctx.lunesDe('2026-11-03') === '2026-11-02');
+
+  // --- la meta en el hábito
+  ok('esMetaValida: del 1 al 6', [1, 2, 3, 4, 5, 6].every(ctx.esMetaValida));
+  ok('esMetaValida: 0, 7, 2.5, "5" y null no', ![0, 7, 2.5, '5', null, undefined].some(ctx.esMetaValida));
+  nuevosDatos([{ id: 'd', nombre: 'Diario', emoji: '💧', creado: semana(-10) },
+               { id: 'g', nombre: 'Gym', emoji: '🏋️', creado: semana(-10), porSemana: 5 }]);
+  ok('un hábito sin meta es diario', ctx.metaSemanal('d') === 0 && !ctx.esSemanal('d'));
+  ok('el gym pide 5 por semana', ctx.metaSemanal('g') === 5 && ctx.esSemanal('g'));
+  ok('un id que no existe es diario, sin romperse', ctx.metaSemanal('nadie') === 0);
+
+  // --- hechosEnSemana y el tope
+  llenar('g', semana(-1), 6);
+  ctx.datos.fallos[ctx.sumarDias(semana(-1), 6)] = ['g'];
+  ok('cuenta las marcas de la semana', ctx.hechosEnSemana('g', semana(-1)) === 6);
+  ok('un ✗ no suma', ctx.hechosEnSemana('g', semana(-2)) === 0);
+  ok('6 de 5 cumple la semana', ctx.semanaCumplida('g', semana(-1)));
+  ok('pero vale 1, no 1,2 (el tope)', ctx.valorDeSemana('g', semana(-1)) === 1);
+  ok('una semana vacía vale 0', ctx.valorDeSemana('g', semana(-2)) === 0);
+
+  // --- la semana en que empezó
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: ctx.sumarDias(semana(-3), 3), porSemana: 5 }]);
+  ok('creado un jueves: esa semana pide 4, no 5', ctx.metaDeLaSemana('g', semana(-3)) === 4);
+  ok('las semanas siguientes piden la meta entera', ctx.metaDeLaSemana('g', semana(-2)) === 5);
+  ok('la semana anterior no existía: pide 0', ctx.metaDeLaSemana('g', semana(-4)) === 0);
+  ok('y una semana que no existía no se cumple', !ctx.semanaCumplida('g', semana(-4)));
+  ctx.datos.habitos[0].creado = ctx.sumarDias(semana(-3), 5);
+  ok('creado un sábado con meta 5: pide 2', ctx.metaDeLaSemana('g', semana(-3)) === 2);
+  ctx.datos.habitos[0].porSemana = 1;
+  ok('con meta 1, el sábado de inicio pide 1', ctx.metaDeLaSemana('g', semana(-3)) === 1);
+
+  // --- la racha en semanas
+  // Diez semanas: la -8 floja (3 de 5) y de la -7 a la -1 todas cumplidas.
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: semana(-10), porSemana: 5 }]);
+  [5, 5, 3, 5, 6, 5, 5, 7, 5, 5].forEach((veces, i) => llenar('g', semana(i - 10), veces));
+  ok('racha: 7 semanas seguidas', ctx.calcularRacha('g') === 7);
+  ok('la semana en curso sin cumplir no rompe nada (0 de 5)', ctx.rachaSemanal('g') === 7);
+  ok('mejor racha: 7 (las dos primeras son 2)', ctx.mejorRacha('g') === 7);
+  ctx.datos.fallos[ctx.hoy()] = ['g'];
+  ok('un ✗ hoy NO pone la racha semanal en 0', ctx.calcularRacha('g') === 7);
+  delete ctx.datos.fallos[ctx.hoy()];
+  llenar('g', semana(0), 5);
+  ok('al cumplir la semana en curso, suma: 8', ctx.calcularRacha('g') === 8);
+  ok('y la mejor racha también: 8', ctx.mejorRacha('g') === 8);
+  ctx.datos.registros = {};
+  [5, 5, 3, 5, 6, 5, 5, 7, 5, 5].forEach((veces, i) => llenar('g', semana(i - 10), veces));
+  delete ctx.datos.registros[ctx.sumarDias(semana(-1), 4)];
+  ok('si la semana pasada quedó en 4 de 5, la racha es 0', ctx.calcularRacha('g') === 0);
+  ok('pero la mejor racha se conserva: 6', ctx.mejorRacha('g') === 6);
+
+  // --- el porcentaje de las últimas 4 semanas
+  // Las cuatro completas son -4, -3, -2, -1: 7, 5, 5 y 4 de 5.
+  ok('4 semanas con 7, 5, 5 y 4: 95%, no 105% (el tope)', ctx.porcentajeSemanas('g', 4) === 95);
+  llenar('g', semana(0), 5);
+  ok('la semana en curso no entra en el porcentaje', ctx.porcentajeSemanas('g', 4) === 95);
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: semana(-2), porSemana: 3 }]);
+  llenar('g', semana(-2), 3); llenar('g', semana(-1), 1);
+  ok('un hábito de 2 semanas se mide sobre 2: (3/3 + 1/3) / 2 = 67%', ctx.porcentajeSemanas('g', 4) === 67);
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: ctx.hoy(), porSemana: 3 }]);
+  ok('un hábito de esta semana no tiene semanas completas: 0%', ctx.porcentajeSemanas('g', 4) === 0);
+
+  // --- la fuerza por semanas
+  ok('el alfa semanal es el diario siete veces: 0,312', Math.abs(ctx.FUERZA_ALFA_SEMANA - 0.312) < 0.001);
+  // La prueba de que la escala es la misma: N semanas perfectas dan lo
+  // mismo que 7N días perfectos de un hábito diario.
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: semana(-8), porSemana: 5 },
+               { id: 'd', nombre: 'Diario', emoji: '💧', creado: ctx.haceNDias(56) }]);
+  for (let k = -8; k <= -1; k++) llenar('g', semana(k), 5);
+  for (let i = 1; i <= 56; i++) marcar('d', ctx.haceNDias(i));
+  ok('8 semanas perfectas = 56 días perfectos (95)', ctx.fuerzaHabito('g') === 95 && ctx.fuerzaHabito('d') === 95);
+  for (let d = 5; d < 7; d++) marcar('g', ctx.sumarDias(semana(-1), d));
+  ok('los días de más no suben la fuerza (tope)', ctx.fuerzaHabito('g') === 95);
+  ctx.datos.registros = {};
+  for (let k = -8; k <= -1; k++) llenar('g', semana(k), k === -5 ? 2 : 5);
+  // 2 de 5 hace cinco semanas: pierde 0,6 × su peso (0,312 × 0,688⁴ ≈ 0,07).
+  ok('una semana floja la baja poco: de 95 a 91', ctx.fuerzaHabito('g') === 91);
+  ok('y la semana en curso sin cumplir no la baja', ctx.fuerzaSemanal('g') === 91);
+
+  // --- el día completo cuenta solo los diarios
+  nuevosDatos([{ id: 'd', nombre: 'Diario', emoji: '💧', creado: ctx.hoy() },
+               { id: 'g', nombre: 'Gym', emoji: '🏋️', creado: ctx.hoy(), porSemana: 5 }]);
+  marcar('d', ctx.hoy());
+  ok('con el diario hecho y el gym sin marcar, el día está completo', ctx.diaCompleto(ctx.hoy()));
+  ctx.datos.habitos = ctx.datos.habitos.filter(h => h.id === 'g');
+  ok('con solo hábitos semanales no hay día completo', !ctx.diaCompleto(ctx.hoy()));
+
+  // --- los hitos en semanas
+  ok('hitos semanales: 4, 12, 26 y 52', ctx.HITOS_SEMANA.join() === '4,12,26,52');
+  ok('de 3 a 4 semanas cruza el hito 4', ctx.hitoDeRacha(3, 4, ctx.HITOS_SEMANA) === 4);
+  ok('de 7 a 8 semanas no cruza nada', ctx.hitoDeRacha(7, 8, ctx.HITOS_SEMANA) === 0);
+  ok('sin la lista, los hitos siguen siendo de días', ctx.hitoDeRacha(6, 7) === 7);
+  // Y de punta a punta: meta de 1 por semana, tres semanas cumplidas, y hoy
+  // el toque que cumple la cuarta.
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: semana(-3), porSemana: 1 }]);
+  for (let k = -3; k <= -1; k++) marcar('g', semana(k));
+  global.hitosCelebrados = [];
+  ctx.alternarFecha('g', ctx.hoy());
+  ok('el toque que cumple la 4.ª semana celebra el hito 4', global.hitosCelebrados.join() === '4');
+  ctx.alternarFecha('g', ctx.hoy());
+  ctx.alternarFecha('g', ctx.hoy());
+  ok('desmarcar y volver a marcar lo celebra otra vez (es otro cruce)', global.hitosCelebrados.join() === '4,4');
+
+  // --- cambiarMeta
+  nuevosDatos([{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: ctx.hoy() }]);
+  ok('poner la meta 5', ctx.cambiarMeta('g', 5) && ctx.datos.habitos[0].porSemana === 5);
+  ok('poner la misma no cambia nada', ctx.cambiarMeta('g', 5) === false);
+  ok('pasar a 3', ctx.cambiarMeta('g', 3) && ctx.metaSemanal('g') === 3);
+  ok('7 no es meta: vuelve a diario', ctx.cambiarMeta('g', 7) && !('porSemana' in ctx.datos.habitos[0]));
+  ok('volver a diario borra el campo, no lo deja en 0', ctx.cambiarMeta('g', 4) && ctx.cambiarMeta('g', 0) && !('porSemana' in ctx.datos.habitos[0]));
+  ok('cambiar la meta no encola nada para la nube', ctx.datos.pendientes.length === 0);
+  ok('se guarda en el teléfono', ctx.cambiarMeta('g', 2) && JSON.parse(localStorage.getItem('habitos-app-v1')).habitos[0].porSemana === 2);
+  ok('un hábito que no existe no se toca', ctx.cambiarMeta('nadie', 3) === false);
+
+  // --- lo que viene de afuera
+  const sucios = [{ id: 'a', porSemana: 5 }, { id: 'b', porSemana: '5' }, { id: 'c', porSemana: 9 }, { id: 'd' }];
+  ctx.limpiarMetas(sucios);
+  ok('limpiarMetas: conserva la buena y borra las malas',
+     sucios[0].porSemana === 5 && !('porSemana' in sucios[1]) && !('porSemana' in sucios[2]) && !('porSemana' in sucios[3]));
+  localStorage.setItem('habitos-app-v1', JSON.stringify({ habitos: [{ id: 'x', nombre: 'X', porSemana: 0 }, { id: 'y', nombre: 'Y', porSemana: 4 }], registros: {} }));
+  const leidos = ctx.cargar();
+  ok('cargar() borra una meta inválida y deja la buena', !('porSemana' in leidos.habitos[0]) && leidos.habitos[1].porSemana === 4);
+  const filas = [{ id: 'g', nombre: 'Gym', emoji: '🏋️', creado: '2026-01-01' }, { id: 'n', nombre: 'Nuevo', emoji: '✨', creado: '2026-01-01' }];
+  const bajados = ctx.filasAHabitos(filas, [{ id: 'g', porSemana: 5 }]);
+  ok('al bajar de la nube, la meta se toma del hábito local', bajados[0].porSemana === 5);
+  ok('un hábito que solo está en la nube llega sin meta', !('porSemana' in bajados[1]));
+  ok('sin hábitos locales, llegan como siempre', Object.keys(ctx.filasAHabitos(filas)[0]).join(',') === 'id,nombre,emoji,creado');
+  ok('la meta no sube a la nube (no hay columna)', !('porSemana' in ctx.habitoAFila({ id: 'g', nombre: 'Gym', emoji: '🏋️', porSemana: 5 }, 0, 'u')));
+  const copia = JSON.stringify({ habitos: [{ id: 'g', nombre: 'Gym', emoji: '🏋️', porSemana: 5 }, { id: 'h', nombre: 'H', emoji: '✨', porSemana: 8 }], registros: {} });
+  ctx.importar(copia);
+  ok('la copia de seguridad trae la meta', ctx.metaSemanal('g') === 5);
+  ok('y una meta inválida de la copia se borra al entrar', !('porSemana' in ctx.datos.habitos[1]));
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);

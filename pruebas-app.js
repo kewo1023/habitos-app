@@ -152,7 +152,8 @@ eval(script + `
     celebrarDiaCompleto, coloresConfeti, moverTarea, alternarTarea, tareasOrdenadas,
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
     TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarFicha,
-    lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS
+    lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS,
+    cambiarMeta, lunesDe, sumarDias, META_POR_DEFECTO
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -221,8 +222,12 @@ ok('traduce el panel de copia', $('btnExportar').textContent === '↓ Save backu
 ok('traduce el panel de cuenta', $('btnEntrar').textContent === 'Sign in');
 ok('cambia el idioma de la etiqueta <html>', doc.documentElement.lang === 'en');
 ok('cambia el título de la página', doc.title === 'My Habits');
+// Las siete letras y, al final, la de la columna de la semana (v35), que el
+// CSS esconde si el hábito es diario.
 ok('las letras del calendario cambian',
-   $('calNombres').children.map(s => s.textContent).join('') === 'MTWTFSS');
+   $('calNombres').children.slice(0, 7).map(s => s.textContent).join('') === 'MTWTFSS');
+ok('y la de la columna de la semana también',
+   $('calNombres').children[7].textContent === 'Wk');
 ok('el idioma se guarda en el teléfono',
    JSON.parse(almacen['habitos-app-v1']).prefs.idioma === 'en');
 
@@ -1424,8 +1429,100 @@ async function pruebasDeSonidos() {
   app.cambiarVista('habitos');
 }
 
+
+// ===========================================================================
+// 17. La meta semanal (v35)
+//     Las fórmulas las prueba pruebas.js. Aquí: que la tarjeta, la barra, el
+//     calendario y el selector de Meta las usen, y que tocar la meta repinte
+//     todo lo que depende de ella.
+// ===========================================================================
+async function pruebasDeMeta() {
+  const espera = ms => new Promise(listo => setTimeout(listo, ms));
+  app.cambiarVista('habitos');
+  app.datos.habitos = []; app.datos.registros = {}; app.datos.fallos = {};
+  app.agregarHabito('Agua', '💧');
+  app.agregarHabito('Gym', '🏋️');
+  const [agua, gym] = app.datos.habitos.map(h => h.id);
+  // El gym existe desde hace 3 semanas y cumplió las dos últimas completas.
+  const L = app.lunesDe(app.hoy());
+  app.datos.habitos[1].creado = app.sumarDias(L, -21);
+  app.datos.habitos[0].creado = app.sumarDias(L, -21);
+  for (let k = 1; k <= 2; k++) for (let d = 0; d < 5; d++) {
+    const f = app.sumarDias(L, -7 * k + d);
+    (app.datos.registros[f] = app.datos.registros[f] || []).push(gym);
+  }
+  app.cambiarMeta(gym, 5);
+
+  // El navegador de mentira no arma el texto por piezas: la tarjeta entera
+  // se lee como un solo texto, con los espacios aplastados. El gym es la
+  // segunda tarjeta.
+  const textoGym = () => $('lista').children[1].textContent.replace(/\s+/g, ' ');
+  ok('la tarjeta del gym dice la racha en semanas y cuánto va', textoGym().includes('🔥 2 sem · 0/5'));
+  ok('la barra cuenta solo el hábito diario (0 de 1)', $('progresoTexto').textContent === '0 de 1');
+
+  app.alternarHoy(agua);
+  ok('con el único diario hecho, el día está completo aunque el gym vaya en 0/5',
+     $('progresoEtiqueta').textContent === 'Día completo ✓');
+  app.irseSello();
+  await espera(700);
+  app.alternarHoy(gym);
+  ok('marcar el gym hoy suma a la semana: 1/5', textoGym().includes('🔥 2 sem · 1/5'));
+  ok('y la barra sigue contando solo el diario', $('progresoTexto').textContent === '1 de 1');
+  app.alternarHoy(gym);
+
+  // --- el calendario
+  app.abrirCalendario(gym);
+  ok('con meta semanal, el calendario tiene la columna de la semana', $('modalCal').classList.contains('con-semanas'));
+  const semanas = () => $('calGrid').children.filter(c => c.classList.contains('cal-sem'));
+  ok('una cuenta por fila del mes', semanas().length >= 4 && semanas().length <= 6);
+  ok('la semana en curso va en azul con su cuenta', semanas().some(c => c.classList.contains('en-curso') && c.textContent === '0/5'));
+  ok('las estadísticas cambian de nombre', $('calStats').textContent.includes('Racha (sem.)') &&
+     $('calStats').textContent.includes('Últimas 4 sem.'));
+  ok('el selector marca "Por semana"', $('calMetaSemana').classList.contains('activo') &&
+     !$('calMetaDia').classList.contains('activo'));
+  ok('y muestra el número', !$('calMetaFila').hidden && String($('calMetaN').value) === '5');
+
+  // Tocar "Todos los días": vuelve a ser diario y todo se repinta.
+  $('calMetaDia').click();
+  ok('"Todos los días" quita la meta', !('porSemana' in app.datos.habitos[1]));
+  ok('la columna de la semana se va', !$('modalCal').classList.contains('con-semanas') && semanas().length === 0);
+  ok('las estadísticas vuelven a las de días', $('calStats').textContent.includes('Racha actual'));
+  ok('el número se esconde', $('calMetaFila').hidden);
+  ok('y la barra vuelve a contar el gym (1 de 2)', $('progresoTexto').textContent === '1 de 2');
+  $('calMetaSemana').click();
+  ok('"Por semana" pone la meta por defecto', app.datos.habitos[1].porSemana === app.META_POR_DEFECTO);
+
+  // --- el número
+  $('calMetaN').value = '3';
+  $('calMetaN').oninput();
+  ok('escribir 3 cambia la meta', app.datos.habitos[1].porSemana === 3);
+  ok('y la cuenta de la semana pasa a /3', semanas().some(c => c.textContent === '0/3'));
+  $('calMetaN').value = '9';
+  $('calMetaN').oninput();
+  ok('un 9 no es meta: se ignora', app.datos.habitos[1].porSemana === 3);
+  $('calMetaN').onblur();
+  ok('y al salir del campo vuelve a decir 3', String($('calMetaN').value) === '3');
+
+  // --- en inglés. Igual que en la sección 5, las estadísticas se repintan a
+  // mano: en el teléfono el idioma se cambia en Ajustes, con el calendario
+  // cerrado, y al abrirlo se dibujan ya en el idioma nuevo.
+  app.cambiarIdioma('en');
+  app.pintarStats();
+  ok('en inglés: los botones y las estadísticas', $('calMetaDia').textContent === 'Every day' &&
+     $('calStats').textContent.includes('Streak (wk)'));
+  ok('la tarjeta dice "wk"', textoGym().includes('🔥 2 wk · 0/3'));
+  app.cambiarIdioma('es');
+
+  // --- la medalla
+  app.celebrarHito(gym, 4);
+  ok('la medalla de un hábito semanal dice "semanas seguidas"', $('hito').textContent.includes('semanas seguidas'));
+  await espera(50);
+  app.cerrarCalendario();
+  await espera(230);
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);

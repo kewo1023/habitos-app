@@ -2292,6 +2292,60 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
 .cal-dia.hoy     { border-color: var(--acento); }
 .cal-dia.futuro  { opacity: .25; cursor: default; }
 
+/* ---------- 8a. LA META SEMANAL (v35) ----------
+   Con meta semanal el calendario gana una octava columna, angosta, con la
+   cuenta de cada semana ("3/5"). Las filas del calendario ya eran semanas
+   de lunes a domingo; solo faltaba escribir el total al final de cada una.
+   La clase con-semanas la pone pintarCalendario() en la ventana entera.
+   Medido a 375px: con 34px para la cuenta, cada día queda de ~33px. */
+#modalCal.con-semanas .cal-nombres,
+#modalCal.con-semanas .cal-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) 34px; }
+
+.cal-sem-nombre { display: none; }
+#modalCal.con-semanas .cal-sem-nombre { display: block; }
+
+.cal-sem {
+  display: grid; place-items: center;
+  font-size: var(--letra-mini);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+  border-radius: 8px;
+}
+/* Cumplida: verde, como un día hecho, pero en suave: es un resumen, no un
+   día que se pueda tocar. La primera línea es el plan B sin color-mix. */
+.cal-sem.cumplida {
+  color: var(--exito);
+  background: var(--tarjeta-alta);
+  background: color-mix(in srgb, var(--exito) 12%, var(--tarjeta));
+}
+.cal-sem.en-curso { color: var(--acento); }
+
+/* "2/5" en la tarjeta: verde y con ✓ cuando la semana ya se cumplió. */
+.meta-cuenta.cumplida { color: var(--exito); font-weight: 600; }
+
+/* "[5] veces por semana": el mismo dibujo que "Cada [2] semanas" (v31). */
+.cal-meta-veces {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px;
+  font-size: var(--letra-cuerpo); color: var(--texto-suave);
+}
+.cal-meta-veces[hidden] { display: none; }
+.cal-meta-veces input {
+  width: 64px;
+  padding: 10px 8px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 11px;
+  color: var(--texto);
+  font-size: var(--letra-campo);        /* 16px: menos y el iPhone hace zoom */
+  font-family: inherit;
+  text-align: center;
+  -webkit-user-select: text; user-select: text;
+}
+.cal-meta-veces input:focus { outline: none; border-color: var(--acento); }
+#calMetaPista { margin-top: 10px; }
+
 /* ---------- 8b. EL MAPA DEL AÑO ----------
    Doce mini-calendarios en una cuadrícula de 3 columnas (la idea viene de
    Habitz). Cada mes es otra cuadrícula de 7 columnas, igual que el
@@ -2767,6 +2821,20 @@ input[type=text]:focus, input[type=email]:focus, input[type=password]:focus {
       <div class="stats" id="calStats"></div>
       <p class="cal-ayuda" id="calAyuda"></p>
 
+      <!-- La meta (v35): todos los días, o N veces por semana. Va pegada a
+           las estadísticas porque es lo que las cambia: al tocarla, los
+           números de arriba se recalculan a la vista. -->
+      <span class="sub-etiqueta" data-t="metaEtiqueta">Meta</span>
+      <div class="segmentado dos" id="calMeta">
+        <button type="button" id="calMetaDia" data-t="metaDiaria">Todos los días</button>
+        <button type="button" id="calMetaSemana" data-t="metaSemanal">Por semana</button>
+      </div>
+      <label class="cal-meta-veces" id="calMetaFila" hidden>
+        <input type="number" id="calMetaN" min="1" max="6" step="1" inputmode="numeric">
+        <span data-t="vecesPorSemana">veces por semana</span>
+      </label>
+      <p class="nota" id="calMetaPista"></p>
+
       <!-- El mapa del año: doce mini-calendarios, un cuadrito por día. Va
            DEBAJO de las estadísticas desde la v21: mes por mes ocupa más alto
            que la franja de antes, y no debía empujar los números (que es lo
@@ -2969,6 +3037,35 @@ const TEXTOS = {
              'en 80; dos meses, en 96.',
     ultimoAnio: 'Último año',
     hitoDias: 'días seguidos',
+    // --- Meta semanal (v35) ---
+    hitoSemanas: 'semanas seguidas',
+    semCorto: 'sem',
+    calSem: 'Sem',
+    semanaAria: '%h de %m esa semana',
+    metaEtiqueta: 'Meta',
+    metaDiaria: 'Todos los días',
+    metaSemanal: 'Por semana',
+    vecesPorSemana: 'veces por semana',
+    metaPistaDia: 'Así funcionan todos tus hábitos hasta ahora: cada día cuenta.',
+    metaPistaSemana: 'La semana va de lunes a domingo. Cualquier día cuenta, y los días de más también suman.',
+    // Cortas a propósito: el cuadro mide 47px por dentro y "SEMANAS" en
+    // mayúsculas ya mide 53 (medido en el navegador). La ayuda dice el resto.
+    eRachaSem: 'Racha (sem.)',
+    aRachaSem: 'Semanas seguidas llegando a tu meta. La semana en curso cuenta cuando la ' +
+               'cumples; mientras tanto la racha no se rompe: tienes hasta el domingo. ' +
+               'Un ✗ no la pone en cero.',
+    eMejorRachaSem: 'Mejor (sem.)',
+    aMejorRachaSem: 'La mayor cantidad de semanas seguidas que has cumplido tu meta. Es tu ' +
+                    'récord: no se pierde aunque esta semana vayas en cero.',
+    eUltimas4: 'Últimas 4 sem.',
+    aUltimas4: 'Cuánto de tu meta cumpliste en las últimas 4 semanas completas (la que va ' +
+               'en curso no entra). Los días de más no pasan de 100%: una semana de 7 no ' +
+               'tapa una de 3.',
+    aTotalSem: 'Todas las veces que has marcado este hábito, también los días de más ' +
+               'sobre tu meta.',
+    aFuerzaSem: 'Qué tan asentado está el hábito, de 0 a 100, contado por semanas: cada ' +
+                'semana cumplida la sube y una floja la baja poco. Un mes cumpliendo te ' +
+                'deja en 80; dos meses, en 96.',
     ayudaPorDefecto: 'Toca una estadística para ver qué mide exactamente.',
 
     // --- Copia de seguridad ---
@@ -2985,7 +3082,7 @@ const TEXTOS = {
     copiaHoy: 'Última copia: hoy.', copiaAyer: 'Última copia: ayer.',
     copiaHaceDias: 'Última copia: hace %n días.',
     exportarCSV: '↓ Tabla para Excel (.csv)',
-    csvFecha: 'fecha', csvHabito: 'habito', csvHecho: 'hecho',
+    csvFecha: 'fecha', csvHabito: 'habito', csvHecho: 'hecho', csvMeta: 'meta por semana',
     confirmImportar1: 'La copia tiene %h hábito(s) y %d día(s) de historial.',
     confirmImportar2: 'Reemplaza todo lo que tienes ahora en este teléfono.',
 
@@ -3120,6 +3217,32 @@ const TEXTOS = {
              'month gets you to 80; two months, to 96.',
     ultimoAnio: 'Last year',
     hitoDias: 'days in a row',
+    // --- Weekly goal (v35) ---
+    hitoSemanas: 'weeks in a row',
+    semCorto: 'wk',
+    calSem: 'Wk',
+    semanaAria: '%h of %m that week',
+    metaEtiqueta: 'Goal',
+    metaDiaria: 'Every day',
+    metaSemanal: 'Per week',
+    vecesPorSemana: 'times a week',
+    metaPistaDia: 'This is how all your habits have worked so far: every day counts.',
+    metaPistaSemana: 'Weeks run Monday to Sunday. Any day counts, and extra days add up too.',
+    eRachaSem: 'Streak (wk)',
+    aRachaSem: 'Weeks in a row hitting your goal. The current week counts once you hit ' +
+               "it; until then the streak doesn't break: you have until Sunday. A ✗ " +
+               "doesn't reset it.",
+    eMejorRachaSem: 'Best (wk)',
+    aMejorRachaSem: "The most weeks in a row you've hit your goal. It's your record: you " +
+                    "keep it even if this week you're at zero.",
+    eUltimas4: 'Last 4 weeks',
+    aUltimas4: 'How much of your goal you hit in the last 4 full weeks (the current one ' +
+               "doesn't count). Extra days don't go past 100%: a week of 7 doesn't cover " +
+               'for a week of 3.',
+    aTotalSem: "Every time you've checked this habit off, including days beyond your goal.",
+    aFuerzaSem: 'How settled the habit is, from 0 to 100, counted by weeks: every week ' +
+                'on target nudges it up and a weak one nudges it down a little. A month ' +
+                'on target gets you to 80; two months, to 96.',
     ayudaPorDefecto: 'Tap a stat to see exactly what it measures.',
 
     copiaSeguridad: 'Backup',
@@ -3135,7 +3258,7 @@ const TEXTOS = {
     copiaHoy: 'Last backup: today.', copiaAyer: 'Last backup: yesterday.',
     copiaHaceDias: 'Last backup: %n days ago.',
     exportarCSV: '↓ Table for Excel (.csv)',
-    csvFecha: 'date', csvHabito: 'habit', csvHecho: 'done',
+    csvFecha: 'date', csvHabito: 'habit', csvHecho: 'done', csvMeta: 'weekly goal',
     confirmImportar1: 'The backup has %h habit(s) and %d day(s) of history.',
     confirmImportar2: 'It replaces everything you have now on this device.',
 
@@ -3291,6 +3414,11 @@ function cargar() {
     // a la nube, así que allá no hay nada que limpiar.)
     if (Array.isArray(leidos.habitos)) leidos.habitos.forEach(h => { delete h.color; });
 
+    // Y en la v35, la meta semanal. Aquí no hay que agregar nada (sin el
+    // campo, el hábito es diario), pero sí revisar lo que haya: una meta
+    // que no sea de 1 a 6 se borra en vez de adivinar qué quiso decir.
+    if (Array.isArray(leidos.habitos)) limpiarMetas(leidos.habitos);
+
     // Y en la v23, los días "no logrados". Nadie los tenía antes.
     if (!leidos.fallos || typeof leidos.fallos !== 'object') leidos.fallos = {};
 
@@ -3422,9 +3550,16 @@ function esFallo(idHabito, fecha) {
 // Es una función pura: solo lee y devuelve un sí o un no. Por eso se puede
 // probar sin abrir la app, que es justo lo que la hace confiable — la
 // animación no se puede probar, pero la condición que la dispara sí.
+//
+// Desde la v35 cuenta solo los hábitos DIARIOS. Uno con meta semanal (el gym
+// 5 veces por semana) no tiene por qué hacerse hoy: si contara, un día de
+// descanso nunca tendría sello. Puede sumar (lo marcas y listo), pero no
+// estorba. Con solo hábitos semanales no hay "día completo": no hay nada
+// que el día exija.
 function diaCompleto(fecha) {
-  if (datos.habitos.length === 0) return false;
-  return datos.habitos.every(h => estaHecho(h.id, fecha));
+  const diarios = datos.habitos.filter(h => !esSemanal(h.id));
+  if (diarios.length === 0) return false;
+  return diarios.every(h => estaHecho(h.id, fecha));
 }
 
 // Todas las fechas en que se marcó un hábito, ordenadas de vieja a nueva.
@@ -3458,6 +3593,7 @@ function diasEntre(desde, hasta) {
 // viene corriendo y la mejor vista hasta ahora. Cada vez que un día NO es el
 // siguiente del anterior, la racha se reinicia en 1.
 function mejorRacha(idHabito) {
+  if (esSemanal(idHabito)) return mejorRachaSemanal(idHabito);   // en semanas (v35)
   const fechas = fechasDe(idHabito);
   let mejor = 0;
   let corriendo = 0;
@@ -3510,7 +3646,12 @@ function porcentajeUltimos(idHabito, n) {
 // acto. Es la diferencia entre "todavía no" y "hoy no": la primera deja la
 // puerta abierta hasta medianoche, la segunda la cierra porque tú lo dijiste.
 // Si al final sí lo haces, tocar el círculo borra el ✗ y la racha vuelve.
+//
+// Con meta semanal (v35) la racha se cuenta en SEMANAS, y va antes de la
+// regla del ✗: en un hábito semanal, "hoy no fui" no decide nada, porque el
+// sábado todavía puede salvar la semana. El ✗ queda como anotación.
 function calcularRacha(idHabito) {
+  if (esSemanal(idHabito)) return rachaSemanal(idHabito);
   if (esFallo(idHabito, hoy())) return 0;
   let racha = 0;
   let inicio = estaHecho(idHabito, hoy()) ? 0 : 1;
@@ -3527,14 +3668,22 @@ function calcularRacha(idHabito) {
    agregaras el 3, el 5 y el 10, volverías a tener confeti cada semana. */
 const HITOS = [7, 30, 100, 365];
 
+/* Los de la meta semanal (v35), en semanas: un mes, un trimestre, medio año
+   y un año. Son los mismos hitos de arriba contados en otra unidad, para
+   que la medalla siga siendo igual de rara. */
+const HITOS_SEMANA = [4, 12, 26, 52];
+
 // ¿Cruzó la racha un hito? Recibe la racha de antes y la de después del toque
 // y devuelve el hito cruzado (7, 30...) o 0 si no cruzó ninguno.
 //
 // Pregunta por el CRUCE (antes < hito <= después) y no por "¿después es
 // igual a un hito?". Es la misma idea que estabaCompleto en alternarFecha():
 // lo que se celebra es el momento de llegar, no el hecho de estar ahí.
-function hitoDeRacha(antes, despues) {
-  return HITOS.find(hito => antes < hito && despues >= hito) || 0;
+//
+// La lista de hitos entra como tercer dato (v35): la de días o la de semanas.
+// Si no se pasa, es la de días, que es lo que hacía antes.
+function hitoDeRacha(antes, despues, hitos = HITOS) {
+  return hitos.find(hito => antes < hito && despues >= hito) || 0;
 }
 
 // ¿Qué sonido toca después de tocar un hábito? (v34) Devuelve 'hito', 'dia',
@@ -3574,6 +3723,7 @@ function sonidoDeHabito(marcando, hito, completoElDia) {
 const FUERZA_ALFA = 0.052;
 
 function fuerzaHabito(idHabito) {
+  if (esSemanal(idHabito)) return fuerzaSemanal(idHabito);   // por semanas (v35)
   const hasta = estaHecho(idHabito, hoy()) ? hoy() : haceNDias(1);
   const [anio, mes, dia] = fechaInicio(idHabito).split('-').map(Number);
 
@@ -3585,6 +3735,151 @@ function fuerzaHabito(idHabito) {
     if (fecha > hasta) break;
     const hecho = estaHecho(idHabito, fecha) ? 1 : 0;
     fuerza = (1 - FUERZA_ALFA) * fuerza + FUERZA_ALFA * hecho;
+  }
+  return Math.round(fuerza * 100);
+}
+
+/* ---- La meta semanal (v35) ----
+   Un hábito puede pedir "N veces por semana" en vez de "todos los días":
+   el gym 5 veces, sin importar cuáles. Se guarda en el hábito como
+   `porSemana` (de 1 a 6). Si no lo tiene, es diario, que es lo que eran
+   todos antes de la v35: por eso los hábitos viejos no cambian en nada.
+
+   La semana va de lunes a domingo, la misma del calendario (columnaInicio).
+
+   En Excel sería agregar una columna "semana" (el lunes de cada fecha) y
+   hacer una tabla dinámica: por cada semana, cuántas veces fuiste. Las
+   fórmulas de abajo trabajan sobre esa tabla en vez de sobre los días.     */
+
+// ¿Es un número de veces que se puede pedir? Del 1 al 6: con 7 sería un
+// hábito diario, y ese ya existe sin meta.
+function esMetaValida(n) {
+  return Number.isInteger(n) && n >= 1 && n <= 6;
+}
+
+// Cuántas veces por semana pide este hábito, o 0 si es diario.
+function metaSemanal(idHabito) {
+  const h = datos.habitos.find(x => x.id === idHabito);
+  return h && esMetaValida(h.porSemana) ? h.porSemana : 0;
+}
+
+function esSemanal(idHabito) {
+  return metaSemanal(idHabito) > 0;
+}
+
+// Borra las metas que no sirven ("5" en texto, 7, 0, 2,5...). La usan
+// cargar() y aplicarCopia(): lo que viene de afuera se revisa al entrar,
+// no cada vez que se usa. Mejor rechazar que adivinar (regla de la v19).
+function limpiarMetas(habitos) {
+  habitos.forEach(h => { if (h && 'porSemana' in h && !esMetaValida(h.porSemana)) delete h.porSemana; });
+  return habitos;
+}
+
+// El lunes de la semana de esta fecha. Es la "columna semana" de la tabla
+// dinámica: todas las fechas de una semana dan el mismo lunes.
+function lunesDe(fecha) {
+  const d = new Date(fecha + 'T00:00:00');
+  return sumarDias(fecha, -((d.getDay() + 6) % 7));   // el mismo giro que columnaInicio()
+}
+
+// Cuántas veces se marcó en la semana que empieza en `lunes`. Un ✗ no
+// cuenta, igual que en todas las fórmulas: es "no hecho".
+function hechosEnSemana(idHabito, lunes) {
+  let hechos = 0;
+  for (let i = 0; i < 7; i++) if (estaHecho(idHabito, sumarDias(lunes, i))) hechos++;
+  return hechos;
+}
+
+/* Cuánto pide ESA semana. Casi siempre es la meta, salvo la semana en que
+   empezó el hábito: si lo creaste un jueves, solo quedan cuatro días, y
+   pedirle 5 sería castigarlo por días en los que no existía. Es la misma
+   idea de porcentajeUltimos(), que mide solo desde que el hábito existe.
+   0 quiere decir que esa semana el hábito todavía no existía.            */
+function metaDeLaSemana(idHabito, lunes) {
+  const meta = metaSemanal(idHabito);
+  const inicio = fechaInicio(idHabito);
+  if (sumarDias(lunes, 6) < inicio) return 0;            // toda la semana es de antes
+  if (lunes >= inicio) return meta;
+  return Math.min(meta, 7 - diasEntre(lunes, inicio));   // la semana en que empezó
+}
+
+function semanaCumplida(idHabito, lunes) {
+  const meta = metaDeLaSemana(idHabito, lunes);
+  return meta > 0 && hechosEnSemana(idHabito, lunes) >= meta;
+}
+
+// Cuánto vale una semana para el porcentaje y la fuerza, de 0 a 1. Con
+// TOPE: 6 veces con meta de 5 vale 1, no 1,2. Sin el tope, una semana de 7
+// taparía una de 3 y el promedio diría que vas bien cuando no.
+function valorDeSemana(idHabito, lunes) {
+  const meta = metaDeLaSemana(idHabito, lunes);
+  return meta ? Math.min(hechosEnSemana(idHabito, lunes) / meta, 1) : 0;
+}
+
+/* Semanas seguidas cumpliendo, contando hasta esta semana.
+   La semana en curso sigue la regla de hoy en los diarios ("todavía no"):
+   si ya la cumpliste cuenta; si no, la racha se cuenta hasta la semana
+   pasada, y no se rompe un martes porque vas 1 de 5. Tienes hasta el
+   domingo.                                                               */
+function rachaSemanal(idHabito) {
+  const primera = lunesDe(fechaInicio(idHabito));
+  let semana = lunesDe(hoy());
+  if (!semanaCumplida(idHabito, semana)) semana = sumarDias(semana, -7);
+  let racha = 0;
+  while (semana >= primera && semanaCumplida(idHabito, semana)) {
+    racha++;
+    semana = sumarDias(semana, -7);
+  }
+  return racha;
+}
+
+// El récord de semanas seguidas. Mismo recorrido que mejorRacha(): una
+// cuenta que viene corriendo y la mejor vista hasta ahora.
+function mejorRachaSemanal(idHabito) {
+  const ultima = lunesDe(hoy());
+  let mejor = 0, corriendo = 0;
+  for (let semana = lunesDe(fechaInicio(idHabito)); semana <= ultima; semana = sumarDias(semana, 7)) {
+    corriendo = semanaCumplida(idHabito, semana) ? corriendo + 1 : 0;
+    if (corriendo > mejor) mejor = corriendo;
+  }
+  return mejor;
+}
+
+// Cuánto de la meta cumpliste en las últimas n semanas COMPLETAS (la que
+// va en curso no entra: no ha terminado). Con el tope de valorDeSemana().
+// Si el hábito es más nuevo que n semanas, se mide desde que existe.
+function porcentajeSemanas(idHabito, n) {
+  const primera = lunesDe(fechaInicio(idHabito));
+  let suma = 0, contadas = 0;
+  for (let k = 1; k <= n; k++) {
+    const semana = sumarDias(lunesDe(hoy()), -7 * k);
+    if (semana < primera) break;
+    suma += valorDeSemana(idHabito, semana);
+    contadas++;
+  }
+  return contadas ? Math.round(suma / contadas * 100) : 0;
+}
+
+/* La fuerza, contada por semanas. Es la misma fórmula de fuerzaHabito()
+   (la columna que se arrastra hacia abajo), pero cada fila es una semana y
+   no un día.
+
+   El alfa sale del diario y no es un número nuevo: una semana pesa lo que
+   pesan siete días, así que el "casi todo lo que traías" se multiplica
+   siete veces: 0,948 × 0,948 × ... (7 veces) = 0,688. Por eso la escala es
+   la misma: un mes cumpliendo te deja en 80 y dos meses en 96, sea el
+   hábito diario o semanal.
+
+   Hasta la semana pasada, más la actual solo si ya la cumpliste: la misma
+   regla de la racha.                                                       */
+const FUERZA_ALFA_SEMANA = 1 - Math.pow(1 - FUERZA_ALFA, 7);
+
+function fuerzaSemanal(idHabito) {
+  const actual = lunesDe(hoy());
+  const hasta = semanaCumplida(idHabito, actual) ? actual : sumarDias(actual, -7);
+  let fuerza = 0;
+  for (let semana = lunesDe(fechaInicio(idHabito)); semana <= hasta; semana = sumarDias(semana, 7)) {
+    fuerza = (1 - FUERZA_ALFA_SEMANA) * fuerza + FUERZA_ALFA_SEMANA * valorDeSemana(idHabito, semana);
   }
   return Math.round(fuerza * 100);
 }
@@ -3686,7 +3981,9 @@ function alternarFecha(idHabito, fecha) {
   // solo el hito: dos celebraciones a la vez se pisan y ninguna se lee. Y el
   // hito es el más raro de los dos, así que es el que no hay que perderse.
   const deHoy = marcando && fecha === hoy();
-  const hito = deHoy ? hitoDeRacha(rachaAntes, calcularRacha(idHabito)) : 0;
+  // Con meta semanal, la racha va en semanas y los hitos también (v35).
+  const hitos = esSemanal(idHabito) ? HITOS_SEMANA : HITOS;
+  const hito = deHoy ? hitoDeRacha(rachaAntes, calcularRacha(idHabito), hitos) : 0;
   const completoElDia = deHoy && !estabaCompleto && diaCompleto(fecha);
   if (hito) {
     celebrarHito(idHabito, hito);
@@ -3807,6 +4104,27 @@ function cambiarEmoji(idHabito, emojiNuevo) {
 
   h.emoji = simbolo;
   encolar({ tipo: 'guardarHabito', id: idHabito });
+  guardar();
+  pintar();
+  return true;
+}
+
+/* Pone la meta semanal de un hábito (v35). n = 1..6 la pone; 0 (o
+   cualquier cosa que no sea una meta válida) la quita y el hábito vuelve a
+   ser diario. Devuelve true si cambió algo.
+
+   No se encola nada para la nube, a propósito: la tabla de hábitos de
+   Postgres no tiene esa columna todavía. La meta vive en el teléfono y en
+   la copia de seguridad, como los "no logrados". El historial no se toca:
+   cambiar la meta cambia cómo se LEEN los días, no los días.             */
+function cambiarMeta(idHabito, n) {
+  const h = datos.habitos.find(x => x.id === idHabito);
+  if (!h) return false;
+  const antes = metaSemanal(idHabito);
+  const despues = esMetaValida(n) ? n : 0;
+  if (antes === despues) return false;
+  if (despues) h.porSemana = despues;
+  else delete h.porSemana;                 // diario = sin el campo, no porSemana: 0
   guardar();
   pintar();
   return true;
@@ -4788,6 +5106,16 @@ function traducirEstaticos() {
       span.textContent = letra;
       nombres.appendChild(span);
     });
+    // La octava columna del calendario de un hábito (v35): cuántas veces
+    // fuiste esa semana. Va siempre y el CSS la esconde si el hábito es
+    // diario; así pintar() puede rehacer las letras sin saber qué hábito
+    // está abierto.
+    if (id === 'calNombres') {
+      const sem = document.createElement('span');
+      sem.className = 'cal-sem-nombre';
+      sem.textContent = t('calSem');
+      nombres.appendChild(sem);
+    }
   });
 }
 
@@ -4834,10 +5162,18 @@ function pintar() {
   }
   document.getElementById('cajaProgreso').classList.remove('sin-barra');
 
-  // Barra de progreso del día
-  const hechosHoy = datos.habitos.filter(h => estaHecho(h.id, hoy())).length;
-  ponerProgreso(`${hechosHoy} ${t('de')} ${datos.habitos.length}`);
-  document.getElementById('barra').style.width = (hechosHoy / datos.habitos.length * 100) + '%';
+  // Barra de progreso del día. Desde la v35 cuenta solo los hábitos
+  // diarios, por la misma razón que diaCompleto(): el gym 5 veces por semana
+  // no se le debe al día. Si todos son semanales, no hay barra (no hay nada
+  // que el día exija), pero el título se queda.
+  const diarios = datos.habitos.filter(h => !esSemanal(h.id));
+  const hechosHoy = diarios.filter(h => estaHecho(h.id, hoy())).length;
+  if (diarios.length) {
+    ponerProgreso(`${hechosHoy} ${t('de')} ${diarios.length}`);
+    document.getElementById('barra').style.width = (hechosHoy / diarios.length * 100) + '%';
+  } else {
+    document.getElementById('cajaProgreso').classList.add('sin-barra');
+  }
 
   // Una tarjeta por hábito
   lista.innerHTML = '';
@@ -4864,6 +5200,20 @@ function pintar() {
     // final lo hiciste, lo hiciste.
     const falloHoy = !hecho && esFallo(h.id, hoy());
     tarjeta.className = 'habito' + (hecho ? ' hecho' : '') + (falloHoy ? ' fallo' : '');
+
+    // Lo que va junto a los puntos. Un hábito diario lleva su racha en días
+    // (desde 3: la regla de Kev). Uno semanal (v35) lleva su racha en semanas
+    // (desde 2: dos semanas cumplidas ya son diez días de esfuerzo) y cuánto
+    // va de la semana: "🔥 7 sem · 2/5".
+    let cola = racha > 2 ? '🔥 ' + racha : '';
+    if (esSemanal(h.id)) {
+      const lunes = lunesDe(hoy());
+      const pide = metaDeLaSemana(h.id, lunes);
+      const vas = hechosEnSemana(h.id, lunes);
+      const cumplida = vas >= pide;
+      cola = (racha >= 2 ? `🔥 ${racha} ${t('semCorto')} · ` : '') +
+        `<span class="meta-cuenta${cumplida ? ' cumplida' : ''}">${vas}/${pide}${cumplida ? ' ✓' : ''}</span>`;
+    }
     tarjeta.innerHTML = `
       <div class="habito-emoji">${h.emoji}</div>
       <div class="habito-info">
@@ -4872,7 +5222,7 @@ function pintar() {
           ${puntos}
           ${falloHoy
             ? `<span class="racha fallo-texto">${t('noLogrado')}</span>`
-            : `<span class="racha">${racha > 2 ? '🔥 ' + racha : ''}</span>`}
+            : `<span class="racha">${cola}</span>`}
         </div>
       </div>
       <div class="check">${falloHoy ? '✗' : TRAZO_CHECK}</div>
@@ -5265,7 +5615,7 @@ function celebrarHito(idHabito, dias) {
   etiqueta.className = 'hito-etiqueta';
   nombre.className   = 'hito-nombre';
   numero.textContent   = dias;
-  etiqueta.textContent = t('hitoDias');
+  etiqueta.textContent = t(esSemanal(idHabito) ? 'hitoSemanas' : 'hitoDias');   // v35
   nombre.textContent   = `${h.emoji} ${h.nombre}`;
   circulo.append(anillo, numero);
   tarjeta.append(circulo, etiqueta, nombre);
@@ -5682,13 +6032,17 @@ function celdaCSV(valor) {
 }
 
 function aCSV() {
-  const filas = [[t('csvFecha'), t('csvHabito'), t('csvHecho')]];
+  // La cuarta columna (v35) es la meta: 7 para un hábito diario, N para uno
+  // semanal. Sin ella, un sábado sin gym saldría como un 0 más y en Excel
+  // parecería un fallo. Con ella puedes filtrar o dividir por la meta.
+  const filas = [[t('csvFecha'), t('csvHabito'), t('csvHecho'), t('csvMeta')]];
   datos.habitos.forEach(h => {
+    const meta = metaSemanal(h.id) || 7;
     const [anio, mes, dia] = fechaInicio(h.id).split('-').map(Number);
     for (let k = 0; ; k++) {
       const fecha = claveFecha(new Date(anio, mes - 1, dia + k));
       if (fecha > hoy()) break;
-      filas.push([fecha, `${h.emoji} ${h.nombre}`, estaHecho(h.id, fecha) ? 1 : 0]);
+      filas.push([fecha, `${h.emoji} ${h.nombre}`, estaHecho(h.id, fecha) ? 1 : 0, meta]);
     }
   });
   // \r\n y no solo \n: es el fin de línea que Excel espera de un CSV.
@@ -5774,7 +6128,7 @@ function importar(texto) {
 function aplicarCopia(copia) {
   datos = {
     version: 1,
-    habitos: copia.habitos,
+    habitos: limpiarMetas(copia.habitos),   // la meta semanal sí viaja en la copia (v35)
     registros: copia.registros,
     // Una copia de antes de la v23 no trae días "no logrados".
     fallos: copia.fallos && typeof copia.fallos === 'object' ? copia.fallos : {},
@@ -5910,14 +6264,22 @@ function pintarCalendario() {
   const grid = document.getElementById('calGrid');
   grid.innerHTML = '';   // borrón y cuenta nueva, igual que en pintar()
 
+  // Con meta semanal (v35) la cuadrícula gana una octava columna. La clase
+  // va en la ventana entera porque la necesitan las letras de arriba y la
+  // cuadrícula, que son hermanas.
+  const conSemanas = esSemanal(calHabitoId);
+  document.getElementById('modalCal').classList.toggle('con-semanas', conSemanas);
+  const primeraColumna = columnaInicio(calAnio, calMes);
+  const ultimoDia = diasDelMes(calAnio, calMes);
+
   // 1) Cuadros vacíos hasta llegar al día 1. Sin esto, el mes empezaría
   //    siempre en lunes y las columnas quedarían corridas.
-  for (let i = 0; i < columnaInicio(calAnio, calMes); i++) {
+  for (let i = 0; i < primeraColumna; i++) {
     grid.appendChild(document.createElement('div'));
   }
 
   // 2) Un botón por cada día real del mes
-  for (let d = 1; d <= diasDelMes(calAnio, calMes); d++) {
+  for (let d = 1; d <= ultimoDia; d++) {
     const fecha = claveDe(calAnio, calMes, d);
 
     const celda = document.createElement('button');
@@ -5936,6 +6298,16 @@ function pintarCalendario() {
     };
 
     grid.appendChild(celda);
+
+    // Al final de cada fila (el domingo, o el último día del mes) va la
+    // cuenta de esa semana. Si el mes termina a mitad de semana, primero se
+    // rellenan los días que faltan para que la cuenta caiga en su columna.
+    // La cuenta es de la semana ENTERA, también de los días del otro mes.
+    const columna = (primeraColumna + d - 1) % 7;
+    if (conSemanas && (columna === 6 || d === ultimoDia)) {
+      for (let i = columna; i < 6; i++) grid.appendChild(document.createElement('div'));
+      grid.appendChild(celdaSemana(calHabitoId, lunesDe(fecha)));
+    }
   }
 
   // 3) El resumen de abajo
@@ -5956,7 +6328,67 @@ function pintarCalendario() {
 
   // 5) Las estadísticas
   pintarStats();
+
+  // 6) La meta (v35)
+  pintarMeta();
 }
+
+// La cuenta de una semana en la octava columna: "3/5". Verde si se cumplió,
+// azul la semana en curso, gris si se quedó corta. Vacía si la semana
+// todavía no empieza o el hábito no existía.
+function celdaSemana(idHabito, lunes) {
+  const celda = document.createElement('div');
+  celda.className = 'cal-sem';
+  const estaSemana = lunesDe(hoy());
+  const pide = metaDeLaSemana(idHabito, lunes);
+  if (!pide || lunes > estaSemana) return celda;
+  const vas = hechosEnSemana(idHabito, lunes);
+  celda.textContent = `${vas}/${pide}`;
+  if (vas >= pide)               celda.classList.add('cumplida');
+  else if (lunes === estaSemana) celda.classList.add('en-curso');
+  celda.setAttribute('aria-label', t('semanaAria').replace('%h', vas).replace('%m', pide));
+  return celda;
+}
+
+/* --- La meta del hábito abierto (v35) ---
+   Dos botones (Todos los días · Por semana) y, si es semanal, el número.
+   Es el mismo dibujo que "Cada [N] semanas" de las Fechas: una pregunta y
+   un detalle pegado debajo. Se configura una vez; el toque de cada día no
+   cambia. */
+const META_POR_DEFECTO = 5;      // lo que se pone al pasar a "Por semana"
+let escribiendoMeta = false;     // mientras escribes, no se te cambia el número
+
+function pintarMeta() {
+  const meta = metaSemanal(calHabitoId);
+  document.getElementById('calMetaDia').classList.toggle('activo', !meta);
+  document.getElementById('calMetaSemana').classList.toggle('activo', meta > 0);
+  ponerPildora(document.getElementById('calMeta'), meta ? 1 : 0);
+  document.getElementById('calMetaFila').hidden = !meta;
+  if (!escribiendoMeta) document.getElementById('calMetaN').value = meta || '';
+  document.getElementById('calMetaPista').textContent = t(meta ? 'metaPistaSemana' : 'metaPistaDia');
+}
+
+// Tocar el botón que ya está elegido no hace nada: "Por semana" sobre una
+// meta de 3 no la devuelve a 5.
+function elegirMeta(semanal) {
+  if (!calHabitoId || semanal === esSemanal(calHabitoId)) return;
+  cambiarMeta(calHabitoId, semanal ? META_POR_DEFECTO : 0);
+  pintarCalendario();
+}
+document.getElementById('calMetaDia').onclick    = () => elegirMeta(false);
+document.getElementById('calMetaSemana').onclick = () => elegirMeta(true);
+
+// El número se aplica al escribirlo, si es de 1 a 6. Uno que no sirve (un
+// 9, el campo vacío a mitad de borrar) se ignora, y al salir del campo
+// vuelve a decir la meta que quedó.
+const campoMeta = document.getElementById('calMetaN');
+campoMeta.onfocus = () => { escribiendoMeta = true; };
+campoMeta.onblur  = () => { escribiendoMeta = false; pintarMeta(); };
+campoMeta.onchange = campoMeta.onblur;   // el "Listo" del teclado del iPhone
+campoMeta.oninput = () => {
+  const n = Number(campoMeta.value);
+  if (calHabitoId && esMetaValida(n) && cambiarMeta(calHabitoId, n)) pintarCalendario();
+};
 
 /* El mapa del año. Toda la aritmética de fechas la hace mesesHasta()
    (sección C, probada); aquí solo se convierte cada fecha en un cuadrito.
@@ -6010,20 +6442,35 @@ function pintarAnio() {
 // así porque esta lista se crea una sola vez al abrir la app, y el idioma se
 // puede cambiar después: si guardara el texto, se quedaría congelado en el
 // idioma con el que arrancaste.
+//
+// v35: cada una tiene también su etiqueta y su ayuda para un hábito con meta
+// semanal (`semanal`). La racha, la mejor racha y la fuerza ya cambian de
+// unidad solas (preguntan por esSemanal); el porcentaje sí elige aquí cuál
+// calcular, porque "últimos 30 días" y "últimas 4 semanas" son dos preguntas.
 const ESTADISTICAS = [
-  { etiqueta: 'eRacha',      ayuda: 'aRacha',      calcular: id => calcularRacha(id) },
-  { etiqueta: 'eMejorRacha', ayuda: 'aMejorRacha', calcular: id => mejorRacha(id) },
-  { etiqueta: 'eUltimos30',  ayuda: 'aUltimos30',  calcular: id => porcentajeUltimos(id, 30) + '%' },
-  { etiqueta: 'eTotal',      ayuda: 'aTotal',      calcular: id => totalDias(id) },
-  { etiqueta: 'eFuerza',     ayuda: 'aFuerza',     calcular: id => fuerzaHabito(id) }
+  { etiqueta: 'eRacha',      ayuda: 'aRacha',      semanal: ['eRachaSem', 'aRachaSem'],
+    calcular: id => calcularRacha(id) },
+  { etiqueta: 'eMejorRacha', ayuda: 'aMejorRacha', semanal: ['eMejorRachaSem', 'aMejorRachaSem'],
+    calcular: id => mejorRacha(id) },
+  { etiqueta: 'eUltimos30',  ayuda: 'aUltimos30',  semanal: ['eUltimas4', 'aUltimas4'],
+    calcular: id => (esSemanal(id) ? porcentajeSemanas(id, 4) : porcentajeUltimos(id, 30)) + '%' },
+  { etiqueta: 'eTotal',      ayuda: 'aTotal',      semanal: ['eTotal', 'aTotalSem'],
+    calcular: id => totalDias(id) },
+  { etiqueta: 'eFuerza',     ayuda: 'aFuerza',     semanal: ['eFuerza', 'aFuerzaSem'],
+    calcular: id => fuerzaHabito(id) }
 ];
+
+// La clave de la etiqueta o de la ayuda, según la meta del hábito.
+const claveStat = (e, cual) => esSemanal(calHabitoId)
+  ? e.semanal[cual === 'etiqueta' ? 0 : 1]
+  : e[cual];
 
 function pintarStats() {
   const caja = document.getElementById('calStats');
   caja.innerHTML = ESTADISTICAS.map((e, i) => `
     <button class="stat" data-i="${i}">
       <div class="stat-numero">${e.calcular(calHabitoId)}</div>
-      <div class="stat-etiqueta">${t(e.etiqueta)}</div>
+      <div class="stat-etiqueta">${t(claveStat(e, 'etiqueta'))}</div>
     </button>`).join('');
 
   // Un manejador por recuadro: muestra su explicación, y si ya estaba
@@ -6037,7 +6484,7 @@ function pintarStats() {
         mostrarAyuda(null);
       } else {
         boton.classList.add('activa');
-        mostrarAyuda(t(ESTADISTICAS[boton.dataset.i].ayuda));
+        mostrarAyuda(t(claveStat(ESTADISTICAS[boton.dataset.i], 'ayuda')));
       }
     };
   });
@@ -6300,10 +6747,20 @@ function habitoAFila(habito, indice, usuarioId) {
 
 // De las filas de la tabla a la lista que usa la app.
 // Nos quedamos solo con las columnas que la app necesita.
-function filasAHabitos(filas) {
-  return (filas || []).map(f => ({
-    id: f.id, nombre: f.nombre, emoji: f.emoji, creado: f.creado
-  }));
+//
+// `locales` son los hábitos que ya había en el teléfono (v35). La meta
+// semanal todavía no tiene columna en Postgres, así que no puede venir de
+// la nube: se toma del hábito local con el mismo id. Sin esto, la primera
+// bajada después de reactivar Supabase borraría todas las metas sin avisar,
+// porque bajarTodo() REEMPLAZA los hábitos. Es la misma trampa que tuvo el
+// color en la v21.
+function filasAHabitos(filas, locales = []) {
+  return (filas || []).map(f => {
+    const habito = { id: f.id, nombre: f.nombre, emoji: f.emoji, creado: f.creado };
+    const local = locales.find(x => x.id === f.id);
+    if (local && esMetaValida(local.porSemana)) habito.porSemana = local.porSemana;
+    return habito;
+  });
 }
 
 // De las filas de "registros" al objeto { fecha: [ids] }.
@@ -6507,7 +6964,7 @@ async function bajarTodo() {
     console.warn('La nube vino vacía. Copia de emergencia guardada.');
   }
 
-  datos.habitos   = filasAHabitos(filasHabitos);
+  datos.habitos   = filasAHabitos(filasHabitos, datos.habitos);   // conserva las metas (v35)
   datos.registros = filasARegistros(filasRegistros);
   // Desde la v16 las tareas también bajan. Se puede reemplazar sin miedo por
   // la misma razón que los hábitos: solo se llega aquí con la cola vacía, o

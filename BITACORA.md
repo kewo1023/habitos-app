@@ -2266,6 +2266,76 @@ todo"**.
 
 ---
 
+## 2026-11-09 — Meta semanal por hábito (v35)
+
+**Hecho**
+- Kev preguntó por dos cosas: recordatorios por hábito, y que las
+  estadísticas del gym no se hundan por los sábados y domingos que nunca
+  fueron la meta.
+- **Recordatorios: evaluados, sin construir.** Por hábito ya se pueden
+  hacer hoy con Atajos de iOS (una automatización por hábito, con su hora
+  y sus días). Dentro de la app no: no se encontró nada en iOS 26 que deje
+  a una web instalada programar un aviso local; solo push, que necesita un
+  servidor (la opción C del 23 de septiembre, ~8-10 h, depende de
+  Supabase). Sigue sin confirmarse que las automatizaciones de Atajos
+  estén montadas.
+- **Meta semanal: evaluada, maqueta y construida.** Se propusieron días
+  fijos (L-V) y la alternativa "N veces por semana"; **Kev eligió N por
+  semana** (más flexible: si falta el miércoles, el sábado salva la
+  semana). Las cinco decisiones, aprobadas tal como se recomendaron:
+  racha en semanas, días de más con tope, el ✗ no pone en 0 la semanal,
+  el semanal no bloquea el sello del día, hitos de 4/12/26/52 semanas.
+  Maqueta publicada como Artifact, aprobada desde el iPhone; de ahí salió
+  algo que no estaba en el plan: la columna "Sem" del calendario.
+- Rama `v35-metas`. Lógica pura en la sección C (`lunesDe`,
+  `metaDeLaSemana`, `rachaSemanal`, `porcentajeSemanas`, `fuerzaSemanal`,
+  `cambiarMeta`...), la tarjeta ("🔥 7 sem · 2/5"), la barra y el sello
+  solo con los diarios, la columna "Sem" y el selector Meta en el
+  calendario, la medalla en semanas, la cuarta columna de la tabla para
+  Excel (la meta: 7 o N), y los textos en inglés.
+- Pruebas: **683** en `pruebas.js` y **354** en `pruebas-app.js`. Antes de
+  tocar nada se sacó una **foto** de los números de dos hábitos diarios con
+  el código de la v34 (racha, mejor racha, 30 días, total, fuerza, día
+  completo): sigue en verde. Siete sabotajes a propósito (sin tope, la
+  semana en curso rompe la racha, el gym bloquea el día, la nube borra la
+  meta, el ✗ pone en 0, la barra cuenta el gym, la primera semana pide la
+  meta entera): los siete pusieron algo en rojo.
+- Comprobado en el navegador a 375px, en oscuro y en claro: la tarjeta, la
+  barra ("1 de 2" con el gym fuera), la columna "Sem", cambiar entre
+  "Todos los días" y "Por semana" y escribir el número. Sin errores en la
+  consola. Dos etiquetas de estadística no cabían ("SEMANAS" mide 53px en
+  un cuadro de 47): quedaron "Racha (sem.)" y "Mejor (sem.)".
+- **No hay SQL que correr.** La meta vive en el teléfono y en la copia de
+  seguridad. `filasAHabitos()` la conserva al bajar de la nube.
+
+**Pendiente / siguiente**
+- [ ] Kev revisa y aprueba la rama; commit, merge a `main` y push.
+- [ ] Comprobar el sitio en vivo (`sw.js` en v35) y probar en la app
+      instalada: poner el gym en 5 por semana desde su calendario.
+- [ ] Al reactivar Supabase (antes del **14 de diciembre**): la tabla
+      `habitos` necesitará una columna `por_semana` (smallint, `check`
+      entre 1 y 6, **sin default**: sin meta = diario). Mientras no exista,
+      `filasAHabitos()` toma la meta del teléfono.
+- [ ] Sigue pendiente probar la v34 en silencio.
+
+**Aprendizajes**
+- Patrón: en un cambio que toca casi todas las fórmulas, lo que más se
+  rompe es lo que ya funcionaba. Causa: cada fórmula gana una rama nueva
+  y es fácil mover la vieja sin querer. La próxima vez que un cambio toque
+  fórmulas existentes, sacar primero una foto de sus números con el código
+  viejo y dejarla como prueba.
+- Patrón: en la maqueta los números esperados se calcularon con el
+  código; en las pruebas, dos se escribieron a ojo (89) y estaban mal
+  (91). Causa: un número "razonable" no es un número calculado. La
+  próxima vez que una prueba espere el resultado de una fórmula
+  exponencial, calcularlo aparte antes de escribirlo.
+
+**Siguiente paso exacto**
+
+- Kev abre la rama `v35-metas` y da el OK para el commit.
+
+---
+
 <!-- Plantilla para la próxima entrada:
 
 ## AAAA-MM-DD — Título
