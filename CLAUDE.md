@@ -943,6 +943,21 @@ pantalla, agregarlo a `pruebas-app.js`.
     `bajarTodo()` las borraría todas. Al reactivar Supabase: columna
     `por_semana` con `check` 1-6 y **sin default** (sin meta = diario).
   - **Límite aceptado:** con solo hábitos semanales no hay sello ni barra.
+- **Fase 3.23 — Lo que falta, arriba (v36)** Pedido de Kev el 9 de
+  noviembre, construido en la rama `v36-orden`. **No hay SQL que correr.**
+  - **Tres grupos** (`habitosOrdenados`, sección C): sin marca hoy, luego
+    ✓, y al fondo ✗ (corrección de Kev). Cada grupo en el orden manual.
+  - **Decisión clave: el orden se calcula al dibujar, no se guarda**, igual
+    que `tareasOrdenadas()`. Por eso al día siguiente vuelve solo.
+  - La tarjeta se marca donde la tocaste y baja tras `PAUSA_TACHADO`
+    (`conOrdenCongelado`, `ordenParaPintar`). El dato cambia en el acto;
+    solo el orden espera, y cada toque reinicia la espera.
+  - **En modo edición se ve el orden manual** (`alternarEdicion` ahora
+    repinta). Los semanales bajan si tienen marca **hoy**.
+  - **Ojo:** el botón Editar/Listo cambia su `data-t`, no solo el texto;
+    `traducirEstaticos()` lo reescribiría en cada `pintar()`.
+  - En `pruebas-app.js`, no buscar una tarjeta de hábito por su posición:
+    cambia según lo marcado.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
@@ -1021,6 +1036,8 @@ maqueta. Merge a `main` (commit `99e7600`), publicada el mismo día y
 comprobada en el sitio en vivo (`sw.js` en v35, el selector Meta y las
 fórmulas semanales cargadas, sin errores al arrancar). Falta probarla en
 la app instalada. Sin SQL.
+**`v36`** (lo que falta arriba, Fase 3.23), construida en la rama
+`v36-orden` el 9 de noviembre de 2026. **Sin publicar todavía.** Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

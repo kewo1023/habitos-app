@@ -2337,6 +2337,38 @@ todo"**.
 - Kev cierra la app del todo, la abre (debe traer la v35), toca el emoji
   del gym y en Meta elige "Por semana".
 
+## 2026-11-09 — Lo que falta, arriba (v36)
+
+Pedido de Kev: que un hábito marcado baje al final, como un pendiente
+hecho, y que al día siguiente vuelva a su orden. Evaluado con los cuatro
+ejes y construido en la rama `v36-orden`. **No hay SQL que correr.**
+
+**Hecho**
+
+- `habitosOrdenados(fecha)` (sección C): tres grupos. Primero lo que falta,
+  después los logrados y al fondo los no logrados, cada grupo en el orden
+  manual. **Corrección de Kev:** en la primera versión ✓ y ✗ iban
+  mezclados; pidió los ✗ al fondo.
+- El orden se calcula, no se guarda: `datos.habitos` no cambia, así que
+  al día siguiente todo vuelve solo a su orden.
+- Pausa de `PAUSA_TACHADO` (`conOrdenCongelado`): la tarjeta se marca
+  donde la tocaste y baja después. Cada toque nuevo reinicia la espera.
+  A diferencia de las tareas, el dato cambia en el acto (sonido, sello e
+  hito salen al tocar); solo el orden espera. Las que bajan "aterrizan".
+- En modo edición se ve el orden manual, para que ↑↓ hagan lo esperado.
+- Los semanales bajan si tienen marca **hoy**, aunque ya cumplieron la
+  meta de la semana.
+- **Bug viejo arreglado:** un repintado en modo edición (renombrar un
+  hábito) devolvía "Listo" a "Editar", porque `traducirEstaticos()`
+  reescribe todo lo que tiene `data-t`. Ahora se cambia la clave.
+- Pruebas: 694 en `pruebas.js` y 369 en `pruebas-app.js` (sección 18). Se
+  desactivó el arreglo a propósito y se pusieron en rojo.
+- Comprobado en el navegador: Correr, Meditar, Agua ✓, Leer ✗.
+
+**Pendiente / siguiente**
+
+- [ ] Merge a `main`, publicar y probar en la app instalada.
+
 ---
 
 <!-- Plantilla para la próxima entrada:
