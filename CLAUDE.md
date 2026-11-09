@@ -1017,8 +1017,10 @@ cargadas, sin errores al arrancar). Falta probarla en la app instalada,
 sobre todo que no suene con el iPhone en silencio. Sin SQL.
 **`v35`** (meta semanal por hábito, Fase 3.22), construida en la rama
 `v35-metas` el 9 de noviembre de 2026 después de que Kev aprobara la
-maqueta. Comprobada en el navegador; **sin commit ni publicar todavía**.
-Sin SQL.
+maqueta. Merge a `main` (commit `99e7600`), publicada el mismo día y
+comprobada en el sitio en vivo (`sw.js` en v35, el selector Meta y las
+fórmulas semanales cargadas, sin errores al arrancar). Falta probarla en
+la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

@@ -2309,9 +2309,11 @@ todo"**.
   seguridad. `filasAHabitos()` la conserva al bajar de la nube.
 
 **Pendiente / siguiente**
-- [ ] Kev revisa y aprueba la rama; commit, merge a `main` y push.
-- [ ] Comprobar el sitio en vivo (`sw.js` en v35) y probar en la app
-      instalada: poner el gym en 5 por semana desde su calendario.
+- [x] Commit (`99e7600`), merge a `main` y push. Comprobado en el sitio
+      en vivo: `sw.js` en v35, el selector Meta y las fórmulas semanales
+      cargadas, sin errores en la consola.
+- [ ] Probar en la app instalada: poner el gym en 5 por semana desde su
+      calendario.
 - [ ] Al reactivar Supabase (antes del **14 de diciembre**): la tabla
       `habitos` necesitará una columna `por_semana` (smallint, `check`
       entre 1 y 6, **sin default**: sin meta = diario). Mientras no exista,
@@ -2332,7 +2334,8 @@ todo"**.
 
 **Siguiente paso exacto**
 
-- Kev abre la rama `v35-metas` y da el OK para el commit.
+- Kev cierra la app del todo, la abre (debe traer la v35), toca el emoji
+  del gym y en Meta elige "Por semana".
 
 ---
 
