@@ -2404,7 +2404,9 @@ logrado se confundía con uno sin marcar. **No hay SQL que correr.**
 
 **Pendiente / siguiente**
 
-- [ ] Merge a `main`, publicar y comprobar en el iPhone que Ajustes diga v38.
+- Publicada: merge a `main` (commit `37f7b95`), comprobada en el sitio en
+  vivo (`sw.js` y Ajustes en v38, sin errores al arrancar).
+- [ ] Comprobar en el iPhone que Ajustes diga v38 y que el ✗ salga en rojo.
 
 ---
 

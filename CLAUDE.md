@@ -1053,7 +1053,9 @@ publicada el 9 de noviembre de 2026 y comprobada en el sitio en vivo
 (captura del mismo día). Sin SQL.
 **`v38`** (rojo del no logrado y versión en Ajustes, Fase 3.24),
 construida en la rama `v38-fallo-version` el 9 de noviembre de 2026.
-**Sin publicar todavía.** Sin SQL.
+Merge a `main` (commit `37f7b95`), publicada el mismo día y comprobada en
+el sitio en vivo (`sw.js` y Ajustes en v38, sin errores al arrancar).
+Falta probarla en la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
