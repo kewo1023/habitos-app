@@ -902,6 +902,7 @@ header { margin-bottom: 22px; }
   .habito.ola .habito-emoji,
   .progreso-fondo.ola::after,
   .tarea.recien-movida,
+  .habito.recien-movida,
   .hito.visible .hito-tarjeta,
   .hito-anillo,
   .check.celebrar svg,
@@ -1371,7 +1372,8 @@ body.editando .tarea-texto {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.tarea.recien-movida { animation: aterrizar .28s ease-out; }
+.tarea.recien-movida,
+.habito.recien-movida { animation: aterrizar .28s ease-out; }
 
 /* En Ideas, tocar el texto abre su ficha en vez de marcarla. El punteado es
    la pista de que ahí se puede tocar — la misma señal que la app ya usa en
@@ -3562,6 +3564,24 @@ function diaCompleto(fecha) {
   return diarios.every(h => estaHecho(h.id, fecha));
 }
 
+/* El orden en que se VEN los hábitos (v36). Primero los que todavía no
+   tienen marca ese día; después los que ya la tienen, sea ✓ o ✗. Dentro de
+   cada grupo se respeta tu orden manual (el de las flechas ↑↓).
+
+   Es la misma idea que tareasOrdenadas() en Pendientes: el orden se CALCULA
+   al dibujar, no se guarda. datos.habitos sigue intacto, como una hoja de
+   Excel con un filtro encima. Por eso "al día siguiente vuelve a su orden"
+   no necesita código: a medianoche ningún hábito tiene marca del día nuevo
+   y todos caen en el primer grupo, en tu orden.
+
+   Los semanales siguen la misma regla: bajan si tienen marca HOY, aunque la
+   meta de la semana ya esté cumplida. Una sola regla para todos.          */
+function habitosOrdenados(fecha) {
+  const conMarca = h => estaHecho(h.id, fecha) || esFallo(h.id, fecha);
+  return datos.habitos.filter(h => !conMarca(h))
+    .concat(datos.habitos.filter(conMarca));
+}
+
 // Todas las fechas en que se marcó un hábito, ordenadas de vieja a nueva.
 // En SQL: SELECT fecha FROM registros WHERE habito = ? ORDER BY fecha
 // Ordenar textos AAAA-MM-DD ya los deja en orden cronológico.
@@ -5068,6 +5088,21 @@ const lista = document.getElementById('lista');
 // puesta, la animación volvería a salir al cambiar de idioma o al sincronizar,
 // que también repintan.
 let habitoRecienMarcado = null;
+/* El orden en pantalla mientras dura la pausa (v36). Al marcar, la tarjeta
+   se pinta de verde (o con su ✗) DONDE la tocaste, y solo después baja. Si
+   bajara en el acto, la animación del círculo se vería en una tarjeta que
+   ya no está bajo tu dedo — lo mismo que resolvió PAUSA_TACHADO en las
+   tareas.
+
+   La diferencia con las tareas: aquí el dato cambia en el acto (el sonido,
+   el sello y el hito salen al tocar, como siempre) y lo que espera es solo
+   el orden. Cada toque nuevo reinicia la espera, así que si marcas tres
+   seguidos nada se mueve bajo tu dedo hasta que paras.                    */
+let ordenCongelado = null;      // ids en el orden de pantalla, o null
+let temporizadorOrden = null;
+let habitosPorAterrizar = [];   // los que tocaste: aterrizan al bajar
+let ordenEnPantalla = [];       // lo que pintar() dibujó la última vez
+
 // Lo mismo para el ✗ que se pone manteniendo oprimido (v27).
 let habitoRecienFallado = null;
 
@@ -5175,13 +5210,15 @@ function pintar() {
     document.getElementById('cajaProgreso').classList.add('sin-barra');
   }
 
-  // Una tarjeta por hábito
+  // Una tarjeta por hábito, en el orden que toca ahora (v36)
+  const orden = ordenParaPintar();
+  ordenEnPantalla = orden.map(h => h.id);
   lista.innerHTML = '';
-  datos.habitos.forEach((h, indice) => {
+  orden.forEach((h, indice) => {
     const hecho = estaHecho(h.id, hoy());
     const racha = calcularRacha(h.id);
     const esPrimero = indice === 0;
-    const esUltimo  = indice === datos.habitos.length - 1;
+    const esUltimo  = indice === orden.length - 1;
 
     let puntos = '';
     // 7 puntos: de hace 6 días hasta hoy. Fueron 14 desde un ajuste de Kev;
@@ -5240,6 +5277,12 @@ function pintar() {
       // Y su racha sube con el mismo gesto que el "3 de 5" de arriba (v26).
       tarjeta.querySelector('.racha').classList.add('numero-cambia');
     }
+    // El que acaba de bajar al terminar la pausa "aterriza" (v36), con la
+    // misma animación que una tarea que se va al final: dice "me moví a
+    // propósito" en vez de parecer un salto.
+    if (habitosPorAterrizar.includes(h.id) && (hecho || falloHoy)) {
+      tarjeta.classList.add('recien-movida');
+    }
     // El ✗ recién puesto da un sacudón corto, el "no" de la cabeza (v27).
     if (h.id === habitoRecienFallado) {
       tarjeta.querySelector('.check').classList.add('negar');
@@ -5251,11 +5294,14 @@ function pintar() {
     // puesto se convertiría en ✓ en el mismo gesto.
     tarjeta.querySelector('.check').onclick = () => {
       if (Date.now() - ultimoToqueLargo < 700) return;
-      alternarHoy(h.id);
+      conOrdenCongelado(h.id, () => alternarHoy(h.id));
     };
-    prepararToqueLargo(tarjeta.querySelector('.check'), () => alternarFalloHoy(h.id));
+    prepararToqueLargo(tarjeta.querySelector('.check'),
+      () => conOrdenCongelado(h.id, () => alternarFalloHoy(h.id)));
     tarjeta.querySelector('.habito-info').onclick = () => {
-      if (!document.body.classList.contains('editando')) alternarHoy(h.id);
+      if (!document.body.classList.contains('editando')) {
+        conOrdenCongelado(h.id, () => alternarHoy(h.id));
+      }
     };
     tarjeta.querySelector('.borrar').onclick = async () => {
       const si = await confirmar({
@@ -5301,6 +5347,45 @@ function pintar() {
   // no la repita — mismo cierre que pintarLista() hace con tareaRecienMovida.
   habitoRecienMarcado = null;
   habitoRecienFallado = null;
+  habitosPorAterrizar = [];
+}
+
+/* Qué orden dibuja pintar() (v36). Tres casos, del más fuerte al más débil:
+     - en modo edición, TU orden manual: ahí estás acomodando con las
+       flechas, y una flecha que cambiara el hábito por otro de otro grupo
+       parecería no hacer nada;
+     - durante la pausa después de un toque, el orden que había en pantalla;
+     - el resto del tiempo, habitosOrdenados(): lo que falta, arriba.      */
+function ordenParaPintar() {
+  if (document.body.classList.contains('editando')) return datos.habitos;
+  if (ordenCongelado) {
+    // Un hábito que no estaba en la foto (no debería pasar) va al final.
+    const sitio = h => {
+      const i = ordenCongelado.indexOf(h.id);
+      return i === -1 ? ordenCongelado.length : i;
+    };
+    return datos.habitos.slice().sort((a, b) => sitio(a) - sitio(b));
+  }
+  return habitosOrdenados(hoy());
+}
+
+// Hace el cambio (accion) sin mover las tarjetas, y las reacomoda cuando
+// pasa PAUSA_TACHADO desde el último toque.
+function conOrdenCongelado(idHabito, accion) {
+  if (!ordenCongelado) ordenCongelado = ordenEnPantalla.slice();
+  if (!habitosPorAterrizar.includes(idHabito)) habitosPorAterrizar.push(idHabito);
+  const tocados = habitosPorAterrizar.slice();   // pintar() la vacía
+  accion();
+  habitosPorAterrizar = tocados;
+  clearTimeout(temporizadorOrden);
+  temporizadorOrden = setTimeout(() => {
+    ordenCongelado = null;
+    // Solo aterrizan los que de verdad cambiaron de sitio.
+    const antes = ordenEnPantalla;
+    const despues = ordenParaPintar().map(h => h.id);
+    habitosPorAterrizar = habitosPorAterrizar.filter(id => antes.indexOf(id) !== despues.indexOf(id));
+    pintar();
+  }, PAUSA_TACHADO);
 }
 
 /* ---------- E1. AYUDANTES DE MOVIMIENTO (v26) ----------
@@ -5933,8 +6018,16 @@ document.getElementById('nombre').addEventListener('keydown', ev => {
 // diciendo cosas distintas.
 function alternarEdicion() {
   document.body.classList.toggle('editando');
-  document.getElementById('btnEditar').textContent =
-    document.body.classList.contains('editando') ? t('listo') : t('editar');
+  // Se cambia la CLAVE (data-t) y no solo el texto. traducirEstaticos(), que
+  // corre en cada pintar(), reescribe todo lo que tiene data-t: si solo se
+  // cambiara el texto, el primer repintado en modo edición (renombrar un
+  // hábito, por ejemplo) devolvía el botón a "Editar" estando dentro (v36).
+  const boton = document.getElementById('btnEditar');
+  boton.dataset.t = document.body.classList.contains('editando') ? 'listo' : 'editar';
+  boton.textContent = t(boton.dataset.t);
+  // Al entrar a editar, los hábitos vuelven a tu orden manual; al salir,
+  // lo que falta vuelve arriba (v36). Antes no hacía falta repintar.
+  if (vista === 'habitos') pintar();
 }
 
 document.getElementById('btnEditar').onclick    = alternarEdicion;
@@ -7172,6 +7265,7 @@ function cambiarVista(nueva) {
   // Salir del modo edición al cambiar de sección: si te quedaras dentro,
   // llegarías a la otra lista con las ✕ puestas sin haberlo pedido.
   document.body.classList.remove('editando');
+  document.getElementById('btnEditar').dataset.t = 'editar';
   document.getElementById('btnEditar').textContent = t('editar');
 
   if (enHabitos) {

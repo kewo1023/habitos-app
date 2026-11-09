@@ -1456,7 +1456,10 @@ async function pruebasDeMeta() {
   // El navegador de mentira no arma el texto por piezas: la tarjeta entera
   // se lee como un solo texto, con los espacios aplastados. El gym es la
   // segunda tarjeta.
-  const textoGym = () => $('lista').children[1].textContent.replace(/\s+/g, ' ');
+  // Se busca por el nombre y no por la posición: desde la v36 lo marcado
+  // hoy baja al final, así que el gym no siempre es la segunda tarjeta.
+  const textoGym = () => $('lista').children.find(c => c.textContent.includes('Gym'))
+    .textContent.replace(/\s+/g, ' ');
   ok('la tarjeta del gym dice la racha en semanas y cuánto va', textoGym().includes('🔥 2 sem · 0/5'));
   ok('la barra cuenta solo el hábito diario (0 de 1)', $('progresoTexto').textContent === '0 de 1');
 
@@ -1521,8 +1524,60 @@ async function pruebasDeMeta() {
   await espera(230);
 }
 
+// ===========================================================================
+// 18. Lo que falta, arriba (v36)
+//     El orden lo prueba pruebas.js. Aquí: que la tarjeta se quede donde la
+//     tocaste durante la pausa, que baje después, y que el modo edición
+//     muestre tu orden manual.
+// ===========================================================================
+async function pruebasDeOrden() {
+  const espera = ms => new Promise(listo => setTimeout(listo, ms));
+  app.cambiarVista('habitos');
+  app.datos.habitos = []; app.datos.registros = {}; app.datos.fallos = {};
+  ['Agua', 'Leer', 'Correr'].forEach(n => app.agregarHabito(n, '✨'));
+  // El navegador de mentira no lee el texto de un hijo suelto; se busca el
+  // nombre en el texto de la tarjeta entera (los tres son distintos).
+  const NOMBRES = ['Agua', 'Leer', 'Correr'];
+  const nombreDe = c => NOMBRES.find(n => c.textContent.includes(n));
+  const nombres = () => $('lista').children.map(nombreDe).join(',');
+  const tarjeta = n => $('lista').children.find(c => nombreDe(c) === n);
+
+  ok('sin marcas, tu orden', nombres() === 'Agua,Leer,Correr');
+  tarjeta('Agua').querySelector('.check').click();
+  ok('al marcar, la tarjeta se queda donde la tocaste', nombres() === 'Agua,Leer,Correr');
+  ok('pero ya está marcada y celebra', tarjeta('Agua').className.includes('hecho') &&
+     tarjeta('Agua').querySelector('.check').classList.contains('celebrar'));
+  await espera(app.PAUSA_TACHADO / 2);
+  tarjeta('Leer').querySelector('.habito-info').click();
+  ok('un segundo toque durante la pausa tampoco mueve nada', nombres() === 'Agua,Leer,Correr');
+  await espera(app.PAUSA_TACHADO / 2 + 20);
+  ok('la espera se reinició con el segundo toque', nombres() === 'Agua,Leer,Correr');
+  await espera(app.PAUSA_TACHADO / 2 + 20);
+  ok('pasada la pausa, lo marcado baja (en tu orden)', nombres() === 'Correr,Agua,Leer');
+  ok('y las que bajaron aterrizan', tarjeta('Agua').className.includes('recien-movida') &&
+     tarjeta('Leer').className.includes('recien-movida'));
+  ok('la que no se movió no aterriza', !tarjeta('Correr').className.includes('recien-movida'));
+  app.pintar();
+  ok('el aterrizaje no se repite al repintar', !tarjeta('Agua').className.includes('recien-movida'));
+
+  // --- modo edición: tu orden manual, y las flechas lo cambian
+  $('btnEditar').click();
+  ok('en modo edición se ve tu orden manual', nombres() === 'Agua,Leer,Correr');
+  tarjeta('Correr').querySelector('.subir').click();
+  ok('y la flecha ↑ sube un puesto en ese orden', nombres() === 'Agua,Correr,Leer');
+  ok('un repintado en modo edición no devuelve el botón a "Editar"', $('btnEditar').textContent === 'Listo');
+  $('btnEditar').click();
+  ok('al salir, lo que falta vuelve arriba', nombres() === 'Correr,Agua,Leer');
+
+  // --- el ✗ también baja, y desmarcar lo devuelve
+  app.alternarHoy(app.datos.habitos.find(h => h.nombre === 'Agua').id);
+  app.datos.fallos[app.hoy()] = [app.datos.habitos.find(h => h.nombre === 'Correr').id];
+  app.pintar();
+  ok('un no logrado también baja', nombres() === 'Agua,Correr,Leer');
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeOrden).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);
