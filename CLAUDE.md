@@ -943,7 +943,7 @@ pantalla, agregarlo a `pruebas-app.js`.
     `bajarTodo()` las borraría todas. Al reactivar Supabase: columna
     `por_semana` con `check` 1-6 y **sin default** (sin meta = diario).
   - **Límite aceptado:** con solo hábitos semanales no hay sello ni barra.
-- **Fase 3.23 — Lo que falta, arriba (v36)** Pedido de Kev el 9 de
+- **Fase 3.23 — Lo que falta, arriba (v36 y v37)** Pedido de Kev el 9 de
   noviembre, construido en la rama `v36-orden`. **No hay SQL que correr.**
   - **Tres grupos** (`habitosOrdenados`, sección C): sin marca hoy, luego
     ✓, y al fondo ✗ (corrección de Kev). Cada grupo en el orden manual.
@@ -1036,8 +1036,11 @@ maqueta. Merge a `main` (commit `99e7600`), publicada el mismo día y
 comprobada en el sitio en vivo (`sw.js` en v35, el selector Meta y las
 fórmulas semanales cargadas, sin errores al arrancar). Falta probarla en
 la app instalada. Sin SQL.
-**`v36`** (lo que falta arriba, Fase 3.23), construida en la rama
-`v36-orden` el 9 de noviembre de 2026. **Sin publicar todavía.** Sin SQL.
+**`v36`** (lo que falta arriba, dos grupos) llegó a `main` por el pull
+request #1. **`v37`** (tres grupos: falta, ✓, ✗ al fondo; Fase 3.23),
+publicada el 9 de noviembre de 2026 y comprobada en el sitio en vivo
+(`sw.js` en v37, sin errores al arrancar). Falta probarla en la app
+instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 

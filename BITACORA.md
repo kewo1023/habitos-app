@@ -2337,7 +2337,7 @@ todo"**.
 - Kev cierra la app del todo, la abre (debe traer la v35), toca el emoji
   del gym y en Meta elige "Por semana".
 
-## 2026-11-09 — Lo que falta, arriba (v36)
+## 2026-11-09 — Lo que falta, arriba (v36 y v37)
 
 Pedido de Kev: que un hábito marcado baje al final, como un pendiente
 hecho, y que al día siguiente vuelva a su orden. Evaluado con los cuatro
@@ -2365,9 +2365,22 @@ ejes y construido en la rama `v36-orden`. **No hay SQL que correr.**
   desactivó el arreglo a propósito y se pusieron en rojo.
 - Comprobado en el navegador: Correr, Meditar, Agua ✓, Leer ✗.
 
+- **Publicación:** la primera versión (dos grupos) ya estaba en `main` como
+  `v36`, por el pull request #1 en GitHub. Al publicar los tres grupos el
+  push se rechazó; se revisó qué traía GitHub (solo ese merge, nada
+  distinto), se mezcló y se subió. Como la v36 ya estaba publicada con el
+  orden viejo, `VERSION` pasó a **`v37`**. Comprobada en el sitio en vivo:
+  `sw.js` en v37, los tres grupos cargados, sin errores al arrancar.
+- **Lección:** antes de dar una versión por "sin publicar", mirar
+  `origin/main`. La misma corrección que hizo Kev el 5 de agosto.
+
 **Pendiente / siguiente**
 
-- [ ] Merge a `main`, publicar y probar en la app instalada.
+- [ ] Probar la v37 en la app instalada: cerrarla del todo, abrirla,
+  marcar un hábito con ✓ y otro con ✗ (mantener oprimido) y ver que el ✗
+  queda al fondo.
+- [ ] La rama `v36-orden` sigue en GitHub; ya está mezclada y se puede
+  borrar desde la página del pull request.
 
 ---
 
