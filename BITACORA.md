@@ -2408,6 +2408,80 @@ logrado se confundía con uno sin marcar. **No hay SQL que correr.**
   vivo (`sw.js` y Ajustes en v38, sin errores al arrancar).
 - [ ] Comprobar en el iPhone que Ajustes diga v38 y que el ✗ salga en rojo.
 
+## 2026-11-09 — Cierre de la sesión (v36 a v38)
+
+**Hecho**
+
+- Tres versiones publicadas el mismo día: v36 (lo marcado baja, dos
+  grupos), v37 (los ✗ al fondo, debajo de los ✓) y v38 (tarjeta roja del
+  no logrado y versión en Ajustes). El detalle de cada una está en las
+  entradas de arriba.
+- La v37 ya se probó en el iPhone (captura de Kev).
+- Pruebas al cerrar: 694 en `pruebas.js` y 374 en `pruebas-app.js`, todas
+  pasan. `sw.js` y `VERSION_APP` en v38, igual que el sitio en vivo; no
+  hizo falta subir la versión otra vez.
+- `CLAUDE.md`: actualizado el número de pruebas de cada capa.
+
+**Pendiente / siguiente**
+
+- [ ] Probar la v38 en el iPhone: Ajustes debe decir v38 y el ✗ salir en
+  rojo.
+- [ ] Opcional: borrar en GitHub las ramas viejas `v31-fechas`,
+  `v32-fechas`, `v35-metas` y `v36-orden`. Ya están todas en `main`.
+- [ ] Sigue en pie: **reactivar Supabase antes del 14 de diciembre de
+  2026** (ver la entrada del 15 de septiembre).
+
+## 2026-11-09 — Habitica, Atoms y el Salón de la fama (v39)
+
+**Contexto.** Kev pidió investigar Habitica (hábitos como juego) y el
+"Salón de la fama" de Atoms, y propuestas para que la app sea un centro de
+todo su día.
+
+**Evaluado**
+
+- *Habitica:* XP, oro, vida que baja si no cumples, avatar. No se
+  construye: la recompensa inmediata ya existe (✓, sonido, sello, hitos) y
+  el castigo de vida duplica al ✗. Lo único rescatable: un nivel calculado.
+- *Atoms, Salón de la fama:* archivar un hábito dominado como logro. Útil
+  de verdad (hoy solo se puede borrar, y borrar se lleva el historial),
+  sin fricción diaria, impacto bajo. Kev lo eligió.
+- *Centro de todo:* propuestas en orden: reactivar Supabase (plazo 14 dic),
+  revisión de la semana, pendientes con Hoy / Esta semana / Algún día, una
+  línea por día, listas que se reinician, avisos (.ics).
+- *Pestaña de Inicio* (propuesta de Kev al elegir): evaluada en el chat,
+  **pendiente de su decisión**. Kev pidió revisar la premisa "simple y
+  rápida": nació con una sola pantalla; hoy son cinco y cada una sigue
+  siendo simple. Acepta agregar lo que dé valor real.
+
+**Hecho (v39, rama `v39-salon`)**
+
+- Campo `dominado` en el hábito, `habitosActivos()` en todo lo del día,
+  botón en el calendario, ventana del salón, medalla al mandarlo.
+- Arreglado de paso: la cuenta del sello contaba los semanales.
+- Pruebas: 726 en `pruebas.js` y 395 en `pruebas-app.js`. Saboteados a
+  propósito `filasAHabitos` y el salto de `moverHabito`: 5 pruebas en rojo.
+- Probado en el navegador a 375px: mandar, medalla, "1 de 3", ventana,
+  calendario con "Volver", devolver. Sin errores en la consola.
+- `sw.js` y `VERSION_APP` en v39.
+
+**Después, el mismo día (sigue la v39)**
+
+- Kev preguntó si el salón debería decidirlo la app y si se sigue
+  marcando. Decisión: **lo mandas tú, la app sugiere** desde fuerza 95; en
+  el salón **no se marca** y las estadísticas se **congelan** el día que
+  entró (`aLaFecha`, un reloj fijado; ninguna fórmula cambió).
+- Maqueta "Pantalla Hoy" (Artifact) con dos variantes. Kev eligió la B,
+  **Inicio aparte**, y sacó **Compras** de la barra. La app ahora abre en
+  el Inicio, con cinco cuadros. Detalle en `CLAUDE.md`, Fase 3.26.
+- Pruebas: 751 y 417. Saboteados: el congelado (2 en rojo) y el repintado
+  del Inicio (en rojo). Probado en el navegador a 375px: arranque en
+  Inicio, cuadro de Compras con Inicio iluminado, sin errores.
+
+**Pendiente / siguiente**
+
+- [ ] Kev: probar la v39 y decidir si se publica (merge a `main`).
+- [ ] Reactivar Supabase antes del 14 de diciembre de 2026.
+
 ---
 
 <!-- Plantilla para la próxima entrada:

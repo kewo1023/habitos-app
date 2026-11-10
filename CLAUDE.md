@@ -165,8 +165,8 @@ Plataforma: iPhone. Kev tiene un Mac.
 
 **Hay dos capas de pruebas y las dos se corren después de tocar el código:**
 
-1. `node pruebas.js` — 683 tests de la lógica pura (fórmulas, fechas, datos).
-2. `node pruebas-app.js` — 354 verificaciones de la app entera cargada en un
+1. `node pruebas.js` — 751 tests de la lógica pura (fórmulas, fechas, datos).
+2. `node pruebas-app.js` — 417 verificaciones de la app entera cargada en un
    navegador de mentira. Ve lo que la primera no puede: que una función llame a
    otra con el nombre correcto, que un id del HTML exista, que cambiar de
    idioma repinte lo que toca.
@@ -236,7 +236,8 @@ pantalla, agregarlo a `pruebas-app.js`.
   - **Decisión clave:** descartado deslizar (swipe) para borrar/editar. Se
     reutiliza el modo edición que ya existe, mismo criterio que arrastrar-y-
     soltar en la Fase 2. Retomar solo si el uso real lo pide.
-  - La app **siempre abre en Hábitos**. Pendientes es un desvío voluntario.
+  - ~~La app **siempre abre en Hábitos**~~. **Cambiado en la v39:** abre en
+    el Inicio (decisión de Kev). Ver Fase 3.26.
   - Secciones nuevas: **D2** (lógica pura, se prueba) y **N** (dibujado).
 - **Fase 2.6 — Ideas ✅** Tercera pestaña, al mismo nivel que las otras dos.
   Para anotar lo que se le ocurra a corto/mediano plazo, sin que pese.
@@ -968,6 +969,82 @@ pantalla, agregarlo a `pruebas-app.js`.
     que ser igual a `VERSION` de `sw.js`**; vive en los dos porque el
     service worker y la página no comparten variables. La sección 19 de
     `pruebas-app.js` las compara. **Al publicar, subir las dos.**
+- **Fase 3.25 — Salón de la fama (v39)** Pedido de Kev el 9 de noviembre,
+  después de investigar Habitica y Atoms. Construido en la rama
+  `v39-salon`. **No hay SQL que correr** (todavía).
+  - La idea es de **Atoms** (la app de *Atomic Habits*): un hábito que ya
+    dominaste no se borra, **se guarda como logro**. Sale de la lista
+    diaria y conserva todo su historial. Antes la única salida era borrar,
+    que borra el historial.
+  - **Habitica se evaluó y no se construyó:** XP, vida que baja al fallar,
+    avatar y equipo. La recompensa inmediata ya la dan el ✓, el sonido, el
+    sello y los hitos; el castigo de vida duplica al ✗. Si algún día se
+    quiere, lo único que vale es un **nivel calculado** (función pura, sin
+    cambiar el modelo).
+  - Campo `dominado` (AAAA-MM-DD, la fecha en que entró). **Sin el campo
+    está activo**, como `porSemana`. `estaDominado()` pide una fecha
+    válida; `limpiarDominados()` corre en `cargar()`.
+  - **Decisión clave:** `habitosActivos()` (sección C) es lo que mira todo
+    lo del día: `diaCompleto`, `habitosOrdenados`, `ordenParaPintar`, la
+    barra y la cuenta del sello. **Si algo nuevo lee `datos.habitos` para
+    dibujar el día, tiene que leer `habitosActivos()`.** La tabla para
+    Excel y la copia sí llevan a todos.
+  - `moverHabito()` salta a los del salón: siguen en el array, y cambiar
+    con uno escondido haría que la flecha no hiciera nada en pantalla.
+  - Se manda desde el **calendario del hábito**, abajo del todo (decisión
+    de una vez, lejos del dedo que corrige días). **Sin confirmar**: se
+    deshace con el mismo botón ("↩ Volver a la lista diaria"). Al mandarlo
+    sale la medalla del hito (`celebrarHito` ganó un tercer parámetro,
+    `clave`) y suena la Escalera.
+  - "🏆 Salón de la fama · N" va debajo de "+ Nuevo hábito", **solo si hay
+    alguno**. Abre `#modalSalon` (más reciente arriba); tocar uno abre su
+    calendario.
+  - De paso: la cuenta del sello decía `datos.habitos.length` e incluía los
+    semanales ("6 de 6" con el gym). Ahora cuenta los diarios activos.
+  - **Nube:** igual que la meta. `filasAHabitos()` toma `dominado` del
+    hábito local; sin eso, `bajarTodo()` devolvería todo el salón a la
+    lista. Al reactivar Supabase: columna `dominado date`, nullable.
+  - **Decisión de Kev: lo mandas tú, la app solo sugiere.** Con fuerza 95
+    o más (`UMBRAL_SALON`, `sugerirSalon`) el botón del calendario se pinta
+    de azul y la pista pregunta "¿Ya lo haces sin pensarlo?". Los números
+    miden constancia, no dominio; y un umbral fijo no sirve para todos (el
+    estudio de Lally, 2009: de 18 a 254 días).
+  - **En el salón no se marca**, y sus estadísticas se **congelan** el día
+    que entró. Sin eso, la racha caería a 0 y la fuerza bajaría mes a mes,
+    como si hubiera fracasado. Se hace con un "reloj fijado":
+    `hoyFijo` + `aLaFecha(fecha, accion)` (sección B). `hoy()` mira primero
+    `hoyFijo`, y `haceNDias()` cuenta desde `hoy()` (antes desde
+    `new Date()`). Ninguna fórmula cambió. **`let hoyFijo` tiene que ir
+    antes de `let datos = cargar()`** (la trampa de la v21).
+- **Fase 3.26 — Inicio y Compras fuera de la barra (v39)** Pedido de Kev
+  el 9 de noviembre. Se le propuso convertir Hábitos en "Hoy" (variante A,
+  un toque menos) y eligió **la B, un Inicio aparte**, con una condición
+  suya: **sacar Compras de la barra**, que es la que menos usa. Con eso la
+  barra sigue en cinco pestañas y "Pendientes" cabe (era la objeción a B).
+  Maqueta: Artifact "Pantalla Hoy". **No hay SQL que correr.**
+  - **Cambio de premisa (Kev, 9 de noviembre):** "simple y rápida" nació
+    con una sola pantalla. Hoy son varias y cada una sigue siendo simple;
+    se acepta agregar lo que dé valor real. **Lo que no cambia:** el gesto
+    diario no debe hacerse más lento sin una razón. Aquí Kev aceptó a
+    sabiendas **un toque más antes de marcar** (Inicio → Hábitos).
+  - Barra: **Inicio · Hábitos · Pendientes · Ideas · Fechas**.
+    `VISTAS` empieza en `'inicio'`. Compras no tiene pestaña: se llega
+    desde su cuadro, y mientras estás ahí se ilumina Inicio
+    (`sitioEnBarra()`).
+  - **La app abre en el Inicio** (`let vista = 'inicio'`; el arranque llama
+    a `cambiarVista(vista)` en vez de a `pintar()`).
+  - Cinco cuadros (`pintarInicio`, P2, junto a `pintar()`): Hábitos a lo
+    ancho con su barra, Pendientes (primero los de importancia alta),
+    Fechas (la próxima, sea cuando sea), Compras, Ideas. **Ideas sin
+    número** (regla de la v14). Los números salen de `resumenInicio()`
+    (final de D3, probada). Los íconos son las mismas máscaras de las
+    pestañas (`.losa-habitos`, etc., comparten la regla con `#pestana…`).
+  - El Inicio se redibuja dentro de `pintar()` (`if (vista === 'inicio')`):
+    todo lo que cambia datos llama a `pintar()`.
+  - Sin "Editar" ni caja de progreso en el Inicio (`body.vista-inicio`):
+    el saludo hace de título. Ajustes sigue en Hábitos → Editar.
+  - `vista-tareas` sigue queriendo decir "no estás en Hábitos": también
+    vale en el Inicio.
 - **Fase 4 — Opcional** Capacitor para app nativa (widgets, notificaciones), o
   reescribir en React para aprender un framework.
 
