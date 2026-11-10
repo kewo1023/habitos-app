@@ -45,7 +45,7 @@ global.alert = m => { ultimaAlerta = m; };
 global.confirm = () => true;     // por defecto decimos que sí a todo
 
 const ctx = {};
-eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO,esMetaValida,metaSemanal,esSemanal,limpiarMetas,lunesDe,hechosEnSemana,metaDeLaSemana,semanaCumplida,valorDeSemana,rachaSemanal,mejorRachaSemanal,porcentajeSemanas,fuerzaSemanal,FUERZA_ALFA_SEMANA,HITOS_SEMANA,cambiarMeta,habitosOrdenados}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
+eval(logica + '\n; Object.assign(ctx,{hoy,haceNDias,estaHecho,calcularRacha,alternarHoy,agregarHabito,borrarHabito,cargar,claveFecha,esCopiaValida,importar,nombreArchivo,claveDe,diasDelMes,columnaInicio,esFutura,contarMes,alternarFecha,fechasDe,totalDias,diasEntre,mejorRacha,fechaInicio,diasDeVida,porcentajeUltimos,renombrarHabito,moverHabito,mensajeDeError,habitoAFila,filasAHabitos,filasARegistros,textoPendientes,encolar,primerEmoji,cambiarEmoji,agregarTarea,alternarTarea,renombrarTarea,borrarTarea,limpiarHechas,tareasOrdenadas,contarTareas,tareasDe,moverALista,editarTarea,diaCompleto,moverTarea,tareaAFila,filasATareas,encolarTareasDesde,sePuedeAplicarLoBajado,esLista,LISTAS,cambiarPrioridad,siguientePrioridad,pesoPrioridad,PRIORIDADES,t,TEXTOS,IDIOMAS,TEMAS,localeFechas,PREFS_POR_DEFECTO,fuerzaHabito,FUERZA_ALFA,mesesHasta,textoUltimaCopia,celdaCSV,aCSV,nombreArchivoCSV,estadoInsignia,hitoDeRacha,sonidoDeHabito,HITOS,esFallo,ponerFallo,ciclarFecha,alternarFalloHoy,revisarCopia,aplicarCopia,notaAHtml,alternarCasilla,ordenarCasillas,notaEnTexto,aplicarFormatoTexto,escaparHtml,LARGO_NOTA,esFechaValida,ocurrenciaEnAnio,proximaOcurrencia,aniosQueCumple,caeEnDia,fechasDelDia,diasConFechas,agendaFechas,fechasPasadas,proximasFechas,textoFaltan,limpiarFecha,agregarFecha,editarFecha,borrarFecha,fechaAPendiente,REPITE,EMOJIS_FECHA,DIAS_PROXIMAS,seRepite,cadaDe,sumarDias,sumarMeses,mesesEntre,textoRepite,emojisParaFechas,ORDEN_REPITE,ocultarEmoji,mostrarEmoji,esOtroMes,PREFS_POR_DEFECTO,esMetaValida,metaSemanal,esSemanal,limpiarMetas,lunesDe,hechosEnSemana,metaDeLaSemana,semanaCumplida,valorDeSemana,rachaSemanal,mejorRachaSemanal,porcentajeSemanas,fuerzaSemanal,FUERZA_ALFA_SEMANA,HITOS_SEMANA,cambiarMeta,habitosOrdenados,estaDominado,habitosActivos,habitosDominados,limpiarDominados,mandarAlSalon,sacarDelSalon,aLaFecha,sugerirSalon,UMBRAL_SALON,resumenInicio}); Object.defineProperty(ctx,"datos",{get:()=>datos,set:v=>{datos=v}});');
 
 let fallos = 0;
 const ok = (nombre, cond) => { console.log((cond?'✅':'❌')+' '+nombre); if(!cond) fallos++; };
@@ -1061,7 +1061,7 @@ ok('y el día elegido le gana (va después en el CSS)',
 const DIBUJOS = ['.habito-emoji', '.check', '.hito-numero', '.acciones button', '.borrar',
   '.pestana .cuantas', '.nueva-tarea button', '.nota-barra button', '.mover', '.fecha-emoji',
   '#modalFecha .emoji-op.quitable::after', '#modalFecha input.emoji-propio', '.vacio-emoji',
-  '.emoji-op', '.cal-flecha'];
+  '.emoji-op', '.cal-flecha', '.salon-emoji'];
 const tamanosSueltos = [...cuerpoCss.replace(/\/\*[\s\S]*?\*\//g, '')
   .matchAll(/([^{}]+)\{([^{}]*)\}/g)]
   .map(m => ({ selector: m[1].trim().replace(/\s+/g, ' '),
@@ -2075,6 +2075,160 @@ ok('y una copia vieja, sin ellos, entra con la lista vacía',
   ok('y baja si lo marcas hoy, como los diarios', ver() === 'a,b,d,c');
   ctx.datos.fallos[dia] = ['a', 'd'];
   ok('varios no logrados: al fondo y en tu orden', ver() === 'b,c,a,d');
+}
+
+// --- El Salón de la fama (v39) ---------------------------------------------
+// Un hábito dominado sale de la lista diaria pero conserva su historial.
+{
+  const dia = ctx.hoy();
+  const ayer = ctx.sumarDias(dia, -1);
+  ctx.datos = { version: 1, registros: {}, fallos: {}, tareas: [], pendientes: [], fechas: [],
+                prefs: { ...ctx.PREFS_POR_DEFECTO },
+                habitos: [{ id: 'a', nombre: 'Leer',   emoji: '📖', creado: ctx.sumarDias(dia, -10) },
+                          { id: 'b', nombre: 'Correr', emoji: '🏃', creado: ctx.sumarDias(dia, -10) },
+                          { id: 'c', nombre: 'Agua',   emoji: '💧', creado: ctx.sumarDias(dia, -10) }] };
+  ctx.datos.registros[ayer] = ['a', 'b'];
+  ctx.datos.registros[ctx.sumarDias(dia, -2)] = ['b'];
+  ctx.datos.registros[ctx.sumarDias(dia, -3)] = ['b'];
+  const ids = lista => lista.map(h => h.id).join(',');
+
+  ok('salón: sin el campo, el hábito está activo', !ctx.estaDominado(ctx.datos.habitos[1]));
+  ok('salón: al empezar está vacío', ctx.habitosDominados().length === 0);
+  const rachaAntes = ctx.calcularRacha('b');
+  const diasAntes = ctx.fechasDe('b').join(',');
+
+  ok('salón: mandar devuelve true', ctx.mandarAlSalon('b') === true);
+  ok('salón: guarda la fecha de hoy', ctx.datos.habitos[1].dominado === dia);
+  ok('salón: mandar dos veces no hace nada', ctx.mandarAlSalon('b') === false);
+  ok('salón: un id que no existe no hace nada', ctx.mandarAlSalon('zzz') === false);
+  ok('salón: sale de los activos', ids(ctx.habitosActivos()) === 'a,c');
+  ok('salón: entra a los dominados', ids(ctx.habitosDominados()) === 'b');
+  ok('salón: sigue en datos.habitos, en su sitio', ids(ctx.datos.habitos) === 'a,b,c');
+  ok('salón: no pierde ni un día de historial', ctx.fechasDe('b').join(',') === diasAntes);
+  ok('salón: la lista del día no lo dibuja', ids(ctx.habitosOrdenados(dia)) === 'a,c');
+
+  // El día completo ya no lo espera.
+  ctx.datos.registros[dia] = ['a', 'c'];
+  ok('salón: el día se completa sin el hábito dominado', ctx.diaCompleto(dia) === true);
+  ctx.datos.registros[dia] = ['a'];
+  ok('salón: pero sigue exigiendo a los activos', ctx.diaCompleto(dia) === false);
+  ctx.datos.registros[dia] = [];
+
+  // Las flechas saltan al escondido: subir "c" lo cambia con "a", no con "b".
+  ok('salón: la flecha salta al hábito escondido', ctx.moverHabito('c', -1) === true);
+  ok('salón: y en pantalla "c" queda arriba de "a"', ids(ctx.habitosActivos()) === 'c,a');
+  ok('salón: el escondido no se movió de su sitio', ctx.datos.habitos[1].id === 'b');
+  ok('salón: "c" ya está arriba del todo', ctx.moverHabito('c', -1) === false);
+  ctx.moverHabito('a', -1);   // dejarlo como estaba: a, b, c
+
+  // Varios en el salón: el más reciente arriba.
+  ctx.datos.habitos[0].dominado = ctx.sumarDias(dia, -30);
+  ok('salón: el más reciente va primero', ids(ctx.habitosDominados()) === 'b,a');
+  delete ctx.datos.habitos[0].dominado;
+
+  // Volver a la lista.
+  ok('salón: devolver devuelve true', ctx.sacarDelSalon('b') === true);
+  ok('salón: y quita el campo, no lo deja en null', !('dominado' in ctx.datos.habitos[1]));
+  ok('salón: devolver uno que no está ahí no hace nada', ctx.sacarDelSalon('b') === false);
+  ok('salón: vuelve con su racha intacta', ctx.calcularRacha('b') === rachaAntes);
+  ok('salón: y a su sitio en tu orden', ids(ctx.habitosActivos()) === 'a,b,c');
+
+  // Una fecha que no es fecha no esconde un hábito.
+  const raros = [{ id: 'x', nombre: 'X', dominado: '2026-13-40' },
+                 { id: 'y', nombre: 'Y', dominado: true },
+                 { id: 'z', nombre: 'Z', dominado: '2026-10-01' }];
+  ok('salón: una fecha imposible no cuenta como dominado', !ctx.estaDominado(raros[0]));
+  ctx.limpiarDominados(raros);
+  ok('salón: limpiar borra lo que no es fecha', !('dominado' in raros[0]) && !('dominado' in raros[1]));
+  ok('salón: y deja la fecha buena', raros[2].dominado === '2026-10-01');
+
+  // La nube no tiene la columna: al bajar, la fecha sale del hábito local.
+  const filas = [{ id: 'a', nombre: 'Leer', emoji: '📖', creado: dia },
+                 { id: 'b', nombre: 'Correr', emoji: '🏃', creado: dia }];
+  const locales = [{ id: 'b', nombre: 'Correr', emoji: '🏃', dominado: '2026-10-01' }];
+  const bajados = ctx.filasAHabitos(filas, locales);
+  ok('salón: bajar de la nube conserva el dominado', bajados[1].dominado === '2026-10-01');
+  ok('salón: y no se lo pone a quien no lo tenía', !('dominado' in bajados[0]));
+  ok('salón: la nube no recibe el campo', !('dominado' in ctx.habitoAFila(locales[0], 0, 'u')));
+
+  // Cargar unos datos guardados con un dominado roto.
+  store['habitos-app-v1'] = JSON.stringify({ version: 1, registros: {},
+    habitos: [{ id: 'q', nombre: 'Q', emoji: '⭐', dominado: 'mañana' },
+              { id: 'w', nombre: 'W', emoji: '⭐', dominado: '2026-11-01' }] });
+  const leidos = ctx.cargar();
+  ok('salón: cargar limpia un dominado roto', !('dominado' in leidos.habitos[0]));
+  ok('salón: y conserva uno bueno', leidos.habitos[1].dominado === '2026-11-01');
+  ok('salón: una copia con hábitos dominados es válida',
+     ctx.esCopiaValida({ habitos: leidos.habitos, registros: {} }));
+}
+
+// --- El reloj fijado y la sugerencia del salón (v39) ------------------------
+{
+  const real = ctx.hoy();
+  ok('reloj: aLaFecha cambia hoy() mientras dura', ctx.aLaFecha('2026-01-10', () => ctx.hoy()) === '2026-01-10');
+  ok('reloj: y haceNDias cuenta desde esa fecha', ctx.aLaFecha('2026-01-10', () => ctx.haceNDias(1)) === '2026-01-09');
+  ok('reloj: haceNDias cruza el mes', ctx.aLaFecha('2026-03-01', () => ctx.haceNDias(1)) === '2026-02-28');
+  ok('reloj: al terminar, hoy() vuelve a ser hoy', ctx.hoy() === real);
+  try { ctx.aLaFecha('2020-05-05', () => { throw new Error('a propósito'); }); } catch (e) {}
+  ok('reloj: vuelve aunque la cuenta falle', ctx.hoy() === real);
+  ok('reloj: sin fijar, haceNDias(0) es hoy', ctx.haceNDias(0) === real);
+
+  // Un hábito marcado 80 días seguidos hasta hace 40, y luego nada.
+  const entro = ctx.sumarDias(real, -40);
+  const registros = {};
+  for (let k = 0; k < 80; k++) registros[ctx.sumarDias(entro, -k)] = ['m'];
+  ctx.datos = { version: 1, registros, fallos: {}, tareas: [], pendientes: [], fechas: [],
+                prefs: { ...ctx.PREFS_POR_DEFECTO },
+                habitos: [{ id: 'm', nombre: 'Meditar', emoji: '🧘', creado: ctx.sumarDias(entro, -79) }] };
+  ok('salón: hoy, sin marcar desde hace 40 días, la racha es 0', ctx.calcularRacha('m') === 0);
+  ok('salón: el día que entró al salón eran 80', ctx.aLaFecha(entro, () => ctx.calcularRacha('m')) === 80);
+  ok('salón: la fuerza de hoy ya bajó', ctx.fuerzaHabito('m') < ctx.UMBRAL_SALON);
+  ok('salón: la de ese día pasaba de 95', ctx.aLaFecha(entro, () => ctx.fuerzaHabito('m')) >= 95);
+
+  // La sugerencia: con fuerza 95 o más y fuera del salón.
+  ok('sugerencia: con la fuerza baja, no sugiere', ctx.sugerirSalon('m') === false);
+  ok('sugerencia: con 80 días seguidos hasta hoy, sí', ctx.aLaFecha(entro, () => ctx.sugerirSalon('m')) === true);
+  ctx.datos.habitos[0].dominado = entro;
+  ok('sugerencia: si ya está en el salón, no', ctx.aLaFecha(entro, () => ctx.sugerirSalon('m')) === false);
+  ok('sugerencia: un id que no existe, no', ctx.sugerirSalon('zzz') === false);
+  // 20 días seguidos no bastan: la fuerza va por 66.
+  const corto = {};
+  for (let k = 0; k < 20; k++) corto[ctx.sumarDias(real, -k)] = ['c'];
+  ctx.datos.registros = corto;
+  ctx.datos.habitos = [{ id: 'c', nombre: 'Correr', emoji: '🏃', creado: ctx.sumarDias(real, -19) }];
+  ok('sugerencia: con 20 días no sugiere', ctx.sugerirSalon('c') === false);
+}
+
+// --- El resumen del Inicio (v39) ------------------------------------------
+{
+  const dia = ctx.hoy();
+  ctx.datos = { version: 1, registros: {}, fallos: {}, pendientes: [], prefs: { ...ctx.PREFS_POR_DEFECTO },
+    habitos: [{ id: 'a', nombre: 'Agua', emoji: '💧', creado: dia },
+              { id: 'b', nombre: 'Leer', emoji: '📖', creado: dia },
+              { id: 'g', nombre: 'Gym', emoji: '🏋️', creado: dia, porSemana: 5 },
+              { id: 'm', nombre: 'Meditar', emoji: '🧘', creado: dia, dominado: dia }],
+    tareas: [{ id: 't1', texto: 'Pagar', hecha: false, lista: 'pendientes', prioridad: 'alta' },
+             { id: 't2', texto: 'Llamar', hecha: false, lista: 'pendientes' },
+             { id: 't3', texto: 'Hecho', hecha: true, lista: 'pendientes', prioridad: 'alta' },
+             { id: 'c1', texto: 'Leche', hecha: false, lista: 'compras' },
+             { id: 'c2', texto: 'Pan', hecha: true, lista: 'compras' },
+             { id: 'i1', texto: 'Idea', hecha: false, lista: 'ideas' }],
+    fechas: [{ id: 'f1', titulo: 'Lejos', fecha: ctx.sumarDias(dia, 30), repite: 'no', emoji: '📌' },
+             { id: 'f2', titulo: 'Cerca', fecha: ctx.sumarDias(dia, 2), repite: 'no', emoji: '🎂' }] };
+  ctx.datos.registros[dia] = ['a', 'g'];
+  const r = ctx.resumenInicio(dia);
+  ok('inicio: cuenta solo los hábitos diarios y activos', r.diarios === 2);
+  ok('inicio: y los hechos de esos (el gym no suma)', r.hechos === 1);
+  ok('inicio: el día no está completo', r.completo === false);
+  ok('inicio: pendientes sin hacer', r.pendientes === 2);
+  ok('inicio: importantes = alta sin hacer', r.importantes === 1);
+  ok('inicio: compras que faltan', r.compras === 1);
+  ok('inicio: la próxima fecha es la más cercana', r.proxima && r.proxima.fecha.id === 'f2' && r.proxima.faltan === 2);
+  ok('inicio: ideas no tiene número', !('ideas' in r));
+  ctx.datos.registros[dia].push('b');
+  ok('inicio: con todos los diarios, día completo', ctx.resumenInicio(dia).completo === true);
+  ctx.datos.fechas = [];
+  ok('inicio: sin fechas, no hay próxima', ctx.resumenInicio(dia).proxima === null);
 }
 
 console.log(fallos === 0 ? '\n🎉 Todas las pruebas pasaron' : `\n⚠️ ${fallos} fallo(s)`);

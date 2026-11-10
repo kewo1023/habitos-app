@@ -153,7 +153,8 @@ eval(script + `
     bajarTodo, estaHecho, hoy, cambiarPrioridad, tareasDe, exportar, celebrarHito,
     TRAZO_CHECK, PAUSA_TACHADO, cerrarCalendario, TOQUE_LARGO, borrarHabito, cerrarFicha,
     lanzarOla, irseSello, pintarFechas, abrirFecha, irAlDia, VISTAS,
-    cambiarMeta, lunesDe, sumarDias, META_POR_DEFECTO, VERSION_APP, pintarAjustes
+    cambiarMeta, lunesDe, sumarDias, META_POR_DEFECTO, VERSION_APP, pintarAjustes,
+    mandarAlSalon, sacarDelSalon, abrirSalon, cerrarSalon, pintarInicio
   });
   Object.defineProperty(app, 'datos',  { get: () => datos });
   Object.defineProperty(app, 'vista',  { get: () => vista });
@@ -169,7 +170,11 @@ const $ = id => doc.getElementById(id);
 // 1. Que arranque sin romperse
 // ===========================================================================
 ok('la app arranca sin lanzar errores', true);   // si hubiera fallado, el eval habría explotado
-ok('arranca en la sección de Hábitos', app.vista === 'habitos');
+// Desde la v39 arranca en el Inicio (decisión de Kev); hasta la v38, en Hábitos.
+ok('arranca en el Inicio', app.vista === 'inicio');
+ok('con el Inicio a la vista y la lista de hábitos escondida',
+   $('vistaInicio').hidden === false && $('lista').hidden === true);
+ok('y la pestaña Inicio iluminada', $('pestanaInicio').className.includes('activa'));
 ok('los ajustes nacen con sus valores por defecto',
    app.datos.prefs.idioma === 'es' && app.datos.prefs.tema === 'auto');
 // iOS bloquea el audio que no nace de un toque: crear el sintetizador al
@@ -302,9 +307,13 @@ ok('cada tarjeta muestra 7 puntos (la última semana)',
    $('lista').children.every(c => c.querySelectorAll('.dia').length === 7));
 
 app.cambiarVista('ideas');
-ok('la píldora viaja hasta la tercera pestaña', $('pestanas').style['--i'] === '2');
+// Desde la v39 la primera pestaña es Inicio: Ideas es la cuarta (3).
+ok('la píldora viaja hasta la cuarta pestaña', $('pestanas').style['--i'] === '3');
 app.cambiarVista('habitos');
-ok('y vuelve a la primera', $('pestanas').style['--i'] === '0');
+ok('Hábitos es la segunda', $('pestanas').style['--i'] === '1');
+app.cambiarVista('inicio');
+ok('y vuelve a la primera, el Inicio', $('pestanas').style['--i'] === '0');
+app.cambiarVista('habitos');
 
 // v30: sin el "+" redondo, salir del modo edición desde abajo es el botón
 // "Listo" al final de los paneles (antes era el ✓ del "+").
@@ -733,13 +742,12 @@ app.cambiarVista('pendientes');
 // El idioma solo se cambia desde Ajustes, que vive en la vista de Hábitos
 // (en las listas ese panel está escondido). Por eso se cambia de vista antes.
 app.cambiarVista('habitos');
-ok('la cuarta pestaña existe y arranca en español', $('pestanaCompras').textContent === 'Compras');
-app.cambiarIdioma('en');
-ok('y se traduce', $('pestanaCompras').textContent === 'Shopping');
-app.cambiarIdioma('es');
+// Desde la v39 Compras no tiene pestaña: se llega desde su cuadro del Inicio.
+ok('Compras ya no tiene pestaña en la barra', $('pestanaCompras') === null);
 
 app.cambiarVista('compras');
-ok('cambiar a Compras la marca como activa', $('pestanaCompras').className.includes('activa'));
+ok('estando en Compras se ilumina el Inicio, de donde llegaste', $('pestanaInicio').className.includes('activa'));
+ok('y la píldora se queda en el Inicio', $('pestanas').style['--i'] === '0');
 ok('y apaga las otras', !$('pestanaIdeas').className.includes('activa')
                        && !$('pestanaTareas').className.includes('activa'));
 ok('y el texto guía del campo también', $('tareaNueva').placeholder === '¿Qué hay que comprar?');
@@ -1600,8 +1608,151 @@ function pruebasDeV38() {
   ok('el borde rojo sale de una variable', regla('.habito.fallo').includes('var(--fallo-borde)'));
 }
 
+// ===========================================================================
+// 20. El Salón de la fama (v39)
+//     La lógica la prueba pruebas.js. Aquí: que el botón aparezca solo con
+//     algo adentro, que la tarjeta salga de la lista, que la ventana liste
+//     lo que toca y que el botón del calendario mande y devuelva.
+// ===========================================================================
+function pruebasDeSalon() {
+  app.cambiarVista('habitos');
+  app.datos.habitos = []; app.datos.registros = {}; app.datos.fallos = {};
+  ['Agua', 'Leer', 'Correr'].forEach(n => app.agregarHabito(n, '✨'));
+  const id = n => app.datos.habitos.find(h => h.nombre === n).id;
+  const NOMBRES = ['Agua', 'Leer', 'Correr'];
+  const nombres = () => $('lista').children
+    .map(c => NOMBRES.find(n => c.textContent.includes(n))).join(',');
+  app.pintar();
+
+  ok('salón vacío: el botón no se ve', $('btnSalon').hidden === true);
+
+  // --- mandar desde el calendario
+  app.abrirCalendario(id('Leer'));
+  ok('el calendario ofrece mandarlo al salón', $('calSalon').textContent === app.t('salonMandar'));
+  ok('con la explicación debajo', $('calSalonPista').textContent === app.t('salonMandarPista'));
+  $('calSalon').click();
+  ok('al mandarlo se cierra el calendario', !$('modalCal').classList.contains('abierto'));
+  ok('y sale la medalla con su etiqueta',
+     $('hito').classList.contains('visible') && $('hito').textContent.includes(app.t('salonMedalla')));
+  ok('la tarjeta sale de la lista', nombres() === 'Agua,Correr');
+  ok('el botón aparece con la cuenta', $('btnSalon').hidden === false &&
+     $('btnSalon').textContent === `${app.t('salonBoton')} · 1`);
+
+  // --- la barra y el sello ya no lo esperan
+  app.alternarHoy(id('Agua')); app.alternarHoy(id('Correr'));
+  ok('la barra cuenta solo los activos: 2 de 2, no 2 de 3', $('progresoTexto').textContent === `2 ${app.t('de')} 2`);
+
+  // --- la ventana del salón
+  app.abrirSalon();
+  ok('la ventana del salón se abre', $('modalSalon').classList.contains('abierto'));
+  ok('y tiene una tarjeta', $('salonLista').children.length === 1);
+  ok('con el nombre y desde cuándo', $('salonLista').textContent.includes('Leer') &&
+     $('salonLista').textContent.includes(app.t('salonDesde').split('%f')[0].trim()));
+  $('salonLista').children[0].click();
+  ok('tocarla cierra el salón', !$('modalSalon').classList.contains('abierto'));
+  ok('y abre su calendario', $('modalCal').classList.contains('abierto') &&
+     $('calTitulo').textContent.includes('Leer'));
+  ok('el calendario ofrece devolverlo', $('calSalon').textContent === app.t('salonVolver'));
+
+  // --- en inglés
+  app.cambiarIdioma('en');
+  app.pintar();
+  ok('en inglés, el botón se traduce', $('btnSalon').textContent.startsWith('🏆 Hall of fame'));
+  app.cambiarIdioma('es');
+
+  // --- devolverlo
+  app.abrirCalendario(id('Leer'));
+  $('calSalon').click();
+  ok('devolverlo deja el calendario abierto', $('modalCal').classList.contains('abierto'));
+  ok('y el botón vuelve a ofrecer mandarlo', $('calSalon').textContent === app.t('salonMandar'));
+  app.cerrarCalendario();
+  app.pintar();
+  ok('vuelve a la lista', nombres().includes('Leer'));
+  ok('y el botón del salón se esconde otra vez', $('btnSalon').hidden === true);
+
+  // --- todos en el salón: la lista muestra el estado vacío, sin romperse
+  ['Agua', 'Leer', 'Correr'].forEach(n => app.mandarAlSalon(id(n)));
+  app.pintar();
+  ok('con todos en el salón, la lista no se rompe', $('lista').textContent.length > 0);
+  ok('y el botón sigue a la vista para volver a ellos', $('btnSalon').hidden === false);
+  ['Agua', 'Leer', 'Correr'].forEach(n => app.sacarDelSalon(id(n)));
+}
+
+// ===========================================================================
+// 21. El Inicio y los ajustes del salón (v39)
+// ===========================================================================
+function pruebasDeInicio() {
+  const hoy = app.hoy();
+  app.datos.habitos = []; app.datos.registros = {}; app.datos.fallos = {};
+  app.datos.tareas = []; app.datos.fechas = [];
+  ['Agua', 'Leer'].forEach(n => app.agregarHabito(n, '✨'));
+  const id = n => app.datos.habitos.find(h => h.nombre === n).id;
+  app.alternarHoy(id('Agua'));
+  app.agregarTarea('Leche', 'compras');
+  app.agregarTarea('Pan', 'compras');
+  app.agregarTarea('Pagar la tarjeta', 'pendientes');
+  app.cambiarVista('inicio');
+
+  const losas = () => $('inicioMosaico').children;
+  const losa = cual => losas().find(l => l.className.includes('losa-' + cual));
+  ok('el Inicio tiene cinco cuadros', losas().length === 5);
+  ok('en orden: Hábitos, Pendientes, Fechas, Compras, Ideas',
+     ['habitos', 'pendientes', 'fechas', 'compras', 'ideas'].every((c, i) => losas()[i].className.includes('losa-' + c)));
+  ok('Hábitos va a lo ancho', losa('habitos').className.includes('ancha'));
+  ok('y dice cuántos llevas', losa('habitos').textContent.includes('1 de 2 hoy'));
+  ok('Compras dice cuántas faltan', losa('compras').textContent.includes('Faltan 2'));
+  ok('Pendientes, cuántos sin hacer', losa('pendientes').textContent.includes('1 sin hacer'));
+  ok('Fechas, que no hay nada', losa('fechas').textContent.includes(app.t('inicioFechasVacio')));
+  ok('el saludo hace de título y la caja de progreso se esconde',
+     doc.body.classList.contains('vista-inicio'));
+
+  // Marcar desde Hábitos y volver: el Inicio se pone al día solo.
+  app.alternarHoy(id('Leer'));
+  ok('al completar el día, el cuadro lo dice', losa('habitos').textContent.includes(app.t('diaCompletoEtiqueta')) &&
+     losa('habitos').className.includes('completo'));
+
+  // Tocar un cuadro lleva a su sección.
+  losa('compras').click();
+  ok('el cuadro de Compras lleva a Compras', app.vista === 'compras' && $('listaTareas').hidden === false);
+  ok('y el Inicio se esconde', $('vistaInicio').hidden === true);
+  $('pestanaInicio').click();
+  ok('la pestaña Inicio te devuelve', app.vista === 'inicio' && $('vistaInicio').hidden === false);
+  losa('habitos').click();
+  ok('el cuadro de Hábitos lleva a Hábitos', app.vista === 'habitos' && $('lista').hidden === false);
+
+  // En inglés.
+  app.cambiarIdioma('en');
+  app.cambiarVista('inicio');
+  ok('en inglés, la pestaña dice Home', $('pestanaInicio').textContent === 'Home');
+  ok('y los cuadros también', losa('compras').textContent.includes('2 to buy'));
+  app.cambiarIdioma('es');
+
+  // --- el salón: estadísticas congeladas y sugerencia
+  app.datos.habitos = []; app.datos.registros = {};
+  app.agregarHabito('Meditar', '🧘');
+  const m = id('Meditar');
+  const entro = app.sumarDias(hoy, -40);
+  app.datos.habitos[0].creado = app.sumarDias(entro, -79);
+  for (let k = 0; k < 80; k++) app.datos.registros[app.sumarDias(entro, -k)] = [m];
+  app.datos.habitos[0].dominado = entro;
+  app.abrirCalendario(m);
+  // El navegador de mentira no lee el texto de cada cuadro por separado:
+  // se lee la caja entera. Sin congelar diría "0 Racha actual" y "0% Últimos".
+  const stats = $('calStats').textContent.replace(/\s+/g, ' ');
+  ok('en el salón, la racha se ve como el día que entró (80)', stats.includes('80 Racha actual'));
+  ok('y el 100% de esos 30 días, no el 0% de hoy', stats.includes('100% Últimos 30 días'));
+  app.cerrarCalendario();
+  delete app.datos.habitos[0].dominado;
+  for (let k = 0; k < 40; k++) app.datos.registros[app.sumarDias(hoy, -k)] = [m];
+  app.abrirCalendario(m);
+  ok('con fuerza de 95 o más, el botón se pinta de sugerencia', $('calSalon').className.includes('sugerido'));
+  ok('y la pista lo pregunta', $('calSalonPista').textContent.includes('¿Ya lo haces sin pensarlo?'));
+  app.cerrarCalendario();
+  app.cambiarVista('habitos');
+}
+
 pruebasDeInsignia().then(pruebasDeCopia).then(pruebasDeCarrera).then(pruebasDeMovimiento)
-  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeOrden).then(pruebasDeV38).then(pruebasDeArranque).then(() => {
+  .then(pruebasDeFechas).then(pruebasDeSonidos).then(pruebasDeMeta).then(pruebasDeOrden).then(pruebasDeV38).then(pruebasDeSalon).then(pruebasDeInicio).then(pruebasDeArranque).then(() => {
   console.log(fallos === 0
     ? '\n🎉 La app entera funciona'
     : `\n⚠️ ${fallos} fallo(s)`);
