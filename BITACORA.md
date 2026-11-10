@@ -2479,7 +2479,10 @@ todo su día.
 
 **Pendiente / siguiente**
 
-- [ ] Kev: probar la v39 y decidir si se publica (merge a `main`).
+- [x] Publicada: merge a `main` (commit `1c349ab`) y comprobada en el
+  sitio en vivo (v39, arranca en el Inicio, sin errores).
+- [ ] Kev: probar la v39 en la app instalada del iPhone.
+- [ ] Opcional: borrar la rama `v39-salon` en GitHub (ya está en `main`).
 - [ ] Reactivar Supabase antes del 14 de diciembre de 2026.
 
 ---

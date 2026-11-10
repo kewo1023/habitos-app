@@ -1133,6 +1133,12 @@ construida en la rama `v38-fallo-version` el 9 de noviembre de 2026.
 Merge a `main` (commit `37f7b95`), publicada el mismo día y comprobada en
 el sitio en vivo (`sw.js` y Ajustes en v38, sin errores al arrancar).
 Falta probarla en la app instalada. Sin SQL.
+**`v39`** (Salón de la fama, Inicio y Compras fuera de la barra, Fases
+3.25 y 3.26), construida en la rama `v39-salon` el 9 de noviembre de
+2026. Merge a `main` (commit `1c349ab`), publicada el mismo día y
+comprobada en el sitio en vivo (`VERSION_APP` en v39, arranca en el
+Inicio con cinco cuadros, sin pestaña Compras, sin errores). Falta
+probarla en la app instalada. Sin SQL.
 Confirmar que los **Pasos 6 y 7** ya corrieron en Supabase antes de dar por
 buena la sincronización de la v18 y la v19.
 
